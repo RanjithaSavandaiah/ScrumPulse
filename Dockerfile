@@ -1,7 +1,7 @@
 # ----------------------------------------------------
 # Stage 1: Build Frontend (Angular Standalone)
 # ----------------------------------------------------
-FROM node:20-alpine AS frontend-build
+FROM node:24-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY src/ScrumPulse.UI/package*.json ./
 RUN npm install --legacy-peer-deps
