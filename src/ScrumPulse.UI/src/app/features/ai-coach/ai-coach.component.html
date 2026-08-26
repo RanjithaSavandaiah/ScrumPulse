@@ -1,0 +1,20 @@
+<section class="animate-fade-in ai-coach-section">
+  <div class="coach-grid">
+    <app-ai-insights-card
+      [aiTier]="aiTier"
+      [aiData]="aiData"
+      [members]="state.members()"
+      [sprints]="state.sprints()"
+      [selectedMemberId]="selectedMemberId"
+      [selectedSprintId]="selectedSprintId"
+      (tierChange)="loadAiSuggestion($event)"
+      (memberChange)="onMemberChange($event)"
+      (sprintChange)="onSprintChange($event)"
+    ></app-ai-insights-card>
+
+    <app-copilot-chat
+      [messages]="chatMessages"
+      (sendMessage)="sendChat($event)"
+    ></app-copilot-chat>
+  </div>
+</section>

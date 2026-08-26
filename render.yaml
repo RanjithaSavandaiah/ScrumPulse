@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: scrumpulse
+    env: docker
+    plan: free
+    region: oregon
+    dockerfilePath: Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DatabaseProvider
+        value: PostgreSql
+      - key: ConnectionStrings__DefaultConnection
+        sync: false

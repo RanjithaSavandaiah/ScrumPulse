@@ -1,0 +1,31 @@
+<section class="animate-fade-in standup-section">
+  <div class="standup-grid">
+    <app-standup-feed
+      [standups]="state.standups()"
+      (logStandup)="openCreateStandup()"
+      (editStandup)="openEditStandup($event)"
+    ></app-standup-feed>
+
+    <app-standup-timer
+      [seconds]="timerSeconds()"
+      [isRunning]="timerRunning()"
+      [members]="contributingMembers()"
+      [currentSpeakerIndex]="currentSpeakerIndex()"
+      (toggle)="toggleTimer()"
+      (reset)="resetTimer()"
+      (nextSpeaker)="nextSpeaker()"
+      (selectSpeaker)="selectSpeaker($event)"
+    ></app-standup-timer>
+  </div>
+
+  <!-- Log / Edit Standup Modal -->
+  @if (showStandupModal()) {
+    <app-log-standup-modal
+      [members]="contributingMembers()"
+      [editStandup]="selectedEditStandup()"
+      (close)="showStandupModal.set(false); selectedEditStandup.set(null)"
+      (save)="onSaveStandup($event)"
+      (delete)="onDeleteStandup($event)"
+    ></app-log-standup-modal>
+  }
+</section>

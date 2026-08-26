@@ -1,0 +1,200 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon [name]="editItem ? 'edit-3' : 'plus'" [size]="22" color="var(--accent-primary)"></app-icon>
+          {{ editItem ? 'Edit Sprint Work Item (' + editItem.key + ')' : 'Create Sprint Work Item' }}
+        </h3>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Target Sprint & Category Row -->
+      <div class="split-controls">
+        <div class="control-col">
+          <label class="input-label">Target Sprint Board</label>
+          <select [(ngModel)]="item.sprintId" class="interactive-input">
+            @for (sprint of availableSprints; track sprint.id) {
+              <option [value]="sprint.id">
+                {{ sprint.name }} {{ sprint.isActive ? '(Active)' : '' }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Item Type Selection Cards -->
+      <div class="form-group">
+        <label class="input-label">Work Item Category</label>
+        <div class="type-cards-grid">
+          @for (t of itemTypes; track t.value) {
+            <button
+              type="button"
+              (click)="item.type = t.value"
+              [class.selected]="item.type === t.value"
+              class="type-card"
+            >
+              <app-icon [name]="t.icon" [size]="20"></app-icon>
+              <span class="type-label">{{ t.label }}</span>
+              <span class="type-desc">{{ t.desc }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Title & Assignee in Split Row -->
+      <div class="split-controls">
+        <div class="control-col">
+          <label class="input-label">Title & Intent</label>
+          <input
+            [(ngModel)]="item.title"
+            placeholder="e.g. Build OAuth Flow..."
+            class="interactive-input"
+          />
+        </div>
+
+        <div class="control-col">
+          <label class="input-label">Assignee / Owner</label>
+          <select [(ngModel)]="item.assigneeId" class="interactive-input">
+            <option value="">Unassigned</option>
+            @for (member of teamMembers; track member.id) {
+              <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="input-label">Description</label>
+        <textarea
+          [(ngModel)]="item.description"
+          placeholder="Describe the user story, bug reproduction, or technical objective..."
+          class="interactive-input"
+          rows="2"
+        ></textarea>
+      </div>
+
+      <!-- Acceptance Criteria (DoR) -->
+      <div class="form-group">
+        <label class="input-label">Acceptance Criteria</label>
+        <textarea
+          [(ngModel)]="item.acceptanceCriteria"
+          placeholder="Given / When / Then criteria required for Definition of Ready (DoR)..."
+          class="interactive-input"
+          rows="2"
+        ></textarea>
+      </div>
+
+      <!-- Story Points & Hour Estimation Split Row -->
+      <div class="split-controls">
+        <div class="control-col">
+          <div class="label-with-guide">
+            <label class="input-label">Story Points (Effort Estimation)</label>
+            <button
+              type="button"
+              (click)="showMatrixModal = true"
+              class="btn-matrix-guide-mini"
+              title="Open Fibonacci Reference Matrix & Sizing Guide"
+            >
+              <app-icon name="book-open" [size]="12" color="var(--accent-secondary)"></app-icon>
+              Fibonacci Guide
+            </button>
+          </div>
+          <div class="points-selector">
+            @for (pts of pointOptions; track pts) {
+              <button
+                type="button"
+                (click)="selectStoryPoints(pts)"
+                [class.selected]="item.storyPoints === pts"
+                class="point-btn"
+              >
+                {{ pts }}
+              </button>
+            }
+          </div>
+          @if (fibonacciHints[item.storyPoints]) {
+            <span class="point-hint-text">
+              <strong>{{ item.storyPoints }} SP ({{ fibonacciHints[item.storyPoints].range }}):</strong> {{ fibonacciHints[item.storyPoints].desc }}
+            </span>
+          }
+        </div>
+
+        <div class="control-col">
+          <label class="input-label">Hour Estimation (Hours)</label>
+          <div class="hours-input-wrapper">
+            <input
+              type="number"
+              min="0"
+              max="500"
+              step="0.5"
+              [(ngModel)]="item.estimatedHours"
+              placeholder="e.g. 15"
+              class="interactive-input hours-input"
+            />
+            <div class="hours-presets">
+              @for (h of hourOptions; track h) {
+                <button
+                  type="button"
+                  (click)="item.estimatedHours = h"
+                  [class.selected]="item.estimatedHours === h"
+                  class="hour-preset-btn"
+                >
+                  {{ h }}h
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priority Level -->
+      <div class="form-group">
+        <label class="input-label">Priority Level</label>
+        <div class="priority-pills">
+          @for (p of priorities; track p.value) {
+            <button
+              type="button"
+              (click)="item.priority = p.value"
+              [class.selected]="item.priority === p.value"
+              class="priority-chip"
+              [style.--pill-color]="p.color"
+            >
+              {{ p.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="modal-footer">
+      <div class="footer-left">
+        @if (editItem) {
+          <button type="button" (click)="delete.emit(editItem.id)" class="btn-danger">
+            <app-icon name="trash-2" [size]="16"></app-icon> Delete Story
+          </button>
+        }
+      </div>
+      <div class="footer-right">
+        <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+        <button (click)="save.emit(item)" [disabled]="!item.title.trim()" class="btn-primary btn-save">
+          <app-icon name="check" [size]="16"></app-icon> {{ editItem ? 'Save Changes' : 'Add to Sprint Pipeline' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fibonacci Matrix Selection Modal -->
+@if (showMatrixModal) {
+  <app-estimation-matrix-modal
+    [initialPoints]="item.storyPoints"
+    [initialHours]="item.estimatedHours"
+    [isSelectionMode]="true"
+    (selectEstimation)="onApplyMatrixEstimation($event)"
+    (close)="showMatrixModal = false"
+  ></app-estimation-matrix-modal>
+}

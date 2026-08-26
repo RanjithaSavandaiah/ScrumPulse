@@ -1,0 +1,77 @@
+import { Component, effect, inject, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { AiInsightsCardComponent } from './components/ai-insights-card/ai-insights-card.component';
+import { CopilotChatComponent } from './components/copilot-chat/copilot-chat.component';
+import { AiSuggestionResponse, CopilotChatResponse } from '../../core/models/scrum.models';
+
+@Component({
+  selector: 'app-ai-coach',
+  standalone: true,
+  imports: [CommonModule, AiInsightsCardComponent, CopilotChatComponent],
+  templateUrl: './ai-coach.component.html',
+  styleUrl: './ai-coach.component.css'
+})
+export class AiCoachComponent implements OnInit {
+  state = inject(ScrumStateService);
+
+  aiTier = 'individual';
+  aiData: AiSuggestionResponse | null = null;
+  selectedMemberId: string = '';
+  selectedSprintId: string = '';
+
+  chatMessages: { isUser: boolean; text: string }[] = [
+    { isUser: false, text: 'Hello! I am your Microsoft Agent Framework Agile Coach. Ask me about sprint risks, developer cycle times, or 1:1 coaching plans.' }
+  ];
+
+  constructor() {
+    effect(() => {
+      const members = this.state.members();
+      if (members.length > 0 && !this.selectedMemberId && this.aiTier === 'individual') {
+        this.selectedMemberId = members[0].id;
+        this.state.getIndividualAi(members[0].id).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+      }
+    });
+  }
+
+  ngOnInit() {
+    this.loadAiSuggestion('individual');
+  }
+
+  loadAiSuggestion(tier: string) {
+    this.aiTier = tier;
+    if (tier === 'individual') {
+      const targetId = this.selectedMemberId || this.state.members()[0]?.id;
+      if (targetId) {
+        this.selectedMemberId = targetId;
+        this.state.getIndividualAi(targetId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+      }
+    } else if (tier === 'project') {
+      const targetSprintId = this.selectedSprintId || this.state.activeSprint()?.id || this.state.sprints()[0]?.id;
+      if (targetSprintId) {
+        this.selectedSprintId = targetSprintId;
+        this.state.getProjectAi(targetSprintId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+      }
+    } else {
+      this.state.getCompanyAi().subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+    }
+  }
+
+  onMemberChange(memberId: string): void {
+    this.selectedMemberId = memberId;
+    this.state.getIndividualAi(memberId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+  }
+
+  onSprintChange(sprintId: string): void {
+    this.selectedSprintId = sprintId;
+    this.state.getProjectAi(sprintId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+  }
+
+  sendChat(promptMessage: string) {
+    this.chatMessages.push({ isUser: true, text: promptMessage });
+
+    this.state.askCopilot(promptMessage, this.state.currentRole()).subscribe((chatResponse: CopilotChatResponse) => {
+      this.chatMessages.push({ isUser: false, text: chatResponse.answer });
+    });
+  }
+}

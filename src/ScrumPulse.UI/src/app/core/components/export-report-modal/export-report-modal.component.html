@@ -1,0 +1,206 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon name="bar-chart" [size]="22" color="var(--accent-secondary)"></app-icon>
+          Generate Performance & Agile Report
+        </h3>
+        <p class="modal-subtitle">Configure custom time durations and export formatted Excel (.xlsx) or PDF (.pdf) reports</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- 1. Target Member Selector -->
+      <div class="form-group">
+        <label class="input-label">
+          <app-icon name="users" [size]="14"></app-icon> Select Target Scope
+        </label>
+        <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="interactive-input">
+          <option value="ALL">Entire Squad (All 7 Members Combined)</option>
+          @for (member of state.members(); track member.id) {
+            <option [value]="member.id">
+              {{ member.name | cleanName }} ({{ member.role | roleLabel }})
+            </option>
+          }
+        </select>
+      </div>
+
+      <!-- 2. Time Horizon Mode Selector -->
+      <div class="form-group">
+        <label class="input-label">
+          <app-icon name="calendar" [size]="14"></app-icon> Time Duration / Horizon
+        </label>
+        <div class="scope-pill-group">
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('SPRINT')"
+            [class.active]="selectedTimeScope() === 'SPRINT'"
+            class="scope-pill"
+          >
+            <app-icon name="zap" [size]="14"></app-icon> By Sprint
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('MONTH')"
+            [class.active]="selectedTimeScope() === 'MONTH'"
+            class="scope-pill"
+          >
+            <app-icon name="calendar" [size]="14"></app-icon> Monthly
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('QUARTER')"
+            [class.active]="selectedTimeScope() === 'QUARTER'"
+            class="scope-pill"
+          >
+            <app-icon name="bar-chart" [size]="14"></app-icon> Quarterly
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('CUSTOM')"
+            [class.active]="selectedTimeScope() === 'CUSTOM'"
+            class="scope-pill"
+          >
+            <app-icon name="clock" [size]="14"></app-icon> Custom Date Frame
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('ALL')"
+            [class.active]="selectedTimeScope() === 'ALL'"
+            class="scope-pill"
+          >
+            <app-icon name="eye" [size]="14"></app-icon> All History
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Dynamic Sub-Selectors depending on scope -->
+      @if (selectedTimeScope() === 'SPRINT') {
+        <div class="form-group animate-fade-in sub-filter-box">
+          <label class="input-label">Choose Sprint Board</label>
+          <select [ngModel]="effectiveSprintId()" (ngModelChange)="selectedSprintId.set($event)" class="interactive-input">
+            <option value="ALL">All Sprints Combined</option>
+            @for (sprint of state.sprints(); track sprint.id) {
+              <option [value]="sprint.id">{{ sprint.name }} {{ sprint.isActive ? '(Active Sprint)' : '' }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (selectedTimeScope() === 'MONTH') {
+        <div class="form-group animate-fade-in sub-filter-box">
+          <label class="input-label">Choose Calendar Month</label>
+          <select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)" class="interactive-input">
+            @for (m of monthsList; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (selectedTimeScope() === 'QUARTER') {
+        <div class="form-group animate-fade-in sub-filter-box">
+          <label class="input-label">Choose Financial / Delivery Quarter</label>
+          <select [ngModel]="selectedQuarter()" (ngModelChange)="selectedQuarter.set($event)" class="interactive-input">
+            @for (q of quartersList; track q.value) {
+              <option [value]="q.value">{{ q.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (selectedTimeScope() === 'CUSTOM') {
+        <div class="form-group animate-fade-in sub-filter-box">
+          <label class="input-label">Custom Date Range (From - To)</label>
+          <div class="custom-dates-grid">
+            <div>
+              <span class="sub-label">Start Date</span>
+              <input
+                type="date"
+                [ngModel]="startDate()"
+                (ngModelChange)="startDate.set($event)"
+                class="interactive-input date-input"
+              />
+            </div>
+            <div>
+              <span class="sub-label">End Date</span>
+              <input
+                type="date"
+                [ngModel]="endDate()"
+                (ngModelChange)="endDate.set($event)"
+                [min]="startDate()"
+                class="interactive-input date-input"
+              />
+            </div>
+          </div>
+
+          <!-- Quick Presets -->
+          <div class="custom-presets-row">
+            <span class="presets-tag">Presets:</span>
+            <button type="button" (click)="applyCustomPreset(7)" class="preset-chip">Last 7d</button>
+            <button type="button" (click)="applyCustomPreset(14)" class="preset-chip">Last 14d</button>
+            <button type="button" (click)="applyCustomPreset(30)" class="preset-chip">Last 30d</button>
+            <button type="button" (click)="applyThisMonthPreset()" class="preset-chip">This Month</button>
+            <button type="button" (click)="applySprintDatesPreset()" class="preset-chip">Current Sprint</button>
+          </div>
+        </div>
+      }
+
+      <!-- 4. Live Data Scope Summary -->
+      <div class="summary-preview-card">
+        <div class="preview-header">
+          <span class="preview-title">
+            <app-icon name="eye" [size]="14" color="var(--accent-primary)"></app-icon>
+            Matching Records for: <strong>{{ previewData().scopeLabel }}</strong>
+          </span>
+          <span class="target-chip">{{ previewData().memberLabel }}</span>
+        </div>
+
+        <div class="preview-stats-grid">
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().workItems.length }}</span>
+            <span class="stat-txt">Work Items</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().prLogs.length }}</span>
+            <span class="stat-txt">Pull Requests</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().standups.length }}</span>
+            <span class="stat-txt">Standups</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().leaves.length }}</span>
+            <span class="stat-txt">Leaves / PTO</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().reviews.length }}</span>
+            <span class="stat-txt">1:1 Reviews</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().kudos.length + previewData().techTalks.length }}</span>
+            <span class="stat-txt">Kudos & Talks</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer Dual Actions -->
+    <div class="modal-footer footer-split">
+      <div class="footer-left">
+        <button (click)="close.emit()" class="btn-secondary">Close</button>
+      </div>
+      <div class="footer-right">
+        <button (click)="downloadExcel()" class="btn-export-action btn-excel">
+          <app-icon name="download" [size]="16"></app-icon> Export Excel (.xlsx)
+        </button>
+        <button (click)="downloadPdf()" class="btn-export-action btn-pdf">
+          <app-icon name="file-text" [size]="16"></app-icon> Export PDF (.pdf)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

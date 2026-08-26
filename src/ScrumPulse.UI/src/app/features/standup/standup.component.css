@@ -1,0 +1,10 @@
+.standup-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.standup-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}

@@ -1,0 +1,101 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon name="shield-alert" [size]="22" color="var(--accent-danger)"></app-icon>
+          {{ editBlocker ? 'Edit Blocker & SLA Parameters' : 'Raise Flow Blocker & SLA Sentinel' }}
+        </h3>
+        <p class="modal-subtitle">{{ editBlocker ? 'Update blocker details and target SLA horizon' : 'Direct unblocking radar • Prevents offshore stall time' }}</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Blocker Category Cards -->
+      <div class="form-group">
+        <label class="input-label">Blocker Root Source</label>
+        <div class="categories-grid">
+          @for (c of categories; track c.value) {
+            <button
+              type="button"
+              (click)="blocker.category = c.value"
+              [class.selected]="blocker.category === c.value"
+              class="category-card"
+            >
+              <app-icon [name]="c.icon" [size]="20"></app-icon>
+              <span class="cat-label">{{ c.label }}</span>
+              <span class="cat-desc">{{ c.desc }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Quick Preset Suggestions -->
+      <div class="form-group">
+        <label class="input-label">Quick Suggestions</label>
+        <div class="preset-chips">
+          @for (preset of presets; track preset) {
+            <button type="button" (click)="applyPreset(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Blocker Title & Description -->
+      <div class="form-group">
+        <label class="input-label">Blocker Summary</label>
+        <input
+          [(ngModel)]="blocker.title"
+          placeholder="e.g. Waiting on DB credentials..."
+          class="interactive-input"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="input-label">Context & Impact on Sprint Goal</label>
+        <textarea
+          [(ngModel)]="blocker.description"
+          placeholder="Explain what is blocked and who is needed..."
+          class="interactive-input"
+          rows="2"
+        ></textarea>
+      </div>
+
+      <!-- SLA Resolution Limit -->
+      <div class="form-group">
+        <label class="input-label">Target SLA Resolution Time</label>
+        <div class="sla-pills">
+          @for (sla of slaOptions; track sla.hours) {
+            <button
+              type="button"
+              (click)="blocker.slaHoursLimit = sla.hours"
+              [class.selected]="blocker.slaHoursLimit === sla.hours"
+              class="sla-chip"
+            >
+              {{ sla.label }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer footer-split">
+      <div class="footer-left">
+        @if (editBlocker) {
+          <button type="button" (click)="onDelete()" class="btn-danger">
+            <app-icon name="trash" [size]="16"></app-icon> Delete Blocker
+          </button>
+        }
+      </div>
+      <div class="footer-right">
+        <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+        <button (click)="save.emit(blocker)" [disabled]="!blocker.title.trim()" class="btn-primary btn-save">
+          <app-icon [name]="editBlocker ? 'check' : 'alert-triangle'" [size]="16"></app-icon>
+          {{ editBlocker ? 'Save Changes' : 'Broadcast Blocker to SLA Radar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,171 @@
+<div class="feed-container">
+  <!-- Top Header & Action Controls -->
+  <div class="feed-header">
+    <div>
+      <h3 class="feed-title">
+        <app-icon name="users" [size]="20" color="var(--accent-secondary)"></app-icon>
+        Daily Standup Activity Feed
+      </h3>
+      <p class="feed-subtitle">Continuous round-robin updates & sprint cadence logs</p>
+    </div>
+
+    <div class="header-actions">
+      <button (click)="logStandup.emit()" class="btn-primary">
+        <app-icon name="plus" [size]="16"></app-icon> Log My Standup
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter & Granularity Toolbar -->
+  <div class="glass-panel feed-filter-bar">
+    <div class="filter-controls">
+      <!-- Sprint Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Sprint Board</label>
+        <select [ngModel]="selectedSprintId()" (ngModelChange)="selectedSprintId.set($event); currentPage.set(1)" class="filter-select">
+          <option value="ALL">All Sprints Combined</option>
+          @for (sprint of state.sprints(); track sprint.id) {
+            <option [value]="sprint.id">{{ sprint.name }} {{ sprint.isActive ? '(Active)' : '' }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Developer Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Engineer</label>
+        <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event); currentPage.set(1)" class="filter-select">
+          <option value="ALL">All Engineers</option>
+          @for (member of contributingMembers(); track member.id) {
+            <option [value]="member.id">{{ member.name | cleanName }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <!-- Live Counter Badge -->
+    <div class="feed-count-badge">
+      <span>{{ filteredStandups().length }} Total Updates</span>
+    </div>
+  </div>
+
+  <!-- Standup Cards List -->
+  <div class="standup-list">
+    @for (standup of paginatedStandups(); track standup.id) {
+      <div class="glass-panel standup-item animate-fade-in">
+        <div class="item-top">
+          <div class="member-info">
+            <div class="member-avatar">
+              {{ standup.teamMemberName | initials }}
+            </div>
+            <div>
+              <div class="name-row">
+                <h4 class="member-name">{{ standup.teamMemberName | cleanName }}</h4>
+              </div>
+              <span class="standup-date">{{ standup.standupDate | date:'mediumDate' }}</span>
+            </div>
+          </div>
+
+          <div class="top-meta">
+            <span class="glass-badge energy-badge" [class.high-energy]="standup.moodScore >= 4">
+              <app-icon name="zap" [size]="13"></app-icon> Energy: {{ standup.moodScore }}/5
+            </span>
+            @if (state.canEditOrDelete()) {
+              <div class="card-action-btns">
+                <button (click)="onEditStandup(standup)" class="card-action-btn edit-btn" title="Edit this standup update">
+                  <app-icon name="edit" [size]="14"></app-icon>
+                </button>
+                <button (click)="onDeleteStandup(standup)" class="card-action-btn delete-btn" title="Delete this standup log">
+                  <app-icon name="trash" [size]="14"></app-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="summary-line">
+          <span class="tag-label tag-yesterday">Yesterday</span>
+          <span class="tag-content">{{ standup.yesterdaySummary }}</span>
+        </div>
+
+        <div class="summary-line">
+          <span class="tag-label tag-today">Today</span>
+          <span class="tag-content">{{ standup.todayPlan }}</span>
+        </div>
+
+        @if (standup.blockersText && standup.blockersText !== 'None') {
+          <div class="summary-line blocker-line">
+            <span class="tag-label tag-blocker">Blocker</span>
+            <span class="tag-content">{{ standup.blockersText }}</span>
+          </div>
+        }
+      </div>
+    } @empty {
+      <div class="glass-panel empty-state">
+        <app-icon name="calendar" [size]="28" color="var(--text-secondary)"></app-icon>
+        <p>No standup logs found matching the selected filter criteria.</p>
+      </div>
+    }
+  </div>
+
+  <!-- Pagination Toolbar -->
+  @if (filteredStandups().length > 0) {
+    <div class="glass-panel pagination-toolbar">
+      <div class="page-info">
+        <span>Showing {{ (currentPage() - 1) * pageSize() + 1 }} - {{ (currentPage() - 1) * pageSize() + paginatedStandups().length }} of {{ filteredStandups().length }}</span>
+      </div>
+
+      <div class="page-size-selector">
+        <label>Per page:</label>
+        <select [ngModel]="pageSize()" (ngModelChange)="pageSize.set($event); currentPage.set(1)" class="page-size-select">
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="10">10</option>
+          <option [ngValue]="20">20</option>
+        </select>
+      </div>
+
+      <div class="pagination-buttons">
+        <button
+          type="button"
+          (click)="setPage(currentPage() - 1)"
+          [disabled]="currentPage() === 1"
+          class="page-btn page-nav"
+        >
+          &laquo; Prev
+        </button>
+
+        <span class="page-number-current">
+          Page <strong>{{ currentPage() }}</strong> of <strong>{{ totalPages() }}</strong>
+        </span>
+
+        <button
+          type="button"
+          (click)="setPage(currentPage() + 1)"
+          [disabled]="currentPage() === totalPages()"
+          class="page-btn page-nav"
+        >
+          Next &raquo;
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Custom Delete Standup Confirmation Modal -->
+  @if (standupToDelete(); as target) {
+    <app-confirm-modal
+      title="Delete Standup Log"
+      [message]="'Are you sure you want to delete the daily standup update for ' + (target.teamMemberName | cleanName) + '?'"
+      subMessage="This will permanently remove yesterday's notes, today's plan, and energy telemetry."
+      confirmText="Delete Update"
+      cancelText="Keep Log"
+      confirmVariant="danger"
+      icon="trash-2"
+      [memberPreview]="{
+        name: (target.teamMemberName | cleanName),
+        avatar: (target.teamMemberName | initials),
+        badgeColor: 'var(--accent-primary)'
+      }"
+      (confirm)="onConfirmDelete()"
+      (cancel)="onCancelDelete()"
+    ></app-confirm-modal>
+  }
+</div>

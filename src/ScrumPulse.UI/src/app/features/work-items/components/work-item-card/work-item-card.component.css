@@ -1,0 +1,130 @@
+.work-item-card {
+  padding: 18px;
+  position: relative;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.item-key {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--accent-secondary);
+}
+
+.item-title {
+  font-size: 1.05rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pts-badge {
+  color: var(--accent-purple);
+}
+
+.hours-badge {
+  color: var(--accent-secondary);
+}
+
+.status-badge {
+  background: var(--bg-card-hover);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.item-desc {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 14px;
+}
+
+.pr-banner {
+  display: flex;
+  gap: 14px;
+  background: var(--bg-glass);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  align-items: center;
+}
+
+.pr-info, .pr-reviewer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-timeline {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stage-step {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.stage-step.completed {
+  border-color: var(--accent-success);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.step-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.step-val {
+  font-size: 0.7rem;
+  color: var(--accent-secondary);
+  margin-top: 2px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-glass);
+  padding-top: 10px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-action {
+  font-size: 0.75rem;
+}
+
+.footer-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.assignee-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

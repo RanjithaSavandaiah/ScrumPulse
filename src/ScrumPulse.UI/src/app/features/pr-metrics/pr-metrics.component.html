@@ -1,0 +1,302 @@
+<section class="animate-fade-in pr-metrics-section">
+  <!-- Header with Sprint Control -->
+  <div class="section-header">
+    <div>
+      <div class="title-wrap">
+        <app-icon name="git-pull-request" [size]="22" color="var(--accent-primary)"></app-icon>
+        <h3>Developer PR & Code Review Analytics</h3>
+      </div>
+      <p class="section-subtitle">Track PR throughput, total code review comments, and actionable architectural suggestions per developer</p>
+    </div>
+
+    <div class="header-right-actions">
+      <!-- Sprint Selector Dropdown -->
+      <div class="filter-dropdown-wrap">
+        <app-icon name="calendar" [size]="16" color="var(--accent-primary)"></app-icon>
+        <label for="prSprintSelect" class="filter-label">Sprint:</label>
+        <select
+          id="prSprintSelect"
+          [ngModel]="selectedSprintId()"
+          (ngModelChange)="selectedSprintId.set($event)"
+          class="pr-filter-select"
+        >
+          <option value="ALL">All Sprints (Historical)</option>
+          @for (sprint of state.sprints(); track sprint.id) {
+            <option [value]="sprint.id">
+              {{ sprint.name }} {{ sprint.isActive ? '(Active)' : '(Completed)' }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <button (click)="openLogPrModal()" class="btn-primary">
+        <app-icon name="plus" [size]="16"></app-icon> Log PR & Review Comments
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Overview Cards -->
+  <div class="kpi-grid">
+    <div class="glass-panel kpi-card">
+      <div class="kpi-icon-wrap" style="color: var(--accent-primary);">
+        <app-icon name="git-pull-request" [size]="22"></app-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total PRs Created</span>
+        <span class="kpi-val">{{ totalPrs() }}</span>
+        <span class="kpi-sub">Across selected sprint scope</span>
+      </div>
+    </div>
+
+    <div class="glass-panel kpi-card">
+      <div class="kpi-icon-wrap" style="color: var(--accent-secondary);">
+        <app-icon name="message-square" [size]="22"></app-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Review Comments</span>
+        <span class="kpi-val">{{ totalComments() }}</span>
+        <span class="kpi-sub">Peer & lead review discussions</span>
+      </div>
+    </div>
+
+    <div class="glass-panel kpi-card">
+      <div class="kpi-icon-wrap" style="color: var(--accent-warning);">
+        <app-icon name="sparkles" [size]="22"></app-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Actionable Comments</span>
+        <span class="kpi-val">{{ totalActionableComments() }}</span>
+        <span class="kpi-sub">Architectural, edge-case & test fixes</span>
+      </div>
+    </div>
+
+    <div class="glass-panel kpi-card">
+      <div class="kpi-icon-wrap" style="color: var(--accent-success);">
+        <app-icon name="target" [size]="22"></app-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Actionability Rate</span>
+        <span class="kpi-val">{{ overallActionabilityRate() }}%</span>
+        <span class="kpi-sub">Ratio of actionable feedback</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer PR & Review Scorecards -->
+  <div class="dev-cards-header">
+    <h4 class="sub-heading">
+      <app-icon name="users" [size]="18" color="var(--accent-primary)"></app-icon>
+      Developer PR & Review Scoreboard
+    </h4>
+  </div>
+
+  <div class="scorecards-grid">
+    @for (dev of developerMetrics(); track dev.developerId) {
+      <div class="glass-panel dev-card">
+        <div class="dev-card-top">
+          <div class="dev-avatar-info">
+            <div class="dev-avatar">{{ dev.developerName | initials }}</div>
+            <div>
+              <h5 class="dev-name">{{ dev.developerName | cleanName }}</h5>
+              <span class="dev-role">{{ dev.developerRole | roleLabel }}</span>
+            </div>
+          </div>
+          <span class="prs-count-badge">
+            <app-icon name="git-pull-request" [size]="14"></app-icon>
+            <strong>{{ dev.totalPrsCreated }}</strong> PRs
+          </span>
+        </div>
+
+        <div class="dev-stats-row">
+          <div class="stat-col">
+            <span class="stat-title">Total Comments</span>
+            <span class="stat-num">{{ dev.totalCommentsReceived }}</span>
+          </div>
+          <div class="stat-col">
+            <span class="stat-title">Actionable</span>
+            <span class="stat-num actionable-color">{{ dev.actionableCommentsReceived }}</span>
+          </div>
+          <div class="stat-col">
+            <span class="stat-title">Avg / PR</span>
+            <span class="stat-num">{{ dev.avgCommentsPerPr }}</span>
+          </div>
+        </div>
+
+        <!-- Actionability Progress Bar -->
+        <div class="progress-wrap">
+          <div class="progress-labels">
+            <span>Actionability Index</span>
+            <strong>{{ dev.actionabilityRatePercentage }}%</strong>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" [style.width.%]="dev.actionabilityRatePercentage"></div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- PR Logs Table -->
+  <div class="table-section">
+    <div class="dev-cards-header">
+      <h4 class="sub-heading">
+        <app-icon name="file-text" [size]="18" color="var(--accent-primary)"></app-icon>
+        Sprint Pull Request Review Logs
+      </h4>
+    </div>
+
+    <div class="glass-panel table-container">
+      <table class="pr-table">
+        <thead>
+          <tr>
+            <th>PR Details</th>
+            <th>Author</th>
+            <th>Reviewer</th>
+            <th>Sprint</th>
+            <th>Total Comments</th>
+            <th>Actionable Comments</th>
+            <th>Review Summary</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pr of filteredPrLogs(); track pr.id) {
+            <tr>
+              <td>
+                <div class="pr-title-box">
+                  <span class="pr-number">{{ pr.prNumber }}</span>
+                  <span class="pr-title">{{ pr.prTitle }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="author-tag">{{ pr.authorName }}</span>
+              </td>
+              <td>
+                <span class="reviewer-tag">{{ pr.reviewerName || 'Unassigned' }}</span>
+              </td>
+              <td>
+                <span class="sprint-tag">{{ pr.sprintName || 'Current Sprint' }}</span>
+              </td>
+              <td>
+                <span class="count-badge total-badge">{{ pr.totalCommentsCount }} comments</span>
+              </td>
+              <td>
+                <span class="count-badge actionable-badge">{{ pr.actionableCommentsCount }} actionable</span>
+              </td>
+              <td>
+                <span class="summary-text" [title]="pr.reviewSummary">{{ pr.reviewSummary }}</span>
+              </td>
+              <td>
+                <span class="status-pill" [style.color]="getReviewStatusColor(pr.reviewStatus)">
+                  {{ pr.reviewStatus }}
+                </span>
+              </td>
+              <td>
+                <button (click)="onDeletePr(pr.id)" class="delete-pr-btn" title="Remove Log">&times;</button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="empty-table-cell">
+                No Pull Requests logged for this sprint. Click "Log PR & Review Comments" to add the first review!
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Log PR Modal -->
+  @if (showLogPrModal()) {
+    <div class="modal-backdrop">
+      <div class="glass-panel modal-content animate-fade-in">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">
+              <app-icon name="git-pull-request" [size]="22" color="var(--accent-primary)"></app-icon>
+              Log Pull Request & Review Feedback
+            </h3>
+            <p class="modal-subtitle">Track comments, actionable code improvements, and peer reviewer notes</p>
+          </div>
+          <button (click)="showLogPrModal.set(false)" class="close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="split-controls">
+            <div class="control-col">
+              <label class="input-label">PR Author (Developer)</label>
+              <select [(ngModel)]="newPr.authorId" class="interactive-input">
+                @for (member of developerMembers(); track member.id) {
+                  <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="control-col">
+              <label class="input-label">Sprint Board</label>
+              <select [(ngModel)]="newPr.sprintId" class="interactive-input">
+                <option value="">Unassigned Sprint</option>
+                @for (sprint of state.sprints(); track sprint.id) {
+                  <option [value]="sprint.id">{{ sprint.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label">PR Identifier</label>
+            <input [(ngModel)]="newPr.prNumber" placeholder="e.g. PR-713" class="interactive-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="input-label">PR Title & Deliverable</label>
+            <input [(ngModel)]="newPr.prTitle" placeholder="e.g. Implement Webhook Retries & Idempotency Key" class="interactive-input" />
+          </div>
+
+          <div class="split-controls">
+            <div class="control-col">
+              <label class="input-label">Total Review Comments Received</label>
+              <input type="number" min="0" max="100" [(ngModel)]="newPr.totalCommentsCount" class="interactive-input" />
+            </div>
+
+            <div class="control-col">
+              <label class="input-label">Actionable Review Comments</label>
+              <input type="number" min="0" [max]="newPr.totalCommentsCount" [(ngModel)]="newPr.actionableCommentsCount" class="interactive-input" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label">Review Summary & Key Takeaways</label>
+            <textarea
+              [(ngModel)]="newPr.reviewSummary"
+              placeholder="e.g. Suggested moving DB call out of loop, added cancellation token handling, unit test edge cases."
+              class="interactive-input"
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="split-controls">
+            <div class="control-col">
+              <label class="input-label">PR Status</label>
+              <select [(ngModel)]="newPr.reviewStatus" class="interactive-input">
+                <option value="Approved">Approved</option>
+                <option value="Merged">Merged</option>
+                <option value="ChangesRequested">Changes Requested</option>
+                <option value="InReview">In Review</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button (click)="showLogPrModal.set(false)" class="btn-secondary">Cancel</button>
+          <button (click)="onSavePrLog()" [disabled]="!newPr.prTitle.trim() || !newPr.authorId" class="btn-primary btn-save">
+            <app-icon name="check" [size]="16"></app-icon> Save PR Review Log
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

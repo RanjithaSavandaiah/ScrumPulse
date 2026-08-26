@@ -1,0 +1,181 @@
+<section class="animate-fade-in capacity-section">
+  <!-- Section Header -->
+  <div class="section-header">
+    <div>
+      <h3 class="section-title">
+        <app-icon name="palmtree" [size]="20" color="var(--accent-secondary)"></app-icon>
+        Multi-Calendar Leave & Dynamic Capacity Planner
+      </h3>
+      <p class="section-subtitle">Calculates net productive focus hours and recommended Story Point commitments</p>
+    </div>
+    <button (click)="openCreateLeave()" class="btn-primary">
+      <app-icon name="plus" [size]="16"></app-icon> Book Planned Leave
+    </button>
+  </div>
+
+  @if (state.capacity()) {
+    <!-- Capacity Overview Metrics Grid -->
+    <div class="glass-panel capacity-panel">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <span class="metric-label">Working Days in Sprint</span>
+          <span class="metric-val">{{ state.capacity()?.totalWorkingDays }} Days</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Total Planned Leave</span>
+          <span class="metric-val leave-val">{{ state.capacity()?.totalLeaveDays }} Days</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Net Available Hours</span>
+          <span class="metric-val hours-val">{{ state.capacity()?.totalAvailableHours }}h</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Recommended Commitment</span>
+          <span class="metric-val points-val">{{ state.capacity()?.recommendedStoryPoints }} Pts</span>
+        </div>
+      </div>
+
+      <!-- Member Breakdown -->
+      <h4 class="breakdown-title">Individual Capacity Breakdown</h4>
+      <div class="breakdown-grid">
+        @for (memberCap of state.capacity()?.memberBreakdown; track memberCap.memberName) {
+          <div class="glass-panel member-cap-card">
+            <div class="member-cap-name">{{ memberCap.memberName | cleanName }}</div>
+            <div class="member-cap-stats">Leaves: <strong class="leave-highlight">{{ memberCap.leaveDays }}d</strong> | Available: <strong>{{ memberCap.availableHours }}h</strong></div>
+            <div class="member-cap-points">Safe Capacity: <strong>{{ memberCap.suggestedPoints }} Story Points</strong></div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Planned Leaves Schedule & Filter Studio -->
+  <div class="glass-panel leaves-schedule-panel">
+    <div class="schedule-header">
+      <div>
+        <h4 class="schedule-title">
+          <app-icon name="calendar" [size]="18" color="var(--accent-primary)"></app-icon>
+          Planned Team Leaves & Holidays Schedule
+        </h4>
+        <p class="schedule-subtitle">Track squad availability, approved PTOs, and sprint capacity</p>
+      </div>
+
+      <!-- Filter Controls (Per Month & Per Individual) -->
+      <div class="schedule-filters">
+        <div class="filter-item">
+          <label class="filter-label">Month</label>
+          <select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)" class="schedule-select">
+            @for (m of monthsList; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label class="filter-label">Member</label>
+          <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="schedule-select">
+            <option value="ALL">All Squad Members</option>
+            @for (member of state.members(); track member.id) {
+              <option [value]="member.id">{{ member.name | cleanName }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaves List / Table -->
+    <div class="leaves-table-wrap">
+      <table class="leaves-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Leave Type</th>
+            <th>Slot / Duration</th>
+            <th>Dates</th>
+            <th>Days</th>
+            <th>Reason / Context</th>
+            @if (state.canEditOrDelete()) {
+              <th class="th-actions">Actions (SM)</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (leave of filteredLeaves(); track leave.id) {
+            <tr class="leave-row">
+              <td>
+                <div class="member-cell">
+                  <div class="cell-avatar">{{ leave.teamMemberName | initials }}</div>
+                  <strong>{{ leave.teamMemberName | cleanName }}</strong>
+                </div>
+              </td>
+              <td><span class="leave-type-pill">{{ leave.leaveType }}</span></td>
+              <td>
+                <span class="slot-pill" [class.half-day]="leave.leaveSlot && leave.leaveSlot !== 'FullDay'">
+                  {{ leave.leaveSlot === 'FirstHalf' ? '½ Day (1st Half)' : (leave.leaveSlot === 'SecondHalf' ? '½ Day (2nd Half)' : 'Full Day') }}
+                </span>
+              </td>
+              <td>
+                <span class="dates-text">
+                  {{ leave.startDate | date:'mediumDate' }}
+                  @if (leave.startDate !== leave.endDate) {
+                    - {{ leave.endDate | date:'mediumDate' }}
+                  }
+                </span>
+              </td>
+              <td><strong>{{ leave.totalDays }}d</strong></td>
+              <td class="cell-reason">{{ leave.reason || 'Planned Timeoff' }}</td>
+
+              @if (state.canEditOrDelete()) {
+                <td class="td-actions">
+                  <button (click)="openEditLeave(leave)" class="action-btn edit-btn" title="Edit this leave record">
+                    <app-icon name="edit" [size]="14"></app-icon>
+                  </button>
+                  <button (click)="onDeleteLeave(leave.id)" class="action-btn delete-btn" title="Delete this leave record">
+                    <app-icon name="trash" [size]="14"></app-icon>
+                  </button>
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="state.canEditOrDelete() ? 7 : 6" class="empty-cell">
+                No leave records found matching the selected month and member filters.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Book / Edit Leave Modal -->
+  @if (showLeaveModal()) {
+    <app-book-leave-modal
+      [members]="state.members()"
+      [editLeave]="selectedEditLeave()"
+      (close)="showLeaveModal.set(false); selectedEditLeave.set(null)"
+      (save)="onSaveLeave($event)"
+      (delete)="onDeleteLeave($event)"
+    ></app-book-leave-modal>
+  }
+
+  <!-- Custom Delete Leave Confirmation Modal -->
+  @if (leaveToDelete(); as leave) {
+    <app-confirm-modal
+      title="Delete Leave Record"
+      [message]="'Are you sure you want to delete the ' + leave.leaveType + ' for ' + (leave.teamMemberName | cleanName) + ' (' + leave.totalDays + 'd)?'"
+      [subMessage]="'Dates: ' + (leave.startDate | date:'mediumDate') + (leave.startDate !== leave.endDate ? ' - ' + (leave.endDate | date:'mediumDate') : '') + ' \u2022 Reason: ' + (leave.reason || 'None')"
+      confirmText="Delete Leave Record"
+      cancelText="Keep Leave"
+      confirmVariant="danger"
+      icon="trash-2"
+      [memberPreview]="{
+        name: (leave.teamMemberName | cleanName),
+        avatar: (leave.teamMemberName | initials),
+        badgeColor: 'var(--accent-primary)'
+      }"
+      (confirm)="onConfirmDeleteLeave()"
+      (cancel)="onCancelDeleteLeave()"
+    ></app-confirm-modal>
+  }
+</section>

@@ -1,0 +1,59 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon name="check-circle" [size]="22" color="var(--accent-success)"></app-icon>
+          Resolve Blocker SLA
+        </h3>
+        <p class="modal-subtitle">Document resolution actions and stop the SLA latency timer</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Blocker Summary Info Banner -->
+      <div class="blocker-summary-box">
+        <div class="summary-header">
+          <span class="category-badge">{{ blocker.category }}</span>
+          <span class="sla-badge" [class.breached]="blocker.isSlaBreached">
+            {{ blocker.isSlaBreached ? 'SLA Breached (' + blocker.hoursWaiting + 'h)' : 'Waiting ' + blocker.hoursWaiting + 'h / Limit ' + blocker.slaHoursLimit + 'h' }}
+          </span>
+        </div>
+        <h4 class="summary-title">{{ blocker.title }}</h4>
+        <p class="summary-desc">{{ blocker.description }}</p>
+      </div>
+
+      <!-- Resolution Notes Input -->
+      <div class="form-group">
+        <label class="input-label">Resolution Actions & Notes</label>
+        <textarea
+          [(ngModel)]="notes"
+          placeholder="Describe how this blocker was unblocked (e.g. Received connection string from DevOps and verified access)..."
+          class="interactive-input"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <!-- Quick Resolution Presets -->
+      <div class="form-group">
+        <label class="input-label">Quick Resolution Presets</label>
+        <div class="presets-grid">
+          @for (preset of presets; track preset) {
+            <button type="button" (click)="setPreset(preset)" class="preset-btn">
+              {{ preset }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="modal-footer">
+      <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+      <button (click)="onConfirm()" class="btn-primary btn-confirm">
+        <app-icon name="check" [size]="16"></app-icon> Confirm & Mark Resolved
+      </button>
+    </div>
+  </div>
+</div>

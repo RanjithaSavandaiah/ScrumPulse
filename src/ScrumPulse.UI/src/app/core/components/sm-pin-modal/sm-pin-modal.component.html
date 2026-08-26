@@ -1,0 +1,102 @@
+<div class="pin-modal-backdrop animate-fade-in" (click)="onCancel()">
+  <div
+    class="pin-modal-box glass-panel glow-border animate-slide-up"
+    [class.shake-anim]="isShaking()"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="pin-header">
+      <div class="lock-icon-glow">
+        <app-icon name="shield-check" [size]="28" color="var(--accent-warning)"></app-icon>
+      </div>
+      <h3 class="pin-title">Scrum Master Security PIN</h3>
+      <p class="pin-subtitle">
+        Enter 4-digit master PIN to unlock squad management, quality gates, and delete permissions.
+      </p>
+    </div>
+
+    <!-- Hidden Input for keyboard capture -->
+    <input
+      #pinInput
+      type="password"
+      inputmode="numeric"
+      maxlength="4"
+      [(ngModel)]="pin"
+      (ngModelChange)="pin = $event.slice(0, 4); errorMessage.set(''); pin.length === 4 && submitPin()"
+      class="hidden-pin-field"
+      autocomplete="off"
+    />
+
+    <!-- 4-Digit Display Boxes -->
+    <div class="pin-display-row" (click)="focusInput()">
+      <div class="pin-slot" [class.filled]="pin.length >= 1" [class.active]="pin.length === 0">
+        @if (pin.length >= 1) {
+          <span>{{ showDigits() ? pin[0] : '●' }}</span>
+        }
+      </div>
+      <div class="pin-slot" [class.filled]="pin.length >= 2" [class.active]="pin.length === 1">
+        @if (pin.length >= 2) {
+          <span>{{ showDigits() ? pin[1] : '●' }}</span>
+        }
+      </div>
+      <div class="pin-slot" [class.filled]="pin.length >= 3" [class.active]="pin.length === 2">
+        @if (pin.length >= 3) {
+          <span>{{ showDigits() ? pin[2] : '●' }}</span>
+        }
+      </div>
+      <div class="pin-slot" [class.filled]="pin.length >= 4" [class.active]="pin.length === 3">
+        @if (pin.length >= 4) {
+          <span>{{ showDigits() ? pin[3] : '●' }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- Error Alert -->
+    @if (errorMessage()) {
+      <div class="pin-error-alert animate-fade-in">
+        <app-icon name="alert-triangle" [size]="14" color="var(--accent-danger)"></app-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Numeric Keypad -->
+    <div class="keypad-grid">
+      @for (d of digits; track d) {
+        <button type="button" (click)="appendDigit(d)" class="key-btn">
+          {{ d }}
+        </button>
+      }
+      <button type="button" (click)="clear()" class="key-btn key-action" title="Clear all digits">
+        CLR
+      </button>
+      <button type="button" (click)="appendDigit(0)" class="key-btn">
+        0
+      </button>
+      <button type="button" (click)="backspace()" class="key-btn key-action" title="Backspace">
+        <app-icon name="x" [size]="16"></app-icon>
+      </button>
+    </div>
+
+    <!-- Visibility Toggle -->
+    <div class="pin-helpers-row">
+      <button type="button" (click)="showDigits.set(!showDigits())" class="btn-text-action">
+        <app-icon [name]="showDigits() ? 'eye-off' : 'eye'" [size]="14"></app-icon>
+        {{ showDigits() ? 'Hide Digits' : 'Show Digits' }}
+      </button>
+      <span class="security-note">
+        <app-icon name="shield" [size]="12"></app-icon>
+        Admin restricted
+      </span>
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="pin-footer">
+      <button type="button" (click)="onCancel()" class="btn-secondary">
+        Cancel (Stay as Developer)
+      </button>
+      <button type="button" (click)="submitPin()" [disabled]="pin.length < 4" class="btn-primary">
+        <app-icon name="check" [size]="16"></app-icon> Unlock SM Access
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ScrumPulse.AI/ScrumPulse.AI.csproj" />
+    <Project Path="src/ScrumPulse.Api/ScrumPulse.Api.csproj" />
+    <Project Path="src/ScrumPulse.Application/ScrumPulse.Application.csproj" />
+    <Project Path="src/ScrumPulse.Domain/ScrumPulse.Domain.csproj" />
+    <Project Path="src/ScrumPulse.Infrastructure/ScrumPulse.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ScrumPulse.Tests/ScrumPulse.Tests.csproj" />
+  </Folder>
+</Solution>

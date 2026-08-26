@@ -1,0 +1,299 @@
+<section class="animate-fade-in retro-section">
+  <div class="section-header">
+    <div>
+      <div class="title-wrap">
+        <app-icon name="rotate-cw" [size]="22" color="var(--accent-secondary)"></app-icon>
+        <h3 class="section-title">Interactive Sprint Retrospective Board</h3>
+      </div>
+      <p class="section-subtitle">Scoped sprint boards &bull; Historical retros &bull; Live peer upvoting & action items</p>
+    </div>
+
+    <div class="header-right-actions">
+      <!-- Sprint Selector Dropdown -->
+      <div class="sprint-dropdown-wrap">
+        <app-icon name="calendar" [size]="16" color="var(--accent-primary)"></app-icon>
+        <label for="sprintSelect" class="sprint-label">Board / Sprint:</label>
+        <select
+          id="sprintSelect"
+          [ngModel]="selectedSprintId()"
+          (ngModelChange)="selectedSprintId.set($event)"
+          class="sprint-select"
+        >
+          <option value="ALL">All Sprints (Historical Overview)</option>
+          @for (sprint of state.sprints(); track sprint.id) {
+            <option [value]="sprint.id">
+              {{ sprint.name }} {{ sprint.isActive ? '(Active)' : '(Completed)' }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <button (click)="onOpenAddCard()" class="btn-primary">
+        <app-icon name="plus" [size]="16"></app-icon> Add Retro Card
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Sprint Chips Bar -->
+  <div class="sprint-chips-bar">
+    <button
+      type="button"
+      (click)="selectedSprintId.set('ALL')"
+      [class.active]="selectedSprintId() === 'ALL'"
+      class="sprint-chip"
+    >
+      <span class="chip-title">All Sprints</span>
+      <span class="chip-count">{{ state.retroCards().length }} notes</span>
+    </button>
+
+    @for (sprint of state.sprints(); track sprint.id) {
+      <button
+        type="button"
+        (click)="selectedSprintId.set(sprint.id)"
+        [class.active]="selectedSprintId() === sprint.id"
+        class="sprint-chip"
+      >
+        <span class="sprint-dot" [class.active-dot]="sprint.isActive"></span>
+        <span class="chip-title">{{ sprint.name }}</span>
+        @if (sprint.isActive) {
+          <span class="active-badge">Active</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- 4 Retro Columns with @for Control Flow -->
+  <div class="retro-columns-grid">
+    <!-- Went Well -->
+    <div class="glass-panel column-panel">
+      <h4 class="column-title went-well-title">
+        <app-icon name="smile" [size]="18" color="var(--accent-success)"></app-icon>
+        What Went Well
+      </h4>
+      @for (card of getCardsByCategory(0); track card.id) {
+        <div class="retro-card">
+          <p class="card-content">{{ card.content }}</p>
+          <div class="card-footer">
+            <span class="card-author">{{ card.authorName }}</span>
+            <div class="card-footer-actions">
+              @if (state.canEditOrDelete()) {
+                <button (click)="onEditCard(card)" class="icon-action-btn edit-action" title="Edit Note">
+                  <app-icon name="edit" [size]="13"></app-icon>
+                </button>
+                <button (click)="onDeleteCard(card)" class="icon-action-btn delete-action" title="Delete Note">
+                  <app-icon name="trash-2" [size]="13"></app-icon>
+                </button>
+              }
+              <button (click)="state.voteRetroCard(card.id)" class="btn-secondary btn-vote">
+                <app-icon name="thumbs-up" [size]="12"></app-icon> {{ card.upvotesCount }}
+              </button>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-column-text">No cards added for this board.</div>
+      }
+    </div>
+
+    <!-- Didn't Go Well -->
+    <div class="glass-panel column-panel">
+      <h4 class="column-title didnt-go-well-title">
+        <app-icon name="frown" [size]="18" color="var(--accent-danger)"></app-icon>
+        What Didn't Go Well
+      </h4>
+      @for (card of getCardsByCategory(1); track card.id) {
+        <div class="retro-card">
+          <p class="card-content">{{ card.content }}</p>
+          <div class="card-footer">
+            <span class="card-author">{{ card.authorName }}</span>
+            <div class="card-footer-actions">
+              @if (state.canEditOrDelete()) {
+                <button (click)="onEditCard(card)" class="icon-action-btn edit-action" title="Edit Note">
+                  <app-icon name="edit" [size]="13"></app-icon>
+                </button>
+                <button (click)="onDeleteCard(card)" class="icon-action-btn delete-action" title="Delete Note">
+                  <app-icon name="trash-2" [size]="13"></app-icon>
+                </button>
+              }
+              <button (click)="state.voteRetroCard(card.id)" class="btn-secondary btn-vote">
+                <app-icon name="thumbs-up" [size]="12"></app-icon> {{ card.upvotesCount }}
+              </button>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-column-text">No cards added for this board.</div>
+      }
+    </div>
+
+    <!-- Ideas & Experiments -->
+    <div class="glass-panel column-panel">
+      <h4 class="column-title ideas-title">
+        <app-icon name="lightbulb" [size]="18" color="var(--accent-secondary)"></app-icon>
+        Ideas & Experiments
+      </h4>
+      @for (card of getCardsByCategory(2); track card.id) {
+        <div class="retro-card">
+          <p class="card-content">{{ card.content }}</p>
+          <div class="card-footer">
+            <span class="card-author">{{ card.authorName }}</span>
+            <div class="card-footer-actions">
+              @if (state.canEditOrDelete()) {
+                <button (click)="onEditCard(card)" class="icon-action-btn edit-action" title="Edit Note">
+                  <app-icon name="edit" [size]="13"></app-icon>
+                </button>
+                <button (click)="onDeleteCard(card)" class="icon-action-btn delete-action" title="Delete Note">
+                  <app-icon name="trash-2" [size]="13"></app-icon>
+                </button>
+              }
+              <button (click)="state.voteRetroCard(card.id)" class="btn-secondary btn-vote">
+                <app-icon name="thumbs-up" [size]="12"></app-icon> {{ card.upvotesCount }}
+              </button>
+            </div>
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-column-text">No cards added for this board.</div>
+      }
+    </div>
+
+    <!-- Action Items -->
+    <div class="glass-panel column-panel">
+      <div class="column-header-row">
+        <h4 class="column-title actions-title">
+          <app-icon name="check-square" [size]="18" color="var(--accent-purple)"></app-icon>
+          Action Items
+        </h4>
+        @if (state.canEditOrDelete()) {
+          <button (click)="onOpenAddAction()" class="btn-mini-add" title="Add Action Item">
+            <app-icon name="plus" [size]="13"></app-icon> Add Action
+          </button>
+        }
+      </div>
+      @for (actionItem of filteredActions(); track actionItem.id) {
+        <div class="retro-card action-item-card" [style.border-left]="actionItem.isCompleted ? '4px solid var(--accent-success)' : '4px solid var(--accent-warning)'">
+          <div class="action-card-top">
+            <p class="action-title" [style.text-decoration]="actionItem.isCompleted ? 'line-through' : 'none'">{{ actionItem.title }}</p>
+            <input type="checkbox" [checked]="actionItem.isCompleted" (change)="state.toggleRetroAction(actionItem.id)" />
+          </div>
+          <div class="action-card-bottom">
+            <div class="action-owner">Owner: <strong>{{ actionItem.assigneeName || 'Team' }}</strong></div>
+            @if (state.canEditOrDelete()) {
+              <div class="action-item-actions">
+                <button (click)="onEditAction(actionItem)" class="icon-action-btn edit-action" title="Edit Action Item">
+                  <app-icon name="edit" [size]="13"></app-icon>
+                </button>
+                <button (click)="onDeleteAction(actionItem)" class="icon-action-btn delete-action" title="Delete Action Item">
+                  <app-icon name="trash-2" [size]="13"></app-icon>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      } @empty {
+        <div class="empty-column-text">No action items recorded for this board.</div>
+      }
+    </div>
+  </div>
+
+  <!-- Add / Edit Retro Card Modal -->
+  @if (showRetroModal()) {
+    <app-add-retro-card-modal
+      [members]="state.members()"
+      [editingCard]="editingCard()"
+      (close)="showRetroModal.set(false)"
+      (save)="onSaveRetroCard($event)"
+    ></app-add-retro-card-modal>
+  }
+
+  <!-- Add / Edit Action Item Modal -->
+  @if (showActionModal()) {
+    <div class="modal-backdrop animate-fade-in" (click)="showActionModal.set(false)">
+      <div class="glass-panel modal-content animate-slide-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">
+              <app-icon name="check-square" [size]="22" color="var(--accent-purple)"></app-icon>
+              {{ editingAction() ? 'Edit Retrospective Action Item' : 'New Retrospective Action Item' }}
+            </h3>
+            <p class="modal-subtitle">Track committed sprint process improvements & owners</p>
+          </div>
+          <button (click)="showActionModal.set(false)" class="close-btn" title="Close">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="input-label">Action Item Description *</label>
+            <input
+              [(ngModel)]="actionForm.title"
+              placeholder="e.g. Setup Playwright regression test suite scaffold in CI pipeline"
+              class="interactive-input"
+              autofocus
+            />
+          </div>
+
+          <div class="split-controls">
+            <div class="control-col">
+              <label class="input-label">Assigned Owner</label>
+              <select [(ngModel)]="actionForm.assigneeId" class="interactive-input">
+                <option value="">Unassigned (Squad)</option>
+                @for (member of state.members(); track member.id) {
+                  <option [value]="member.id">{{ member.name }} ({{ member.role }})</option>
+                }
+              </select>
+            </div>
+            <div class="control-col">
+              <label class="input-label">Target Completion Date</label>
+              <input type="date" [(ngModel)]="actionForm.dueDate" class="interactive-input date-input" />
+            </div>
+          </div>
+
+          @if (editingAction()) {
+            <div class="form-group">
+              <label class="active-checkbox-label">
+                <input type="checkbox" [(ngModel)]="actionForm.isCompleted" />
+                <span>Mark Action Item as Completed</span>
+              </label>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button (click)="showActionModal.set(false)" class="btn-secondary">Cancel</button>
+          <button (click)="onSaveAction()" [disabled]="!actionForm.title.trim()" class="btn-primary btn-save">
+            <app-icon name="check" [size]="16"></app-icon> {{ editingAction() ? 'Save Changes' : 'Create Action Item' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Delete Card Confirmation Modal -->
+  @if (cardToDelete(); as card) {
+    <app-confirm-modal
+      title="Delete Retrospective Note"
+      [message]="'Are you sure you want to delete this note: &quot;' + card.content + '&quot;?'"
+      subMessage="This note and its upvotes will be permanently removed from this board."
+      confirmText="Delete Note"
+      cancelText="Cancel"
+      confirmVariant="danger"
+      icon="trash-2"
+      (confirm)="onConfirmDeleteCard()"
+      (cancel)="onCancelDeleteCard()"
+    ></app-confirm-modal>
+  }
+
+  <!-- Delete Action Item Confirmation Modal -->
+  @if (actionToDelete(); as action) {
+    <app-confirm-modal
+      title="Delete Action Item"
+      [message]="'Are you sure you want to delete the action item: &quot;' + action.title + '&quot;?'"
+      confirmText="Delete Action Item"
+      cancelText="Cancel"
+      confirmVariant="danger"
+      icon="trash-2"
+      (confirm)="onConfirmDeleteAction()"
+      (cancel)="onCancelDeleteAction()"
+    ></app-confirm-modal>
+  }
+</section>

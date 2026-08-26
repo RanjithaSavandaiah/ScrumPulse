@@ -1,0 +1,69 @@
+<div class="glass-panel timer-card">
+  <div class="timer-top-header">
+    <div class="header-icon-box">
+      <app-icon name="clock" [size]="20" color="var(--accent-primary)"></app-icon>
+    </div>
+    <div>
+      <h4 class="timer-title">Co-Located Standup Timer</h4>
+      <p class="timer-subtitle">2-Minute Round-Robin Speaking Queue</p>
+    </div>
+  </div>
+
+  <!-- Active Speaker Banner -->
+  @if (currentSpeaker) {
+    <div class="active-speaker-banner animate-fade-in">
+      <span class="active-label">CURRENT SPEAKER:</span>
+      <span class="active-name">{{ currentSpeaker.name | cleanName }} ({{ currentSpeaker.role | roleLabel }})</span>
+    </div>
+  }
+
+  <!-- Circular Visual Progress Ring -->
+  <div class="timer-ring-container">
+    <div class="timer-circle" [class.running]="isRunning" [class.warning-time]="seconds <= 30 && seconds > 0" [class.time-up]="seconds === 0">
+      <span class="timer-digits">{{ formatTimer(seconds) }}</span>
+      <span class="timer-status-text">
+        {{ seconds === 0 ? 'Time Up!' : (isRunning ? 'Speaking Now' : 'Standby') }}
+      </span>
+    </div>
+  </div>
+
+  <div class="timer-buttons">
+    <button (click)="toggle.emit()" class="btn-primary btn-timer-main" [class.btn-pause]="isRunning">
+      <app-icon [name]="isRunning ? 'pause' : 'play'" [size]="16"></app-icon>
+      {{ isRunning ? 'Pause Clock' : 'Start Speaking Clock' }}
+    </button>
+    <div class="timer-sub-buttons">
+      <button (click)="reset.emit()" class="btn-secondary btn-reset" title="Reset current speaker clock to 2:00">
+        <app-icon name="rotate-ccw" [size]="15"></app-icon> Reset 2m
+      </button>
+      <button (click)="nextSpeaker.emit()" class="btn-secondary btn-next" title="Advance to next engineer in queue">
+        <app-icon name="arrow-right" [size]="15"></app-icon> Next
+      </button>
+    </div>
+  </div>
+
+  <!-- Speaking Queue with Interactive Avatar Cards -->
+  <div class="queue-panel">
+    <div class="queue-header">
+      <span>Turn-Taking Queue</span>
+      <span class="queue-count">{{ members.length }} Engineers</span>
+    </div>
+    <div class="queue-list">
+      @for (member of members; track member.id; let queueIndex = $index) {
+        <div
+          class="queue-item"
+          [class.active-speaker]="queueIndex === currentSpeakerIndex"
+          (click)="selectSpeaker.emit(queueIndex)"
+          title="Click to pass speaking turn to {{ member.name | cleanName }}"
+        >
+          <div class="speaker-info">
+            <span class="speaker-num">{{ queueIndex + 1 }}</span>
+            <div class="speaker-avatar">{{ member.name | initials }}</div>
+            <span class="speaker-name">{{ member.name | cleanName }}</span>
+          </div>
+          <span class="glass-badge role-badge">{{ member.role | roleLabel }}</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

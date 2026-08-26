@@ -1,0 +1,264 @@
+<section class="animate-fade-in work-items-section">
+  <!-- Header with Sprint and Assignee Controls -->
+  <div class="section-header">
+    <div>
+      <div class="title-wrap">
+        <app-icon name="clock" [size]="22" color="var(--accent-primary)"></app-icon>
+        <h3>Work Items & Granular Latency Pipeline</h3>
+      </div>
+      <p class="section-subtitle">Tracks Picked Up &rarr; Dev Time &rarr; PR Created &rarr; Review &rarr; Merge &rarr; QA Testing &rarr; Marked Done</p>
+    </div>
+
+    <div class="header-right-actions">
+      <!-- Sprint Selector Dropdown -->
+      <div class="filter-dropdown-wrap">
+        <app-icon name="calendar" [size]="16" color="var(--accent-primary)"></app-icon>
+        <label for="sprintSelect" class="filter-label">Sprint:</label>
+        <select
+          id="sprintSelect"
+          [ngModel]="selectedSprintId()"
+          (ngModelChange)="selectedSprintId.set($event)"
+          class="assignee-filter-select"
+        >
+          <option value="ALL">All Sprints (Historical)</option>
+          @for (sprint of state.sprints(); track sprint.id) {
+            <option [value]="sprint.id">
+              {{ sprint.name }} {{ sprint.isActive ? '(Active)' : '(Completed)' }}
+            </option>
+          }
+        </select>
+      </div>
+
+      <!-- Assignee Filter Dropdown -->
+      <div class="filter-dropdown-wrap">
+        <app-icon name="user-check" [size]="16" color="var(--accent-secondary)"></app-icon>
+        <label for="assigneeFilter" class="filter-label">Assignee:</label>
+        <select
+          id="assigneeFilter"
+          [ngModel]="selectedAssigneeId()"
+          (ngModelChange)="selectedAssigneeId.set($event)"
+          class="assignee-filter-select"
+        >
+          <option value="ALL">All Assignees ({{ getItemCount('ALL') }})</option>
+          <option value="UNASSIGNED">Unassigned ({{ getItemCount('UNASSIGNED') }})</option>
+          @for (member of state.members(); track member.id) {
+            <option [value]="member.id">{{ member.name }} ({{ getItemCount(member.id) }})</option>
+          }
+        </select>
+      </div>
+
+      <!-- Action Buttons -->
+      <button (click)="showEstimationMatrixModal.set(true)" class="btn-secondary" title="View Fibonacci Reference Matrix and Effort Estimation Guide">
+        <app-icon name="book-open" [size]="16" color="var(--accent-secondary)"></app-icon> Estimation Matrix
+      </button>
+
+      <button (click)="openCreateSprintModal()" class="btn-secondary">
+        <app-icon name="plus" [size]="16"></app-icon> Create Sprint
+      </button>
+
+      <button (click)="onOpenCreateModal()" class="btn-primary">
+        <app-icon name="plus" [size]="16"></app-icon> Add Story / Bug / PBI
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Sprint Chips Bar -->
+  <div class="sprint-filter-bar">
+    <button
+      type="button"
+      (click)="selectedSprintId.set('ALL')"
+      [class.active]="selectedSprintId() === 'ALL'"
+      class="sprint-chip"
+    >
+      <span class="chip-title">All Sprints</span>
+      <span class="chip-count">{{ getSprintItemCount('ALL') }} items</span>
+    </button>
+
+    @for (sprint of state.sprints(); track sprint.id) {
+      <button
+        type="button"
+        (click)="selectedSprintId.set(sprint.id)"
+        [class.active]="selectedSprintId() === sprint.id"
+        class="sprint-chip"
+      >
+        <span class="sprint-dot" [class.active-dot]="sprint.isActive"></span>
+        <span class="chip-title">{{ sprint.name }}</span>
+        <span class="chip-count">({{ getSprintItemCount(sprint.id) }})</span>
+        @if (sprint.isActive) {
+          <span class="active-badge">Active</span>
+        }
+      </button>
+    }
+  </div>
+
+  <!-- Sprint Goal, Live Velocity & Burndown Toggle Banner -->
+  @if (currentEffectiveSprint(); as activeSp) {
+    <div class="glass-panel sprint-goal-banner animate-slide-up">
+      <div class="goal-left">
+        <div class="goal-header-row">
+          <span class="goal-tag">
+            <app-icon name="target" [size]="14" color="var(--accent-warning)"></app-icon>
+            Sprint Goal
+          </span>
+          <span class="sprint-name-chip">{{ activeSp.name }} {{ activeSp.isActive ? '(Active)' : '' }}</span>
+          <span class="dates-tag">
+            <app-icon name="calendar" [size]="12"></app-icon>
+            {{ activeSp.startDate | date:'mediumDate' }} &rarr; {{ activeSp.endDate | date:'mediumDate' }}
+          </span>
+        </div>
+        <p class="goal-text">
+          {{ activeSp.goal || 'No specific sprint goal defined yet. Click "Edit Goal" to define business value and DoD targets.' }}
+        </p>
+      </div>
+
+      <div class="goal-right">
+        <!-- Live Velocity & Auto Capacity Badges -->
+        <div class="goal-metrics">
+          <div class="metric-pill">
+            <span class="pill-label">Velocity (Say-Do)</span>
+            <span class="pill-val">
+              {{ sprintCapacitySummary().delivered }} / {{ sprintCapacitySummary().committed }} Pts
+              <small class="pill-sub">({{ sprintCapacitySummary().velocityRatio }}%)</small>
+            </span>
+          </div>
+
+          <div class="metric-pill" title="Auto-deducted {{ sprintCapacitySummary().leaveHours }}h from {{ sprintCapacitySummary().totalLeaveDays }} leave days">
+            <span class="pill-label">Net Capacity</span>
+            <span class="pill-val capacity-green">
+              {{ sprintCapacitySummary().netHours }}h
+              <small class="pill-sub">(-{{ sprintCapacitySummary().leaveHours }}h leave)</small>
+            </span>
+          </div>
+        </div>
+
+        <div class="goal-action-btns">
+          <button
+            type="button"
+            (click)="showBurndownChart.set(!showBurndownChart())"
+            class="btn-burndown-toggle"
+            [class.active]="showBurndownChart()"
+          >
+            <app-icon name="bar-chart" [size]="15"></app-icon>
+            {{ showBurndownChart() ? 'Hide Burndown' : 'View Burndown Graph' }}
+          </button>
+
+          <button
+            type="button"
+            (click)="openEditSprintGoal(activeSp)"
+            class="btn-edit-goal"
+            title="Edit Sprint Goal & Parameters"
+          >
+            <app-icon name="edit" [size]="14"></app-icon> Edit Goal
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Burndown Graph Component -->
+    @if (showBurndownChart()) {
+      <app-sprint-burndown-chart
+        [sprint]="activeSp"
+        [workItems]="state.workItems()"
+        [leaves]="state.leaves()"
+        [members]="state.members()"
+      ></app-sprint-burndown-chart>
+    }
+  }
+
+  <!-- Member Filter Pills / Quick Chips Bar -->
+  <div class="member-filter-bar">
+    <button
+      type="button"
+      (click)="selectedAssigneeId.set('ALL')"
+      [class.active]="selectedAssigneeId() === 'ALL'"
+      class="filter-chip"
+    >
+      <span class="chip-title">All Assignees</span>
+      <span class="chip-count">{{ getItemCount('ALL') }}</span>
+    </button>
+
+    @for (member of contributingMembers(); track member.id) {
+      <button
+        type="button"
+        (click)="selectedAssigneeId.set(member.id)"
+        [class.active]="selectedAssigneeId() === member.id"
+        class="filter-chip"
+      >
+        <span class="chip-avatar-mini">{{ member.name | initials }}</span>
+        <span class="chip-title">{{ member.name | cleanName }}</span>
+        <span class="chip-count">{{ getItemCount(member.id) }}</span>
+      </button>
+    }
+
+    <button
+      type="button"
+      (click)="selectedAssigneeId.set('UNASSIGNED')"
+      [class.active]="selectedAssigneeId() === 'UNASSIGNED'"
+      class="filter-chip"
+    >
+      <span class="chip-title">Unassigned</span>
+      <span class="chip-count">{{ getItemCount('UNASSIGNED') }}</span>
+    </button>
+  </div>
+
+  <!-- Work Items List with @for Control Flow -->
+  <div class="items-list">
+    @for (item of filteredWorkItems(); track item.id) {
+      <app-work-item-card
+        [item]="item"
+        (advanceStage)="onAdvanceStage($event)"
+        (openGates)="selectedItemForGates = $event"
+        (editItem)="onEditItem($event)"
+      ></app-work-item-card>
+    } @empty {
+      <div class="glass-panel empty-state">
+        <app-icon name="check-circle" [size]="28" color="var(--text-secondary)"></app-icon>
+        <p>No work items found in this sprint view.</p>
+        <div class="empty-actions">
+          <button (click)="onOpenCreateModal()" class="btn-primary btn-sm">
+            <app-icon name="plus" [size]="14"></app-icon> Add Story
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Edit / Create Sprint Modal -->
+  @if (showEditSprintModal()) {
+    <app-edit-sprint-modal
+      [sprint]="selectedSprintForEdit()"
+      (close)="closeSprintModal()"
+      (save)="onSaveSprint($event)"
+      (delete)="onDeleteSprint($event)"
+    ></app-edit-sprint-modal>
+  }
+
+  <!-- Add / Edit Work Item Modal -->
+  @if (showNewItemModal()) {
+    <app-add-work-item-modal
+      [editItem]="selectedItemForEdit()"
+      [members]="state.members()"
+      [sprints]="state.sprints()"
+      [defaultSprintId]="selectedSprintId() !== 'ALL' ? selectedSprintId() : ''"
+      (close)="onCloseItemModal()"
+      (delete)="onDeleteItem($event)"
+      (save)="onSaveItem($event)"
+    ></app-add-work-item-modal>
+  }
+
+  <!-- Quality Gates Modal -->
+  @if (selectedItemForGates) {
+    <app-quality-gates-modal
+      [item]="selectedItemForGates"
+      (close)="selectedItemForGates = null"
+      (save)="onSaveQualityGates($event)"
+    ></app-quality-gates-modal>
+  }
+
+  <!-- Fibonacci Reference Matrix Modal -->
+  @if (showEstimationMatrixModal()) {
+    <app-estimation-matrix-modal
+      (close)="showEstimationMatrixModal.set(false)"
+    ></app-estimation-matrix-modal>
+  }
+</section>

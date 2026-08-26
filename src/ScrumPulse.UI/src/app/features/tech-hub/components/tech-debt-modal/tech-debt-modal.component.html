@@ -1,0 +1,118 @@
+<div class="modal-backdrop animate-fade-in" (click)="close.emit()">
+  <div class="modal-box glass-panel glow-border animate-slide-up" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-title-wrap">
+        <app-icon name="wrench" [size]="22" color="var(--accent-warning)"></app-icon>
+        <div>
+          <h3 class="modal-title">{{ techDebt ? 'Edit Tech Debt Item' : 'Log Technical Debt' }}</h3>
+          <p class="modal-subtitle">Track architectural refactoring, legacy debt, and payoff sprints</p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="close-btn" title="Close">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <form (ngSubmit)="onSubmit()" class="modal-body form-grid">
+      <!-- Title -->
+      <div class="form-group full-width">
+        <label class="form-label">Debt Title & Scope <span class="required-star">*</span></label>
+        <input
+          type="text"
+          [(ngModel)]="title"
+          name="title"
+          required
+          placeholder="e.g. Upgrade Angular state selectors to Signal inputs"
+          class="interactive-input"
+        />
+      </div>
+
+      <!-- Severity & Estimated Hours -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Severity Level</label>
+          <select [(ngModel)]="severity" name="severity" class="interactive-input">
+            @for (s of severities; track s.value) {
+              <option [value]="s.value">{{ s.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Estimated Hours (h)</label>
+          <input
+            type="number"
+            [(ngModel)]="estimatedHours"
+            name="estimatedHours"
+            min="1"
+            max="200"
+            class="interactive-input"
+          />
+        </div>
+      </div>
+
+      <!-- Status & Assigned Developer -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Debt Status</label>
+          <select [(ngModel)]="status" name="status" class="interactive-input">
+            @for (st of statuses; track st.value) {
+              <option [value]="st.value">{{ st.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Assigned Developer / Owner</label>
+          <select [(ngModel)]="assigneeId" name="assigneeId" class="interactive-input">
+            <option value="">Unassigned (Squad Backlog)</option>
+            @for (m of state.members(); track m.id) {
+              <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Target Payoff Sprint -->
+      <div class="form-group full-width">
+        <label class="form-label">Target Payoff Sprint</label>
+        <select [(ngModel)]="payoffSprintId" name="payoffSprintId" class="interactive-input">
+          <option value="">Unassigned Backlog (No specific sprint planned yet)</option>
+          @for (sp of state.sprints(); track sp.id) {
+            <option [value]="sp.id">{{ sp.name }} {{ sp.isActive ? '(Active Sprint)' : '' }}</option>
+          }
+        </select>
+        <span class="input-hint">The sprint timeline in which the team commits to refactor, payoff, or resolve this technical debt.</span>
+      </div>
+
+      <!-- Description / Context -->
+      <div class="form-group full-width">
+        <label class="form-label">Description & Architecture Notes</label>
+        <textarea
+          [(ngModel)]="description"
+          name="description"
+          rows="4"
+          placeholder="Describe root cause, performance bottleneck, security impact, or refactoring approach..."
+          class="interactive-textarea"
+        ></textarea>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="modal-footer footer-split">
+        <div class="footer-left">
+          @if (techDebt) {
+            <button type="button" (click)="onDelete()" class="btn-danger">
+              <app-icon name="trash" [size]="16"></app-icon> Delete Item
+            </button>
+          }
+        </div>
+        <div class="footer-right">
+          <button type="button" (click)="close.emit()" class="btn-secondary">Cancel</button>
+          <button type="submit" [disabled]="!title.trim()" class="btn-primary">
+            <app-icon name="check" [size]="16"></app-icon> {{ techDebt ? 'Save Changes' : 'Log Tech Debt' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

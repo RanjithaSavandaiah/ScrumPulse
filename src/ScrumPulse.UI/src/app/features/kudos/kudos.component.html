@@ -1,0 +1,85 @@
+<section class="animate-fade-in kudos-section">
+  <div class="section-header">
+    <div>
+      <h3 class="section-title">
+        <app-icon name="award" [size]="20" color="var(--accent-warning)"></app-icon>
+        Team Appreciation & Kudos Wall
+      </h3>
+      <p class="section-subtitle">Celebrate peer wins, problem solvers, quality champions, and client shoutouts</p>
+    </div>
+    <button (click)="showKudosModal.set(true)" class="btn-primary">
+      <app-icon name="gift" [size]="16"></app-icon> Give Kudos
+    </button>
+  </div>
+
+  <div class="kudos-grid">
+    @for (kudosCard of state.kudos(); track kudosCard.id) {
+      <div class="glass-panel kudos-card">
+        <div class="kudos-top">
+          <span class="glass-badge kudos-badge">
+            <app-icon [name]="getBadgeIcon(kudosCard.badge)" [size]="14"></app-icon>
+            {{ kudosCard.badge | badgeLabel }}
+          </span>
+          <span class="kudos-date">{{ kudosCard.createdAtUtc | date:'mediumDate' }}</span>
+        </div>
+
+        <p class="kudos-message">{{ kudosCard.message }}</p>
+
+        <div class="kudos-footer">
+          <div class="kudos-author">
+            From <strong>{{ kudosCard.senderName | cleanName }}</strong> &rarr; To <strong>{{ kudosCard.receiverName | cleanName }}</strong>
+          </div>
+          <div class="reactions-row">
+            <button
+              type="button"
+              (click)="state.addKudosReaction(kudosCard.id, 'thumbsUp')"
+              [class.active-reaction]="getReactionCount(kudosCard, 'thumbsUp') > 0"
+              class="btn-secondary reaction-btn"
+              title="Applaud (Thumbs Up)"
+            >
+              <app-icon name="thumbs-up" [size]="14"></app-icon>
+              @if (getReactionCount(kudosCard, 'thumbsUp') > 0) {
+                <span class="reaction-count">{{ getReactionCount(kudosCard, 'thumbsUp') }}</span>
+              }
+            </button>
+            <button
+              type="button"
+              (click)="state.addKudosReaction(kudosCard.id, 'zap')"
+              [class.active-reaction]="getReactionCount(kudosCard, 'zap') > 0"
+              class="btn-secondary reaction-btn"
+              title="High Energy & Velocity (Zap)"
+            >
+              <app-icon name="zap" [size]="14" color="var(--accent-warning)"></app-icon>
+              @if (getReactionCount(kudosCard, 'zap') > 0) {
+                <span class="reaction-count">{{ getReactionCount(kudosCard, 'zap') }}</span>
+              }
+            </button>
+            <button
+              type="button"
+              (click)="state.addKudosReaction(kudosCard.id, 'heart')"
+              [class.active-reaction]="getReactionCount(kudosCard, 'heart') > 0"
+              class="btn-secondary reaction-btn"
+              title="Appreciation & Heart"
+            >
+              <app-icon name="heart" [size]="14" color="var(--accent-danger)"></app-icon>
+              @if (getReactionCount(kudosCard, 'heart') > 0) {
+                <span class="reaction-count">{{ getReactionCount(kudosCard, 'heart') }}</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    } @empty {
+      <div class="glass-panel empty-state">No kudos sent yet. Be the first to recognize a colleague!</div>
+    }
+  </div>
+
+  <!-- Give Kudos Modal -->
+  @if (showKudosModal()) {
+    <app-give-kudos-modal
+      [members]="state.members()"
+      (close)="showKudosModal.set(false)"
+      (save)="onSaveKudos($event)"
+    ></app-give-kudos-modal>
+  }
+</section>

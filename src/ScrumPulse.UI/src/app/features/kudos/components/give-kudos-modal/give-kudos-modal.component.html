@@ -1,0 +1,100 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon name="gift" [size]="22" color="var(--accent-warning)"></app-icon>
+          Send Peer Appreciation & Kudos
+        </h3>
+        <p class="modal-subtitle">Celebrate team members &bull; Public recognition wall</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Sender & Receiver Row -->
+      <div class="form-row split-controls">
+        <div class="control-col">
+          <label class="input-label">Kudos From (Sender)</label>
+          <select [(ngModel)]="kudos.senderId" class="interactive-input">
+            <option value="" disabled>-- Select Who Is Giving Kudos --</option>
+            @for (member of teamMembers; track member.id) {
+              <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+            }
+          </select>
+        </div>
+        <div class="control-col">
+          <label class="input-label">Recognize Teammate (Recipient)</label>
+          <select [(ngModel)]="kudos.receiverId" class="interactive-input">
+            <option value="" disabled>-- Choose Teammate to Appreciate --</option>
+            @for (member of teamMembers; track member.id) {
+              <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Receiver Pills -->
+      <div class="form-group">
+        <label class="input-label">Quick Select Recipient</label>
+        <div class="member-pills">
+          @for (member of teamMembers; track member.id) {
+            <button
+              type="button"
+              (click)="kudos.receiverId = member.id"
+              [class.selected]="kudos.receiverId === member.id"
+              class="member-chip"
+            >
+              <span class="chip-avatar">{{ member.name | initials }}</span>
+              <span class="chip-name">{{ member.name | cleanName }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Badge Selection Cards -->
+      <div class="form-group">
+        <label class="input-label">Select Recognition Badge</label>
+        <div class="badge-cards-grid">
+          @for (b of badges; track b.value) {
+            <button
+              type="button"
+              (click)="kudos.badge = b.value"
+              [class.selected]="kudos.badge === b.value"
+              class="badge-card"
+            >
+              <app-icon [name]="b.icon" [size]="20" color="var(--accent-warning)"></app-icon>
+              <span class="badge-title">{{ b.label }}</span>
+              <span class="badge-desc">{{ b.desc }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Preset Appreciation Messages -->
+      <div class="form-group">
+        <label class="input-label">Quick Appreciation Presets</label>
+        <div class="preset-chips">
+          @for (preset of presets; track preset) {
+            <button type="button" (click)="setPreset(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea
+          [(ngModel)]="kudos.message"
+          placeholder="Personal appreciation note..."
+          class="interactive-input"
+          rows="2"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+      <button (click)="save.emit(kudos)" [disabled]="!kudos.senderId || !kudos.receiverId || !kudos.message.trim()" class="btn-primary btn-save">
+        <app-icon name="gift" [size]="16"></app-icon> Publish to Kudos Wall
+      </button>
+    </div>
+  </div>
+</div>

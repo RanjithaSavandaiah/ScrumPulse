@@ -1,0 +1,139 @@
+.main-panel {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.tier-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-tier {
+  font-size: 0.8rem;
+}
+
+.insight-card {
+  padding: 18px;
+  border-left: 4px solid var(--accent-primary);
+}
+
+.insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.insight-title {
+  color: var(--accent-primary);
+}
+
+.insight-summary {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.section-heading {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.findings-heading {
+  color: var(--accent-secondary);
+}
+
+.recommendations-heading {
+  color: var(--accent-success);
+}
+
+.findings-list, .recommendations-list {
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.findings-list {
+  margin-bottom: 16px;
+  list-style: none;
+  padding-left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.finding-item {
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.strength-item {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+}
+
+.weakness-item {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+.rec-item {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.target-picker-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.65rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.picker-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.picker-select {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: 0.84rem;
+  outline: none;
+  cursor: pointer;
+}

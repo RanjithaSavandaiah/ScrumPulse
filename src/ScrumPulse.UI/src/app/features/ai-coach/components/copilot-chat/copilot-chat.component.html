@@ -1,0 +1,26 @@
+<div class="glass-panel chat-container">
+  <h4 class="chat-title">
+    <app-icon name="message-square" [size]="18" color="var(--accent-secondary)"></app-icon>
+    AI Agile Copilot
+  </h4>
+  <p class="chat-subtitle">Ask anything about team velocity, blockers, or coaching</p>
+
+  <div class="messages-area">
+    @for (msg of messages; track msg.text) {
+      <div class="chat-message"
+           [class.user-msg]="msg.isUser"
+           [class.ai-msg]="!msg.isUser">
+        <strong>{{ msg.isUser ? 'You' : 'Microsoft Agent' }}:</strong>
+        <div>{{ msg.text }}</div>
+      </div>
+    }
+  </div>
+
+  <!-- Chat Input -->
+  <div class="chat-input-row">
+    <input [(ngModel)]="inputText" (keyup.enter)="onSend()" placeholder="Ask AI coach..." class="chat-input" />
+    <button (click)="onSend()" class="btn-primary btn-send">
+      <app-icon name="send" [size]="14"></app-icon> Send
+    </button>
+  </div>
+</div>

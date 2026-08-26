@@ -1,0 +1,66 @@
+<div class="modal-backdrop animate-fade-in" (click)="onCancel()">
+  <div class="modal-box glass-panel glow-border animate-slide-up" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-title-wrap">
+        <div class="icon-avatar-wrap" [class.danger-icon]="confirmVariant === 'danger'" [class.warning-icon]="confirmVariant === 'warning'">
+          <app-icon [name]="icon" [size]="22" [color]="confirmVariant === 'danger' ? 'var(--accent-danger)' : (confirmVariant === 'warning' ? 'var(--accent-warning)' : 'var(--accent-primary)')"></app-icon>
+        </div>
+        <div>
+          <h3 class="modal-title">{{ title }}</h3>
+        </div>
+      </div>
+      <button (click)="onCancel()" class="close-btn" title="Close">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+      <!-- Member Preview (If applicable) -->
+      @if (memberPreview) {
+        <div class="member-preview-card">
+          <div class="member-avatar" [style.background]="memberPreview.badgeColor || 'var(--accent-primary)'">
+            {{ memberPreview.avatar || (memberPreview.name.slice(0, 2).toUpperCase()) }}
+          </div>
+          <div class="member-info">
+            <h4 class="member-name">{{ memberPreview.name }}</h4>
+            @if (memberPreview.role) {
+              <span class="role-chip" [style.color]="memberPreview.badgeColor || 'var(--accent-primary)'">
+                {{ memberPreview.role }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="message-container">
+        <p class="main-message">{{ message }}</p>
+        @if (subMessage) {
+          <p class="sub-message">
+            <app-icon name="alert-circle" [size]="14" color="var(--text-muted)"></app-icon>
+            {{ subMessage }}
+          </p>
+        }
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="modal-footer footer-split">
+      <div class="footer-left"></div>
+      <div class="footer-right">
+        <button type="button" (click)="onCancel()" class="btn-secondary">
+          {{ cancelText }}
+        </button>
+        <button
+          type="button"
+          (click)="onConfirm()"
+          [class.btn-danger]="confirmVariant === 'danger'"
+          [class.btn-primary]="confirmVariant !== 'danger'"
+          class="btn-confirm-action"
+        >
+          <app-icon [name]="icon" [size]="16"></app-icon>
+          {{ confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

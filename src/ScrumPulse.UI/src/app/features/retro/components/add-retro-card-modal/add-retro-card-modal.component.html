@@ -1,0 +1,85 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon name="rotate-cw" [size]="22" color="var(--accent-secondary)"></app-icon>
+          {{ editingCard ? 'Edit Retrospective Sticky Note' : 'Post Sprint Retrospective Sticky Note' }}
+        </h3>
+        <p class="modal-subtitle">Interactive board note &bull; Live peer upvoting</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Category Tiles -->
+      <div class="form-group">
+        <label class="input-label">Select Retro Quadrant</label>
+        <div class="categories-grid">
+          @for (c of categories; track c.value) {
+            <button
+              type="button"
+              (click)="card.category = c.value"
+              [class.selected]="card.category === c.value"
+              class="category-card"
+              [style.--cat-color]="c.color"
+            >
+              <app-icon [name]="c.icon" [size]="20" [color]="c.color"></app-icon>
+              <span class="cat-label">{{ c.label }}</span>
+              <span class="cat-desc">{{ c.desc }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Author / Anonymous Selection -->
+      <div class="form-group">
+        <div class="author-row">
+          <div class="author-select-col">
+            <label class="input-label">Author</label>
+            <select [(ngModel)]="card.authorId" [disabled]="card.isAnonymous" class="interactive-input">
+              <option value="">Select Author</option>
+              @for (member of members; track member.id) {
+                <option [value]="member.id">{{ member.name }} ({{ getRoleLabel(member.role) }})</option>
+              }
+            </select>
+          </div>
+          <label class="anon-checkbox">
+            <input type="checkbox" [(ngModel)]="card.isAnonymous" />
+            <span>Post Anonymously</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Quick Suggestion Presets -->
+      <div class="form-group">
+        <label class="input-label">Quick Suggestions</label>
+        <div class="preset-chips">
+          @for (preset of presets; track preset) {
+            <button type="button" (click)="applyPreset(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Note Content -->
+      <div class="form-group">
+        <label class="input-label">Perspective / Insight</label>
+        <textarea
+          [(ngModel)]="card.content"
+          placeholder="Share constructive insights or proposals for continuous team improvement..."
+          class="interactive-input"
+          rows="3"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+      <button (click)="save.emit(card)" [disabled]="!card.content.trim()" class="btn-primary btn-save">
+        <app-icon name="check" [size]="16"></app-icon> {{ editingCard ? 'Save Note Changes' : 'Pin to Retrospective Board' }}
+      </button>
+    </div>
+  </div>
+</div>

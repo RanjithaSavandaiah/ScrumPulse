@@ -1,0 +1,112 @@
+<div class="glass-panel work-item-card">
+  <div class="card-header">
+    <div class="header-left">
+      <span class="glass-badge" [style.color]="getTypeColor(item.type)">{{ item.type }}</span>
+      <span class="item-key">{{ item.key }}</span>
+      <h4 class="item-title">{{ item.title }}</h4>
+    </div>
+    <div class="header-right">
+      <span class="glass-badge" [style.color]="getPriorityColor(item.priority)">{{ item.priority }}</span>
+      <span class="glass-badge pts-badge">{{ item.storyPoints }} Pts</span>
+      @if (item.estimatedHours !== undefined && item.estimatedHours !== null && item.estimatedHours > 0) {
+        <span class="glass-badge hours-badge">{{ item.estimatedHours }}h</span>
+      }
+      <span class="glass-badge status-badge">
+        {{ getStatusLabel(item.status) }}
+      </span>
+    </div>
+  </div>
+
+  <p class="item-desc">{{ item.description }}</p>
+
+  <!-- PR Details if present -->
+  @if (item.prNumber) {
+    <div class="pr-banner">
+      <span class="pr-info">
+        <app-icon name="git-pull-request" [size]="14" color="var(--accent-secondary)"></app-icon>
+        <strong>PR:</strong> {{ item.prNumber }} ({{ item.prBranch }} &rarr; {{ item.targetBranch }})
+      </span>
+      @if (item.prReviewerName) {
+        <span class="pr-reviewer">
+          <app-icon name="eye" [size]="14" color="var(--accent-warning)"></app-icon>
+          <strong>Reviewer:</strong> {{ item.prReviewerName }}
+        </span>
+      }
+    </div>
+  }
+
+  <!-- Stage Timeline Bar -->
+  <div class="stage-timeline">
+    <div class="stage-step" [class.completed]="item.pickedUpAtUtc">
+      <div class="step-title">1. Picked Up</div>
+      <div class="step-val">{{ item.pickupLatencyHours ? item.pickupLatencyHours + 'h latency' : (item.pickedUpAtUtc ? 'Active' : 'Pending') }}</div>
+    </div>
+    <div class="stage-step" [class.completed]="item.prCreatedAtUtc">
+      <div class="step-title">2. PR Created</div>
+      <div class="step-val">{{ item.devCycleTimeHours ? item.devCycleTimeHours + 'h dev' : (item.prCreatedAtUtc ? 'Active' : 'Pending') }}</div>
+    </div>
+    <div class="stage-step" [class.completed]="item.prApprovedAtUtc">
+      <div class="step-title">3. PR Approved</div>
+      <div class="step-val">{{ item.prReviewLatencyHours ? item.prReviewLatencyHours + 'h review' : (item.prApprovedAtUtc ? 'Active' : 'Pending') }}</div>
+    </div>
+    <div class="stage-step" [class.completed]="item.prMergedAtUtc">
+      <div class="step-title">4. Merged to Master</div>
+      <div class="step-val">{{ item.prMergeLatencyHours ? item.prMergeLatencyHours + 'h merge' : (item.prMergedAtUtc ? 'Active' : 'Pending') }}</div>
+    </div>
+    <div class="stage-step" [class.completed]="item.qaStartedAtUtc">
+      <div class="step-title">5. In QA Testing</div>
+      <div class="step-val">{{ item.qaTestingLatencyHours ? item.qaTestingLatencyHours + 'h testing' : (item.qaStartedAtUtc ? 'Active' : 'Pending') }}</div>
+    </div>
+    <div class="stage-step" [class.completed]="item.completedAtUtc">
+      <div class="step-title">6. Marked Done</div>
+      <div class="step-val">{{ item.totalCycleTimeHours ? item.totalCycleTimeHours + 'h total' : (item.completedAtUtc ? 'Done' : 'Pending') }}</div>
+    </div>
+  </div>
+
+  <!-- Action Buttons & Stage Advance -->
+  <div class="card-footer">
+    <div class="action-buttons">
+      @if (isStatus(item, 'Backlog', 0)) {
+        <button (click)="advanceStage.emit({ item: item, targetStatus: 'InProgress' })" class="btn-secondary btn-action">
+          <app-icon name="rocket" [size]="14"></app-icon> Pick Up Story
+        </button>
+      }
+      @if (isStatus(item, 'InProgress', 1)) {
+        <button (click)="advanceStage.emit({ item: item, targetStatus: 'PrCreated' })" class="btn-secondary btn-action">
+          <app-icon name="git-pull-request" [size]="14"></app-icon> Create PR
+        </button>
+      }
+      @if (isStatus(item, 'PrCreated', 2)) {
+        <button (click)="advanceStage.emit({ item: item, targetStatus: 'PrApproved' })" class="btn-secondary btn-action">
+          <app-icon name="eye" [size]="14"></app-icon> Approve PR
+        </button>
+      }
+      @if (isStatus(item, 'PrApproved', 3)) {
+        <button (click)="advanceStage.emit({ item: item, targetStatus: 'Merged' })" class="btn-secondary btn-action">
+          <app-icon name="git-merge" [size]="14"></app-icon> Merge to Master
+        </button>
+      }
+      @if (isStatus(item, 'Merged', 4)) {
+        <button (click)="advanceStage.emit({ item: item, targetStatus: 'InQa' })" class="btn-secondary btn-action">
+          <app-icon name="flask" [size]="14"></app-icon> Start QA
+        </button>
+      }
+      @if (isStatus(item, 'InQa', 5)) {
+        <button (click)="advanceStage.emit({ item: item, targetStatus: 'Done' })" class="btn-primary btn-action">
+          <app-icon name="check-circle" [size]="14"></app-icon> Mark Done / QA Signoff
+        </button>
+      }
+    </div>
+    <div class="footer-meta">
+      @if (state.canEditOrDelete()) {
+        <button (click)="editItem.emit(item)" class="btn-secondary btn-action btn-edit" title="Edit Story Details">
+          <app-icon name="edit-3" [size]="14" color="var(--accent-secondary)"></app-icon> Edit Story
+        </button>
+      }
+      <button (click)="openGates.emit(item)" class="btn-secondary btn-action">
+        <app-icon name="shield-check" [size]="14"></app-icon> DoR / DoD Gates
+      </button>
+      <span class="assignee-text">Assignee: <strong>{{ getAssigneeName(item) }}</strong></span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,232 @@
+<div class="modal-backdrop animate-fade-in" (click)="close.emit()">
+  <div class="modal-box glass-panel glow-border animate-slide-up" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-title-wrap">
+        <div class="header-icon-wrap">
+          <app-icon name="target" [size]="22" color="var(--accent-primary)"></app-icon>
+        </div>
+        <div>
+          <h3 class="modal-title">Fibonacci Estimation Reference Matrix</h3>
+          <p class="modal-subtitle">Benchmark guide for converting estimated hours to relative story points & sizing sprint workload</p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="close-btn" title="Close">&times;</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body custom-scrollbar">
+      
+      <!-- Interactive Conversion Sandbox -->
+      <div class="sandbox-card">
+        <div class="sandbox-header">
+          <div class="sandbox-title-wrap">
+            <app-icon name="sparkles" [size]="18" color="var(--accent-warning)"></app-icon>
+            <span class="sandbox-title">Interactive Estimation Sandbox</span>
+          </div>
+          <div class="mode-toggle-group">
+            <button
+              type="button"
+              (click)="calculatorMode = 'hoursToPoints'"
+              [class.active]="calculatorMode === 'hoursToPoints'"
+              class="mode-btn"
+            >
+              Hours &rarr; Story Points
+            </button>
+            <button
+              type="button"
+              (click)="calculatorMode = 'pointsToHours'"
+              [class.active]="calculatorMode === 'pointsToHours'"
+              class="mode-btn"
+            >
+              Story Points &rarr; Hours
+            </button>
+          </div>
+        </div>
+
+        <div class="sandbox-body">
+          @if (calculatorMode === 'hoursToPoints') {
+            <div class="sandbox-grid">
+              <div class="sandbox-input-col">
+                <label class="sandbox-label">Estimated Work Hours</label>
+                <div class="input-with-suffix">
+                  <input
+                    type="number"
+                    min="0.5"
+                    max="100"
+                    step="0.5"
+                    [(ngModel)]="inputHours"
+                    placeholder="8"
+                    class="interactive-input sandbox-input"
+                  />
+                  <span class="input-suffix">hrs</span>
+                </div>
+                <div class="preset-chips">
+                  @for (h of [2, 4, 8, 16, 24, 40]; track h) {
+                    <button
+                      type="button"
+                      (click)="inputHours = h"
+                      [class.active]="inputHours === h"
+                      class="preset-chip"
+                    >
+                      {{ h }}h
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="sandbox-result-col">
+                <div class="result-box" [style.--highlight-color]="calculatedPointFromHours.badgeColor">
+                  <span class="result-label">Recommended Sizing</span>
+                  <div class="result-value-row">
+                    <span class="result-points" [style.background-color]="calculatedPointFromHours.badgeColor">
+                      {{ calculatedPointFromHours.points }} Story Points
+                    </span>
+                    <span class="result-range">({{ calculatedPointFromHours.hourRange }})</span>
+                  </div>
+                  <p class="result-desc">{{ calculatedPointFromHours.actionGuidance }}</p>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="sandbox-grid">
+              <div class="sandbox-input-col">
+                <label class="sandbox-label">Select Fibonacci Points</label>
+                <div class="points-pill-group">
+                  @for (item of matrixItems; track item.points) {
+                    <button
+                      type="button"
+                      (click)="selectedPoint = item.points"
+                      [class.active]="selectedPoint === item.points"
+                      class="point-chip-btn"
+                      [style.--chip-color]="item.badgeColor"
+                    >
+                      {{ item.points }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="sandbox-result-col">
+                <div class="result-box" [style.--highlight-color]="calculatedHoursFromPoint.item.badgeColor">
+                  <span class="result-label">Expected Duration & Scope</span>
+                  <div class="result-value-row">
+                    <span class="result-hours-badge">
+                      {{ calculatedHoursFromPoint.item.hourRange }}
+                    </span>
+                    <span class="result-complexity-tag">{{ calculatedHoursFromPoint.item.complexity }} Complexity</span>
+                  </div>
+                  <p class="result-desc">{{ calculatedHoursFromPoint.item.actionGuidance }}</p>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Reference Table Section -->
+      <div class="matrix-table-wrap">
+        <h4 class="section-title">
+          <app-icon name="book-open" [size]="16" color="var(--accent-secondary)"></app-icon>
+          Fibonacci Reference Matrix (Effort & Complexity Baseline)
+        </h4>
+
+        <div class="table-container">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th class="col-sp">Story Points</th>
+                <th class="col-hours">Est. Hours</th>
+                <th class="col-complexity">Complexity & Risk</th>
+                <th class="col-example">Typical Delivery Examples</th>
+                <th class="col-guidance">Scrum Delivery Guidance</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of matrixItems; track row.points) {
+                <tr [class.highlighted-row]="(calculatorMode === 'hoursToPoints' && calculatedPointFromHours.points === row.points) || (calculatorMode === 'pointsToHours' && selectedPoint === row.points)">
+                  <td class="col-sp">
+                    <span class="sp-badge" [style.background-color]="row.badgeColor">
+                      {{ row.label }}
+                    </span>
+                  </td>
+                  <td class="col-hours">
+                    <span class="hours-text">{{ row.hourRange }}</span>
+                  </td>
+                  <td class="col-complexity">
+                    <div class="complexity-cell">
+                      <span class="complexity-badge">{{ row.complexity }}</span>
+                      <span class="risk-sub">Risk: {{ row.riskLevel }}</span>
+                    </div>
+                  </td>
+                  <td class="col-example">
+                    <span class="example-text">{{ row.example }}</span>
+                  </td>
+                  <td class="col-guidance">
+                    <span class="guidance-text">{{ row.actionGuidance }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Agile Best Practices & Formula Row -->
+      <div class="info-cards-grid">
+        <div class="info-card">
+          <div class="info-card-header">
+            <app-icon name="bar-chart" [size]="16" color="var(--accent-primary)"></app-icon>
+            <h5>Sprint Commitment Formula</h5>
+          </div>
+          <p class="formula-box">
+            <code>Committed SP = (Net Team Hours &times; 0.70) &divide; 8.0 hrs/pt</code>
+          </p>
+          <span class="info-desc">
+            Deduct planned leaves from gross capacity, multiply by 70% productive focus factor (accounting for standups, reviews & testing), and divide by team hour/point benchmark.
+          </span>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <app-icon name="shield-check" [size]="16" color="var(--accent-success)"></app-icon>
+            <h5>Why Points &ne; Raw Hours</h5>
+          </div>
+          <p class="info-body">
+            Story points capture <strong>relative size, complexity, technical risk, and uncertainty</strong>. A senior and junior developer may take different hours on the same task, but both agree on its relative 3 SP size.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <app-icon name="alert-triangle" [size]="16" color="var(--accent-danger)"></app-icon>
+            <h5>The 13+ Story Point Rule</h5>
+          </div>
+          <p class="info-body">
+            Any user story estimated at <strong>13 or more story points</strong> carries high delivery volatility and must be sliced into smaller independent deliverables (2, 3, or 5 SP) before entering a sprint.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer footer-split">
+      <div class="footer-left">
+        <span class="footer-hint">Standardized Fibonacci baseline for ScrumPulse agile delivery teams.</span>
+      </div>
+      <div class="footer-right">
+        @if (isSelectionMode) {
+          <button type="button" (click)="close.emit()" class="btn-secondary">Cancel</button>
+          <button type="button" (click)="applyToItem()" class="btn-primary">
+            <app-icon name="check" [size]="16"></app-icon> Apply Estimation
+          </button>
+        } @else {
+          <button type="button" (click)="close.emit()" class="btn-primary">
+            <app-icon name="check" [size]="16"></app-icon> Got it
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>

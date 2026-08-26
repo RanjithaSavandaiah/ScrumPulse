@@ -1,0 +1,6 @@
+@ScrumPulse.Api_HostAddress = http://localhost:5107
+
+GET {{ScrumPulse.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

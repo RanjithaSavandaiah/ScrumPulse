@@ -1,0 +1,108 @@
+.kudos-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.kudos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.kudos-card {
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.kudos-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kudos-badge {
+  background: var(--gradient-primary);
+  color: #fff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kudos-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.kudos-message {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.kudos-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-glass);
+  padding-top: 12px;
+}
+
+.kudos-author {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.reactions-row {
+  display: flex;
+  gap: 6px;
+}
+
+.reaction-btn {
+  padding: 4px 9px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 0.4rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.reaction-btn:hover {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.reaction-btn.active-reaction {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+}
+
+.reaction-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}

@@ -1,0 +1,163 @@
+<div class="burndown-wrapper glass-panel animate-slide-up">
+  <!-- Top KPI & Capacity Strip -->
+  <div class="burndown-kpi-bar">
+    <div class="kpi-block">
+      <span class="kpi-label">Burndown Pace</span>
+      <div class="kpi-val-row">
+        @if (burndownData().paceStatus === 'Ahead') {
+          <span class="pace-pill pace-ahead">
+            <app-icon name="rocket" [size]="14"></app-icon> Ahead of Ideal Slope
+          </span>
+        } @else if (burndownData().paceStatus === 'Completed') {
+          <span class="pace-pill pace-completed">
+            <app-icon name="check-circle" [size]="14"></app-icon> Sprint Delivered
+          </span>
+        } @else if (burndownData().paceStatus === 'Behind') {
+          <span class="pace-pill pace-behind">
+            <app-icon name="alert-triangle" [size]="14"></app-icon> Behind Schedule
+          </span>
+        } @else {
+          <span class="pace-pill pace-ontrack">
+            <app-icon name="check" [size]="14"></app-icon> On Track with Ideal
+          </span>
+        }
+      </div>
+    </div>
+
+    <div class="kpi-block">
+      <span class="kpi-label">Delivered / Total Scope</span>
+      <span class="kpi-val highlight-val">
+        {{ capacityAnalysis().deliveredPoints }} / {{ capacityAnalysis().committedPoints }} Pts
+        <small class="kpi-sub">({{ capacityAnalysis().committedPoints > 0 ? Math.round((capacityAnalysis().deliveredPoints / capacityAnalysis().committedPoints) * 100) : 0 }}% Velocity)</small>
+      </span>
+    </div>
+
+    <div class="kpi-block">
+      <span class="kpi-label">Auto-Calculated Net Capacity</span>
+      <span class="kpi-val capacity-val">
+        {{ capacityAnalysis().netAvailableHours }}h
+        <small class="kpi-sub">({{ capacityAnalysis().leaveHoursDeducted }}h leave deducted)</small>
+      </span>
+    </div>
+
+    <div class="kpi-block">
+      <span class="kpi-label">Leave Impact on Sprint</span>
+      <span class="kpi-val leave-val">
+        {{ capacityAnalysis().totalLeaveDays }} Days
+        <small class="kpi-sub">({{ capacityAnalysis().leaveBreakdown.length }} approved leaves)</small>
+      </span>
+    </div>
+  </div>
+
+  <!-- SVG Burndown Chart -->
+  <div class="chart-container">
+    <svg viewBox="0 0 540 190" class="burndown-svg" preserveAspectRatio="none">
+      <defs>
+        <!-- Actual Area Gradient -->
+        <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(99, 102, 241, 0.45)" />
+          <stop offset="100%" stop-color="rgba(99, 102, 241, 0.0)" />
+        </linearGradient>
+        <!-- Actual Line Gradient -->
+        <linearGradient id="actualLineGradient" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#818cf8" />
+          <stop offset="100%" stop-color="#6366f1" />
+        </linearGradient>
+      </defs>
+
+      <!-- Background Grid lines -->
+      <line x1="40" y1="20" x2="500" y2="20" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+      <line x1="40" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+      <line x1="40" y1="100" x2="500" y2="100" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+      <line x1="40" y1="140" x2="500" y2="140" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+      <line x1="40" y1="160" x2="500" y2="160" stroke="rgba(255,255,255,0.12)" />
+
+      <!-- Area Under Actual -->
+      @if (burndownData().areaPath) {
+        <path [attr.d]="burndownData().areaPath" fill="url(#actualGradient)" />
+      }
+
+      <!-- Ideal Line (Dashed Cyan) -->
+      <path
+        [attr.d]="burndownData().idealPath"
+        fill="none"
+        stroke="#38bdf8"
+        stroke-width="2"
+        stroke-dasharray="5,4"
+        opacity="0.8"
+      />
+
+      <!-- Actual Line (Solid Indigo Glow) -->
+      @if (burndownData().actualPath) {
+        <path
+          [attr.d]="burndownData().actualPath"
+          fill="none"
+          stroke="url(#actualLineGradient)"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      }
+
+      <!-- Data Points on Actual Line -->
+      @for (pt of burndownData().pastDays; track pt.dayIndex) {
+        <circle
+          [attr.cx]="burndownData().getX(pt.dayIndex)"
+          [attr.cy]="burndownData().getY(pt.actualRemaining!)"
+          r="4.5"
+          fill="#6366f1"
+          stroke="#fff"
+          stroke-width="2"
+          class="chart-dot"
+        >
+          <title>{{ pt.dayLabel }} ({{ pt.dateStr }}): {{ pt.actualRemaining }} Pts Remaining (Ideal: {{ pt.idealRemaining }} Pts)</title>
+        </circle>
+      }
+
+      <!-- X-Axis Labels -->
+      @for (pt of burndownData().days; track pt.dayIndex) {
+        <text
+          [attr.x]="burndownData().getX(pt.dayIndex)"
+          y="178"
+          text-anchor="middle"
+          class="axis-label"
+          [class.today-axis]="pt.isToday"
+        >
+          {{ pt.dayLabel }}
+        </text>
+      }
+    </svg>
+  </div>
+
+  <!-- Legend & Leave Deduction Breakdown Strip -->
+  <div class="burndown-footer">
+    <div class="legend-group">
+      <span class="legend-item">
+        <span class="legend-dash ideal-dash"></span> Ideal Burndown
+      </span>
+      <span class="legend-item">
+        <span class="legend-line actual-line"></span> Actual Remaining Points
+      </span>
+    </div>
+
+    <!-- Mini Leave Impact Chips -->
+    @if (capacityAnalysis().leaveBreakdown.length > 0) {
+      <div class="leaves-impact-list">
+        <span class="impact-title">
+          <app-icon name="palmtree" [size]="13" color="var(--accent-warning)"></app-icon>
+          Sprint Leaves:
+        </span>
+        @for (item of capacityAnalysis().leaveBreakdown; track $index) {
+          <span class="leave-chip-tag" title="{{ item.leaveType }} ({{ item.slot }})">
+            {{ item.memberName }} <strong>-{{ item.leaveDays }}d</strong>
+          </span>
+        }
+      </div>
+    } @else {
+      <span class="full-capacity-notice">
+        <app-icon name="shield-check" [size]="14" color="var(--accent-success)"></app-icon>
+        Full squad capacity (Zero leaves during this sprint)
+      </span>
+    }
+  </div>
+</div>

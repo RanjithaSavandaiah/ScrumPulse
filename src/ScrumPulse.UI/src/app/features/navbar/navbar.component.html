@@ -1,0 +1,59 @@
+<header class="glass-panel navbar-header">
+  <div class="navbar-brand">
+    <div class="brand-logo">
+      <app-icon name="zap" [size]="24" color="#ffffff"></app-icon>
+    </div>
+    <div>
+      <div class="brand-title-wrap">
+        <h2 class="brand-title">ScrumPulse</h2>
+        <span class="glass-badge brand-badge">
+          <app-icon name="sparkles" [size]="12"></app-icon> Enterprise v10.0
+        </span>
+      </div>
+      <p class="brand-subtitle">Distributed Velocity & Microsoft AI Agile Intelligence</p>
+    </div>
+  </div>
+
+  <div class="navbar-actions">
+    <div class="metric-block">
+      <span class="metric-subtitle">Active Blockers</span>
+      <div class="metric-number" [style.color]="state.activeBlockersCount() > 0 ? 'var(--accent-danger)' : 'var(--text-secondary)'">
+        {{ state.activeBlockersCount() }}
+      </div>
+    </div>
+
+    <div class="role-selector">
+      <app-icon name="user" [size]="14" color="var(--text-secondary)"></app-icon>
+      <span class="role-label">Role:</span>
+      <select [value]="state.currentRole()" (change)="onRoleChange($event)" class="role-select">
+        <option value="ScrumMaster">Scrum Master (Protected)</option>
+        <option value="Developer">Developer</option>
+        <option value="QaEngineer">QA Engineer</option>
+        <option value="Cdl">CDL Lead</option>
+        <option value="ClientStakeholder">Client / PO</option>
+      </select>
+
+      @if (state.isSmAuthenticated() && state.currentRole() === 'ScrumMaster') {
+        <button (click)="lockSm()" class="btn-sm-locked" title="Scrum Master Mode Active. Click to lock session.">
+          <app-icon name="shield-check" [size]="13" color="#10b981"></app-icon>
+          <span>Unlocked (Lock)</span>
+        </button>
+      }
+    </div>
+
+    <button (click)="toggleTheme()" class="btn-secondary icon-btn" title="Toggle Dark/Light Mode">
+      <app-icon [name]="isDark ? 'moon' : 'sun'" [size]="16"></app-icon>
+    </button>
+
+    <button (click)="state.refreshAllData()" class="btn-secondary icon-btn" title="Refresh Data">
+      <app-icon name="refresh-cw" [size]="16"></app-icon>
+    </button>
+  </div>
+</header>
+
+@if (showPinModal()) {
+  <app-sm-pin-modal
+    (authenticated)="onPinAuthenticated()"
+    (cancelled)="onPinCancelled()"
+  ></app-sm-pin-modal>
+}

@@ -1,0 +1,83 @@
+<div class="glass-panel main-panel">
+  <div class="panel-header">
+    <div>
+      <h3 class="panel-title">
+        <app-icon name="bot" [size]="22" color="var(--accent-primary)"></app-icon>
+        Microsoft AI Intelligence & Coaching Studio
+      </h3>
+      <p class="panel-subtitle">Autonomous evaluation across Velocity, Capacity, Daily Standups, Tech Talks & 1:1 Feedback</p>
+    </div>
+    <div class="tier-buttons">
+      <button (click)="tierChange.emit('individual')" [class.btn-primary]="aiTier === 'individual'" class="btn-secondary btn-tier">
+        <app-icon name="user" [size]="14"></app-icon> Individual Coach
+      </button>
+      <button (click)="tierChange.emit('project')" [class.btn-primary]="aiTier === 'project'" class="btn-secondary btn-tier">
+        <app-icon name="rocket" [size]="14"></app-icon> Project Risk Radar
+      </button>
+      <button (click)="tierChange.emit('company')" [class.btn-primary]="aiTier === 'company'" class="btn-secondary btn-tier">
+        <app-icon name="building" [size]="14"></app-icon> Strategic Collaboration
+      </button>
+    </div>
+  </div>
+
+  <!-- Dynamic Target Selector Row (for Individual or Project) -->
+  @if (aiTier === 'individual') {
+    <div class="target-picker-bar animate-fade-in">
+      <label class="picker-label">
+        <app-icon name="user-check" [size]="15" color="var(--accent-primary)"></app-icon>
+        <strong>Select Developer for Individual Feedback:</strong>
+      </label>
+      <select [ngModel]="selectedMemberId" (ngModelChange)="memberChange.emit($event)" class="picker-select">
+        @for (m of members; track m.id) {
+          <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
+        }
+      </select>
+    </div>
+  } @else if (aiTier === 'project') {
+    <div class="target-picker-bar animate-fade-in">
+      <label class="picker-label">
+        <app-icon name="calendar" [size]="15" color="var(--accent-warning)"></app-icon>
+        <strong>Select Sprint Board for Radar Analysis:</strong>
+      </label>
+      <select [ngModel]="selectedSprintId" (ngModelChange)="sprintChange.emit($event)" class="picker-select">
+        @for (s of sprints; track s.id) {
+          <option [value]="s.id">{{ s.name }} {{ s.isActive ? '(Active)' : '' }}</option>
+        }
+      </select>
+    </div>
+  }
+
+  @if (aiData) {
+    <div class="glass-panel insight-card animate-slide-up">
+      <div class="insight-header">
+        <h4 class="insight-title">{{ aiData.title }}</h4>
+        <span class="glass-badge" [style.color]="aiData.riskLevel.includes('High') ? 'var(--accent-danger)' : (aiData.riskLevel.includes('Medium') ? 'var(--accent-warning)' : 'var(--accent-success)')">
+          {{ aiData.riskLevel }}
+        </span>
+      </div>
+      <p class="insight-summary">{{ aiData.summary }}</p>
+
+      <h5 class="section-heading findings-heading">
+        <app-icon name="activity" [size]="16" color="var(--accent-primary)"></app-icon>
+        Key Strengths, Telemetry & Weakness Analysis
+      </h5>
+      <ul class="findings-list">
+        @for (finding of aiData.keyFindings; track finding) {
+          <li class="finding-item" [class.strength-item]="finding.includes('STRENGTH')" [class.weakness-item]="finding.includes('WEAKNESS') || finding.includes('RISK')">
+            {{ finding }}
+          </li>
+        }
+      </ul>
+
+      <h5 class="section-heading recommendations-heading">
+        <app-icon name="sparkles" [size]="16" color="var(--accent-warning)"></app-icon>
+        Actionable AI Coaching & Improvement Plan
+      </h5>
+      <ul class="recommendations-list">
+        @for (recommendation of aiData.actionableRecommendations; track recommendation) {
+          <li class="rec-item">{{ recommendation }}</li>
+        }
+      </ul>
+    </div>
+  }
+</div>

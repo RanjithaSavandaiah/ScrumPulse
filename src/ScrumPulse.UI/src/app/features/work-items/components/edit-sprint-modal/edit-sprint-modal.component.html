@@ -1,0 +1,253 @@
+<div class="modal-backdrop animate-fade-in" (click)="close.emit()">
+  <div class="modal-box glass-panel glow-border animate-slide-up" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-title-wrap">
+        <app-icon name="calendar" [size]="22" color="var(--accent-primary)"></app-icon>
+        <div>
+          <h3 class="modal-title">{{ sprint ? 'Edit Sprint & Define Goal' : 'Create New Sprint Board' }}</h3>
+          <p class="modal-subtitle">Configure sprint timeline, business deliverables, and velocity targets</p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="close-btn" title="Close">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <form (ngSubmit)="onSubmit()" class="modal-body form-grid">
+      <!-- Sprint Name & Status -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Sprint Board Name <span class="required-star">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="name"
+            name="name"
+            required
+            placeholder="e.g. Sprint 3 - Checkout Velocity"
+            class="interactive-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Active Status</label>
+          <div class="toggle-row">
+            <label class="switch-container">
+              <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+              <span class="slider"></span>
+            </label>
+            <span class="toggle-txt">{{ isActive ? 'Set as Active Sprint' : 'Draft / Completed' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sprint Goal (Prominent) -->
+      <div class="form-group full-width">
+        <div class="goal-label-row">
+          <label class="form-label">
+            <app-icon name="target" [size]="15" color="var(--accent-warning)"></app-icon>
+            <strong>Sprint Goal & Value Proposition</strong> <span class="required-star">*</span>
+          </label>
+          <span class="goal-hint">Clearly articulates the core business deliverable for this sprint</span>
+        </div>
+        <textarea
+          [(ngModel)]="goal"
+          name="goal"
+          rows="3"
+          required
+          placeholder="e.g. Deliver payment gateway migration and checkout microservice resilience with zero critical defects and full unit test coverage."
+          class="interactive-textarea goal-textarea"
+        ></textarea>
+      </div>
+
+      <!-- Timeline Dates -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Sprint Start Date</label>
+          <input
+            type="date"
+            [(ngModel)]="startDate"
+            (ngModelChange)="onStartDateChange()"
+            name="startDate"
+            required
+            class="interactive-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Sprint End Date (Target)</label>
+          <input
+            type="date"
+            [(ngModel)]="endDate"
+            name="endDate"
+            [min]="startDate"
+            [class.input-error]="isInvalidDateRange"
+            required
+            class="interactive-input"
+          />
+        </div>
+      </div>
+
+      <!-- Date Range Validation Warning Banner -->
+      @if (isInvalidDateRange) {
+        <div class="date-validation-banner animate-fade-in">
+          <app-icon name="alert-circle" [size]="16" color="var(--accent-danger)"></app-icon>
+          <span>Sprint End Date must be on or after Sprint Start Date.</span>
+        </div>
+      }
+
+      <!-- Dual Target Commitment Card (Story Points vs Hours) -->
+      <div class="target-commitment-card">
+        <div class="commitment-header">
+          <div class="commitment-title-wrap">
+            <app-icon name="bar-chart" [size]="16" color="var(--accent-primary)"></app-icon>
+            <label class="commitment-title">Committed Sprint Target</label>
+          </div>
+
+          <!-- Mode Switcher -->
+          <div class="unit-switcher">
+            <button
+              type="button"
+              (click)="setTargetMode('storyPoints')"
+              [class.active]="targetMode === 'storyPoints'"
+              class="unit-btn"
+            >
+              Story Points
+            </button>
+            <button
+              type="button"
+              (click)="setTargetMode('hours')"
+              [class.active]="targetMode === 'hours'"
+              class="unit-btn"
+            >
+              Estimated Hours
+            </button>
+          </div>
+        </div>
+
+        <div class="commitment-body">
+          <div class="commitment-input-row">
+            <!-- Points Input Mode -->
+            @if (targetMode === 'storyPoints') {
+              <div class="input-with-live-conv">
+                <div class="form-group flex-1">
+                  <label class="form-label-mini">Committed Story Points</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="committedStoryPoints"
+                    (ngModelChange)="onPointsChange()"
+                    name="committedStoryPoints"
+                    min="1"
+                    max="500"
+                    placeholder="30"
+                    class="interactive-input large-number-input"
+                  />
+                </div>
+                <div class="live-conversion-badge">
+                  <span class="conv-label">Equivalent Workload</span>
+                  <span class="conv-value">&asymp; {{ committedHours }} Team Hours</span>
+                  <span class="conv-sub">(@ {{ hoursPerPointRatio }}h / point)</span>
+                </div>
+              </div>
+            } @else {
+              <!-- Hours Input Mode -->
+              <div class="input-with-live-conv">
+                <div class="form-group flex-1">
+                  <label class="form-label-mini">Committed Team Workload (Hours)</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="committedHours"
+                    (ngModelChange)="onHoursChange()"
+                    name="committedHours"
+                    min="1"
+                    max="5000"
+                    step="5"
+                    placeholder="240"
+                    class="interactive-input large-number-input"
+                  />
+                </div>
+                <div class="live-conversion-badge">
+                  <span class="conv-label">Converted Velocity</span>
+                  <span class="conv-value">&asymp; {{ committedStoryPoints }} Story Points</span>
+                  <span class="conv-sub">(@ {{ hoursPerPointRatio }}h / point)</span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Capacity Actions & Ratio Adjustment -->
+          <div class="commitment-actions-bar">
+            <button
+              type="button"
+              (click)="autoCalculateFromCapacity()"
+              class="btn-calc-capacity"
+              title="Calculates committed hours and story points from active team members, working days, and approved leaves"
+            >
+              <app-icon name="sparkles" [size]="14" color="var(--accent-warning)"></app-icon>
+              Auto-Calculate from Team Leaves & Capacity
+            </button>
+
+            <button
+              type="button"
+              (click)="showMatrixModal = true"
+              class="btn-guide-link"
+            >
+              <app-icon name="book-open" [size]="14" color="var(--accent-secondary)"></app-icon>
+              Fibonacci Matrix Guide
+            </button>
+          </div>
+
+          <!-- Auto-Capacity Summary Toast -->
+          @if (capacityCalculationSummary) {
+            <div class="capacity-summary-alert animate-fade-in">
+              <app-icon name="check-circle" [size]="15" color="#10b981"></app-icon>
+              <span [innerHTML]="capacityCalculationSummary"></span>
+            </div>
+          }
+        </div>
+        <span class="field-hint">Used as the starting baseline for burndown graphs, velocity tracking, and capacity radar.</span>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="modal-footer footer-split">
+        <div class="footer-left">
+          @if (sprint) {
+            <button type="button" (click)="onDelete()" class="btn-danger">
+              <app-icon name="trash" [size]="16"></app-icon> Delete Sprint
+            </button>
+          }
+        </div>
+        <div class="footer-right">
+          <button type="button" (click)="close.emit()" class="btn-secondary">Cancel</button>
+          <button type="submit" [disabled]="!canSubmit" class="btn-primary">
+            <app-icon name="check" [size]="16"></app-icon> {{ sprint ? 'Save Sprint & Goal' : 'Create Sprint' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Fibonacci Estimation Reference Matrix Modal -->
+@if (showMatrixModal) {
+  <app-estimation-matrix-modal
+    [initialPoints]="committedStoryPoints"
+    [initialHours]="committedHours"
+    [isSelectionMode]="false"
+    (close)="showMatrixModal = false"
+  ></app-estimation-matrix-modal>
+}
+
+<!-- Custom Delete Sprint Confirmation Modal -->
+@if (showDeleteConfirm() && sprint) {
+  <app-confirm-modal
+    title="Delete Sprint Board"
+    [message]="'Are you sure you want to delete \u0022' + sprint.name + '\u0022?'"
+    subMessage="This will unlink work items associated with this sprint and remove sprint velocity metrics."
+    confirmText="Delete Sprint"
+    cancelText="Keep Sprint"
+    confirmVariant="danger"
+    icon="trash-2"
+    (confirm)="onConfirmDeleteSprint()"
+    (cancel)="onCancelDeleteSprint()"
+  ></app-confirm-modal>
+}

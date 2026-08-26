@@ -1,0 +1,61 @@
+<section class="animate-fade-in blockers-section">
+  <div class="section-header">
+    <div>
+      <h3 class="section-title">
+        <app-icon name="shield-alert" [size]="20" color="var(--accent-danger)"></app-icon>
+        Blocker & Question Resolution SLA Radar
+      </h3>
+      <p class="section-subtitle">Tracks response latency for items waiting on Client, Tech Lead, or Environment</p>
+    </div>
+    <button (click)="onOpenCreateModal()" class="btn-primary">
+      <app-icon name="plus" [size]="16"></app-icon> Log Blocker
+    </button>
+  </div>
+
+  <div class="blockers-list">
+    @for (blocker of state.blockers(); track blocker.id) {
+      <app-blocker-card
+        [blocker]="blocker"
+        (resolve)="onOpenResolveModal($event)"
+        (edit)="onOpenEditModal($event)"
+        (delete)="onPromptDeleteBlocker($event)"
+      ></app-blocker-card>
+    } @empty {
+      <div class="glass-panel empty-state">No active blockers. All pipelines flowing smoothly!</div>
+    }
+  </div>
+
+  <!-- Add / Edit Blocker Modal -->
+  @if (showNewBlockerModal()) {
+    <app-add-blocker-modal
+      [editBlocker]="selectedBlockerForEdit()"
+      (close)="onCloseBlockerModal()"
+      (save)="onSaveBlocker($event)"
+      (delete)="onDeleteFromModal($event)"
+    ></app-add-blocker-modal>
+  }
+
+  <!-- Resolve Blocker Modal -->
+  @if (selectedBlockerForResolution(); as blockerToResolve) {
+    <app-resolve-blocker-modal
+      [blocker]="blockerToResolve"
+      (close)="selectedBlockerForResolution.set(null)"
+      (resolve)="onConfirmResolve($event)"
+    ></app-resolve-blocker-modal>
+  }
+
+  <!-- Custom Delete Blocker Confirmation Modal -->
+  @if (blockerToDelete(); as bToDelete) {
+    <app-confirm-modal
+      title="Delete Blocker Record"
+      [message]="'Are you sure you want to delete blocker \u0022' + bToDelete.title + '\u0022?'"
+      subMessage="This will remove the item from blocker tracking and SLA resolution logs."
+      confirmText="Delete Blocker"
+      cancelText="Keep Blocker"
+      confirmVariant="danger"
+      icon="trash-2"
+      (confirm)="onConfirmDeleteBlocker()"
+      (cancel)="blockerToDelete.set(null)"
+    ></app-confirm-modal>
+  }
+</section>

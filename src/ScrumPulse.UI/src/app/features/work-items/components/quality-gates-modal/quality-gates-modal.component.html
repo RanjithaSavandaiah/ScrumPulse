@@ -1,0 +1,25 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content">
+    <h3 class="modal-title">
+      <app-icon name="shield-check" [size]="20" color="var(--accent-secondary)"></app-icon>
+      Quality Gates: {{ item.key }}
+    </h3>
+    <p class="modal-subtitle">Enforce Definition of Ready & Definition of Done verification</p>
+
+    <h4 class="gate-section-title dor-title">Definition of Ready (DoR)</h4>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dorAcceptanceCriteriaDefined" /> Acceptance Criteria clearly defined</label>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dorDependenciesIdentified" /> Cross-team dependencies identified</label>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dorWireframeAvailable" /> Wireframe / Architecture diagram attached</label>
+
+    <h4 class="gate-section-title dod-title">Definition of Done (DoD)</h4>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodUnitTestsPassed" /> Automated unit & integration tests passing</label>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodPeerReviewCompleted" /> Peer code review completed & approved</label>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodMergedToMaster" /> Merged to master branch</label>
+    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodStagingVerified" /> QA tested & verified on Staging</label>
+
+    <div class="modal-actions">
+      <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+      <button (click)="save.emit(item)" class="btn-primary">Save Gates</button>
+    </div>
+  </div>
+</div>

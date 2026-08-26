@@ -1,0 +1,143 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon name="file-text" [size]="22" color="var(--accent-secondary)"></app-icon>
+          {{ editFeedback ? 'Edit 360° Monthly 1:1 Review' : 'Record 360° Monthly 1:1 Review' }}
+        </h3>
+        <p class="modal-subtitle">{{ editFeedback ? 'Update 4-way feedback & review ratings' : 'Interactive 4-Way feedback • Scrum Master, CDL, Client & Self' }}</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Member & Month Datepicker Row -->
+      <div class="form-row split-controls">
+        <div class="control-col">
+          <label class="input-label">Select Team Member</label>
+          <select [(ngModel)]="feedback.teamMemberId" class="interactive-input">
+            <option value="" disabled>-- Choose Team Member --</option>
+            @for (member of teamMembers; track member.id) {
+              <option [value]="member.id">{{ member.name }} ({{ getRoleLabel(member.role) }})</option>
+            }
+          </select>
+        </div>
+        <div class="control-col">
+          <label class="input-label">Review Period (Month & Year)</label>
+          <input
+            type="month"
+            [(ngModel)]="feedback.monthYear"
+            class="interactive-input month-picker"
+          />
+        </div>
+      </div>
+
+      <!-- Happiness Index (1-5) & SM Rating (1-5) Dials -->
+      <div class="split-controls ratings-box">
+        <div class="control-col">
+          <label class="input-label">Happiness Index (Scale 1 - 5): <strong>{{ feedback.happinessIndex }} / 5</strong></label>
+          <div class="happiness-pills">
+            @for (dial of happinessDials; track dial.score) {
+              <button
+                type="button"
+                (click)="feedback.happinessIndex = dial.score"
+                [class.selected]="feedback.happinessIndex === dial.score"
+                class="dial-btn"
+                [title]="dial.label"
+              >
+                <app-icon [name]="dial.icon" [size]="18" color="var(--accent-primary)"></app-icon>
+                <span class="dial-score">{{ dial.score }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="control-col">
+          <label class="input-label">Scrum Master Rating: <strong>{{ feedback.smRating }} / 5</strong></label>
+          <div class="star-rating-row">
+            @for (num of [1, 2, 3, 4, 5]; track num) {
+              <button
+                type="button"
+                (click)="feedback.smRating = num"
+                [class.active]="num <= feedback.smRating"
+                class="star-btn"
+              >
+                <app-icon name="sparkles" [size]="14"></app-icon>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Quadrant 1: Scrum Master Feedback -->
+      <div class="form-group">
+        <label class="input-label">1. Scrum Master Feedback & Flow Coaching</label>
+        <div class="preset-chips">
+          @for (preset of smPresets; track preset) {
+            <button type="button" (click)="setSmFeedback(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea [(ngModel)]="feedback.scrumMasterFeedback" placeholder="Feedback on agile delivery and team collaboration..." class="interactive-input" rows="2"></textarea>
+      </div>
+
+      <!-- Quadrant 2: CDL Feedback -->
+      <div class="form-group">
+        <label class="input-label">2. CDL Career & Competency Feedback</label>
+        <div class="preset-chips">
+          @for (preset of cdlPresets; track preset) {
+            <button type="button" (click)="setCdlFeedback(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea [(ngModel)]="feedback.cdlFeedback" placeholder="Feedback on technical milestones and growth..." class="interactive-input" rows="2"></textarea>
+      </div>
+
+      <!-- Quadrant 3: Client Feedback -->
+      <div class="form-group">
+        <label class="input-label">3. Client Perception & Onshore Alignment</label>
+        <div class="preset-chips">
+          @for (preset of clientPresets; track preset) {
+            <button type="button" (click)="setClientFeedback(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea [(ngModel)]="feedback.clientFeedback" placeholder="Feedback from client demo and feature delivery..." class="interactive-input" rows="2"></textarea>
+      </div>
+
+      <!-- Quadrant 4: Self Reflection -->
+      <div class="form-group">
+        <label class="input-label">4. Developer Self-Reflection</label>
+        <div class="preset-chips">
+          @for (preset of selfPresets; track preset) {
+            <button type="button" (click)="setSelfReflection(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea [(ngModel)]="feedback.selfReflection" placeholder="Self-reflection on goals, velocity and learnings..." class="interactive-input" rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer footer-split">
+      <div class="footer-left">
+        @if (editFeedback) {
+          <button type="button" (click)="onDelete()" class="btn-danger">
+            <app-icon name="trash" [size]="16"></app-icon> Delete Review
+          </button>
+        }
+      </div>
+      <div class="footer-right">
+        <button (click)="close.emit()" class="btn-secondary">Cancel</button>
+        <button (click)="save.emit(feedback)" [disabled]="!feedback.teamMemberId" class="btn-primary btn-save">
+          <app-icon [name]="editFeedback ? 'check' : 'check'" [size]="16"></app-icon>
+          {{ editFeedback ? 'Update Review & AI Synthesis' : 'Save 360° Review & AI Synthesis' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

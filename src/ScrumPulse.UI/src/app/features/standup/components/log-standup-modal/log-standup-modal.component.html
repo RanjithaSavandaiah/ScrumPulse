@@ -1,0 +1,133 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon [name]="isEditMode ? 'edit-3' : 'zap'" [size]="22" color="var(--accent-secondary)"></app-icon>
+          {{ isEditMode ? 'Edit Daily Standup Update' : 'Daily Standup Quick-Checkin' }}
+        </h3>
+        <p class="modal-subtitle">
+          {{ isEditMode ? 'Update accomplishments, today plan or blockers' : 'Fast 1-tap check-in • Round-robin updates' }}
+        </p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Member Selector Dropdown & Chips -->
+      <div class="form-group">
+        <label class="input-label">Select Team Member</label>
+        <select [(ngModel)]="standup.teamMemberId" class="interactive-input member-select">
+          <option value="" disabled>-- Choose Team Member --</option>
+          @for (member of teamMembers; track member.id) {
+            <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+          }
+        </select>
+
+        <div class="member-pills">
+          @for (member of teamMembers; track member.id) {
+            <button
+              type="button"
+              (click)="standup.teamMemberId = member.id"
+              [class.selected]="standup.teamMemberId === member.id"
+              class="member-chip"
+            >
+              <span class="chip-avatar">{{ member.name | initials }}</span>
+              <span class="chip-name">{{ member.name | cleanName }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Energy Level Emoji Selector -->
+      <div class="form-group">
+        <label class="input-label">Today's Focus & Energy Level</label>
+        <div class="energy-grid">
+          @for (lvl of energyLevels; track lvl.score) {
+            <button
+              type="button"
+              (click)="standup.moodScore = lvl.score"
+              [class.selected]="standup.moodScore === lvl.score"
+              class="energy-card"
+            >
+              <app-icon [name]="lvl.icon" [size]="20" color="var(--accent-primary)"></app-icon>
+              <span class="energy-title">{{ lvl.label }}</span>
+              <span class="energy-desc">{{ lvl.desc }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Yesterday's Progress -->
+      <div class="form-group">
+        <label class="input-label">What did you accomplish yesterday?</label>
+        <div class="quick-chips">
+          @for (preset of yesterdayPresets; track preset) {
+            <button type="button" (click)="appendYesterday(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea
+          [(ngModel)]="standup.yesterdaySummary"
+          placeholder="Click quick presets above or type details..."
+          class="interactive-input"
+          rows="2"
+        ></textarea>
+      </div>
+
+      <!-- Today's Commitment -->
+      <div class="form-group">
+        <label class="input-label">What are you committing to today?</label>
+        <div class="quick-chips">
+          @for (preset of todayPresets; track preset) {
+            <button type="button" (click)="appendToday(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <textarea
+          [(ngModel)]="standup.todayPlan"
+          placeholder="Click quick presets above or type details..."
+          class="interactive-input"
+          rows="2"
+        ></textarea>
+      </div>
+
+      <!-- Blockers & Dependencies -->
+      <div class="form-group">
+        <label class="input-label">Any blockers or dependencies?</label>
+        <div class="quick-chips">
+          @for (preset of blockerPresets; track preset) {
+            <button type="button" (click)="setBlocker(preset)" class="preset-chip blocker-chip">
+              &bull; {{ preset }}
+            </button>
+          }
+        </div>
+        <input
+          [(ngModel)]="standup.blockersText"
+          placeholder="e.g. None or specify blocker..."
+          class="interactive-input"
+        />
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer" [class.footer-split]="isEditMode">
+      <div class="footer-left">
+        @if (isEditMode) {
+          <button (click)="onDelete()" type="button" class="btn-danger">
+            <app-icon name="trash-2" [size]="15"></app-icon> Delete Update
+          </button>
+        }
+      </div>
+      <div class="footer-right">
+        <button (click)="close.emit()" type="button" class="btn-secondary">Cancel</button>
+        <button (click)="save.emit(standup)" type="button" [disabled]="!standup.teamMemberId" class="btn-primary btn-save">
+          <app-icon [name]="isEditMode ? 'check' : 'plus'" [size]="16"></app-icon>
+          {{ isEditMode ? 'Save Changes' : 'Submit Standup' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

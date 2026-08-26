@@ -1,0 +1,196 @@
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { IconComponent } from '../../../../core/components/icon/icon.component';
+import { Sprint } from '../../../../core/models/scrum.models';
+import { ScrumStateService } from '../../../../core/services/scrum-state.service';
+import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estimation-matrix-modal.component';
+
+import { signal } from '@angular/core';
+import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
+
+@Component({
+  selector: 'app-edit-sprint-modal',
+  standalone: true,
+  imports: [CommonModule, FormsModule, IconComponent, EstimationMatrixModalComponent, ConfirmModalComponent],
+  templateUrl: './edit-sprint-modal.component.html',
+  styleUrl: './edit-sprint-modal.component.css'
+})
+export class EditSprintModalComponent implements OnInit {
+  state = inject(ScrumStateService);
+
+  @Input() sprint: Sprint | null = null;
+  @Output() close = new EventEmitter<void>();
+  @Output() save = new EventEmitter<Partial<Sprint>>();
+  @Output() delete = new EventEmitter<string>();
+
+  showDeleteConfirm = signal<boolean>(false);
+
+  name: string = '';
+  goal: string = '';
+  startDate: string = new Date().toISOString().split('T')[0];
+  endDate: string = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  // Dual Target Commitment System
+  targetMode: 'storyPoints' | 'hours' = 'storyPoints';
+  committedStoryPoints: number = 30;
+  committedHours: number = 240;
+  hoursPerPointRatio: number = 8.0; // Standard team conversion ratio
+  
+  // Helpers & Guide Modals
+  showMatrixModal: boolean = false;
+  capacityCalculationSummary: string | null = null;
+  isActive: boolean = true;
+
+  get isInvalidDateRange(): boolean {
+    if (!this.startDate || !this.endDate) return false;
+    return new Date(this.endDate) < new Date(this.startDate);
+  }
+
+  get canSubmit(): boolean {
+    return !!this.name.trim() &&
+           !!this.startDate &&
+           !!this.endDate &&
+           !this.isInvalidDateRange;
+  }
+
+  onStartDateChange(): void {
+    if (this.startDate && this.endDate) {
+      if (new Date(this.endDate) < new Date(this.startDate)) {
+        // Auto-advance endDate by 14 days from startDate
+        const start = new Date(this.startDate);
+        const end = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+        this.endDate = end.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  ngOnInit(): void {
+    if (this.sprint) {
+      this.name = this.sprint.name || '';
+      this.goal = this.sprint.goal || '';
+      this.startDate = this.sprint.startDate ? new Date(this.sprint.startDate).toISOString().split('T')[0] : this.startDate;
+      this.endDate = this.sprint.endDate ? new Date(this.sprint.endDate).toISOString().split('T')[0] : this.endDate;
+      this.committedStoryPoints = this.sprint.committedStoryPoints || 30;
+      this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
+      this.isActive = this.sprint.isActive ?? true;
+    } else {
+      this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
+    }
+  }
+
+  onPointsChange(): void {
+    const pts = Math.max(1, this.committedStoryPoints || 1);
+    this.committedHours = Math.round(pts * this.hoursPerPointRatio);
+  }
+
+  onHoursChange(): void {
+    const hrs = Math.max(1, this.committedHours || 1);
+    this.committedStoryPoints = Math.max(1, Math.round(hrs / this.hoursPerPointRatio));
+  }
+
+  onRatioChange(): void {
+    if (this.targetMode === 'storyPoints') {
+      this.onPointsChange();
+    } else {
+      this.onHoursChange();
+    }
+  }
+
+  setTargetMode(mode: 'storyPoints' | 'hours'): void {
+    this.targetMode = mode;
+    if (mode === 'storyPoints') {
+      this.onPointsChange();
+    } else {
+      this.onHoursChange();
+    }
+  }
+
+  autoCalculateFromCapacity(): void {
+    const start = new Date(this.startDate || Date.now());
+    const end = new Date(this.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
+    const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const workingDays = Math.max(1, Math.round(totalDays * (5 / 7)));
+
+    // Active delivery members
+    const members = this.state.members();
+    const deliveryMembers = members.filter(m => (m.isActive ?? true) && m.role !== 'ClientStakeholder' && m.role !== 'ScrumMaster' && m.role !== 'Cdl');
+    const memberCount = deliveryMembers.length || 5;
+
+    // Leaves within window
+    const leaves = this.state.leaves();
+    const relevantLeaves = leaves.filter(l => {
+      if (!l.isApproved) return false;
+      const lStart = new Date(l.startDate);
+      const lEnd = new Date(l.endDate);
+      return lStart <= end && lEnd >= start;
+    });
+
+    let totalLeaveDays = 0;
+    for (const member of deliveryMembers) {
+      const memberLeaves = relevantLeaves.filter(l => l.teamMemberId === member.id);
+      for (const ml of memberLeaves) {
+        const d = ml.totalDays || (ml.leaveSlot && ml.leaveSlot !== 'FullDay' ? 0.5 : 1.0);
+        totalLeaveDays += d;
+      }
+    }
+
+    const grossHours = workingDays * memberCount * 8;
+    const leaveHoursDeducted = Math.round(totalLeaveDays * 8);
+    const netAvailableHours = Math.max(0, grossHours - leaveHoursDeducted);
+    const productiveFocusHours = Math.round(netAvailableHours * 0.70); // 70% focus factor
+    const suggestedPoints = Math.max(1, Math.round(productiveFocusHours / this.hoursPerPointRatio));
+
+    this.committedHours = productiveFocusHours;
+    this.committedStoryPoints = suggestedPoints;
+
+    this.capacityCalculationSummary = `Auto-calculated for ${memberCount} developers across ${workingDays} working days: ${grossHours}h gross - ${leaveHoursDeducted}h leave (${totalLeaveDays}d) = ${netAvailableHours}h net &times; 70% focus = ${productiveFocusHours}h (${suggestedPoints} SP).`;
+  }
+
+  onSelectMatrixEstimation(event: { points: number; hours: number }): void {
+    this.committedStoryPoints = event.points;
+    this.committedHours = Math.round(event.points * this.hoursPerPointRatio);
+    this.showMatrixModal = false;
+  }
+
+  onSubmit(): void {
+    if (!this.canSubmit) return;
+
+    // Ensure story points is non-zero
+    const finalPoints = this.committedStoryPoints > 0 
+      ? this.committedStoryPoints 
+      : Math.max(1, Math.round((this.committedHours || 240) / this.hoursPerPointRatio));
+
+    const payload: Partial<Sprint> = {
+      name: this.name.trim(),
+      goal: this.goal.trim(),
+      startDate: new Date(this.startDate).toISOString(),
+      endDate: new Date(this.endDate).toISOString(),
+      committedStoryPoints: finalPoints,
+      isActive: this.isActive
+    };
+
+    if (this.sprint?.id) {
+      payload.id = this.sprint.id;
+    }
+
+    this.save.emit(payload);
+  }
+
+  onDelete(): void {
+    if (this.sprint?.id) {
+      this.showDeleteConfirm.set(true);
+    }
+  }
+
+  onConfirmDeleteSprint(): void {
+    if (this.sprint?.id) {
+      this.delete.emit(this.sprint.id);
+      this.showDeleteConfirm.set(false);
+    }
+  }
+
+  onCancelDeleteSprint(): void {
+    this.showDeleteConfirm.set(false);
+  }
+}

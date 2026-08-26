@@ -1,0 +1,106 @@
+<div class="modal-backdrop animate-fade-in" (click)="close.emit()">
+  <div class="modal-box glass-panel glow-border animate-slide-up" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-title-wrap">
+        <app-icon name="mic" [size]="22" color="var(--accent-secondary)"></app-icon>
+        <div>
+          <h3 class="modal-title">{{ techTalk ? 'Edit Tech Sharing Session' : 'Schedule / Log Tech Talk' }}</h3>
+          <p class="modal-subtitle">Record offshore knowledge sharing, architecture demos, and learnings</p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="close-btn" title="Close">&times;</button>
+    </div>
+
+    <!-- Body -->
+    <form (ngSubmit)="onSubmit()" class="modal-body form-grid">
+      <!-- Topic -->
+      <div class="form-group full-width">
+        <label class="form-label">Session Topic & Theme <span class="required-star">*</span></label>
+        <input
+          type="text"
+          [(ngModel)]="topic"
+          name="topic"
+          required
+          placeholder="e.g. CQRS & Event Sourcing Architecture in .NET 9"
+          class="interactive-input"
+        />
+      </div>
+
+      <!-- Presenter & Date -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Presenter / Speaker <span class="required-star">*</span></label>
+          <select [(ngModel)]="presenterId" name="presenterId" required class="interactive-input">
+            @for (m of state.members(); track m.id) {
+              <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Session Date</label>
+          <input
+            type="date"
+            [(ngModel)]="talkDate"
+            name="talkDate"
+            required
+            class="interactive-input"
+          />
+        </div>
+      </div>
+
+      <!-- Duration & Slides/Recording URL -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Duration</label>
+          <select [(ngModel)]="durationMinutes" name="durationMinutes" class="interactive-input">
+            @for (d of durations; track d.value) {
+              <option [value]="d.value">{{ d.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Slides / Recording URL (Optional)</label>
+          <input
+            type="url"
+            [(ngModel)]="slidesUrl"
+            name="slidesUrl"
+            placeholder="https://slides.com/..."
+            class="interactive-input"
+          />
+        </div>
+      </div>
+
+      <!-- Key Takeaways -->
+      <div class="form-group full-width">
+        <label class="form-label">Key Takeaways & Team Action Items</label>
+        <textarea
+          [(ngModel)]="keyTakeaways"
+          name="keyTakeaways"
+          rows="4"
+          placeholder="Summary of learnings, architectural patterns introduced, repo demo links..."
+          class="interactive-textarea"
+        ></textarea>
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="modal-footer footer-split">
+        <div class="footer-left">
+          @if (techTalk) {
+            <button type="button" (click)="onDelete()" class="btn-danger">
+              <app-icon name="trash" [size]="16"></app-icon> Delete Session
+            </button>
+          }
+        </div>
+        <div class="footer-right">
+          <button type="button" (click)="close.emit()" class="btn-secondary">Cancel</button>
+          <button type="submit" [disabled]="!topic.trim() || !presenterId" class="btn-primary">
+            <app-icon name="check" [size]="16"></app-icon> {{ techTalk ? 'Save Changes' : 'Log Tech Talk' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

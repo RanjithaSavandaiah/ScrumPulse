@@ -1,0 +1,358 @@
+<section class="animate-fade-in executive-section">
+  <!-- Top Header & Export Action Hub -->
+  <div class="glass-panel export-hero-card">
+    <div class="hero-top">
+      <div>
+        <div class="hero-tag">
+          <app-icon name="bar-chart" [size]="16" color="var(--accent-secondary)"></app-icon>
+          <span>Data Extraction & Performance Intelligence</span>
+        </div>
+        <h2 class="hero-title">Executive & Individual Developer Report Studio</h2>
+        <p class="hero-subtitle">
+          Extract detailed work items, PR throughput, review comments, standups, and capacity metrics in Excel (.xlsx) and PDF (.pdf) for every sprint, month, or quarter.
+        </p>
+      </div>
+
+      <div class="export-actions">
+        <button (click)="exportExcel()" class="btn-export btn-excel" title="Download formatted multi-sheet Excel spreadsheet">
+          <app-icon name="download" [size]="16"></app-icon> Export Excel (.xlsx)
+        </button>
+        <button (click)="exportPdf()" class="btn-export btn-pdf" title="Download vector print-ready PDF executive report">
+          <app-icon name="file-text" [size]="16"></app-icon> Export PDF (.pdf)
+        </button>
+        <button (click)="copySummary()" class="btn-secondary" [class.btn-copied]="copiedSummary()">
+          <app-icon [name]="copiedSummary() ? 'check' : 'copy'" [size]="15" [color]="copiedSummary() ? 'var(--accent-success)' : undefined"></app-icon>
+          {{ copiedSummary() ? 'Summary Copied!' : 'Copy Summary' }}
+        </button>
+        <button (click)="state.exportDataJson()" class="btn-secondary">
+          <app-icon name="download" [size]="15"></app-icon> Backup JSON
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Configuration Bar -->
+    <div class="filter-controls-bar">
+      <!-- 1. Member Selector -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <app-icon name="user" [size]="14"></app-icon> Target Member
+        </label>
+        <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="control-select">
+          <option value="ALL">Entire Squad / All Developers</option>
+          @for (member of state.members(); track member.id) {
+            <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+          }
+        </select>
+      </div>
+
+      <!-- 2. Time Scope Mode Selector -->
+      <div class="filter-group">
+        <label class="filter-label">
+          <app-icon name="calendar" [size]="14"></app-icon> Time Horizon
+        </label>
+        <div class="scope-pill-group">
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('SPRINT')"
+            [class.active]="selectedTimeScope() === 'SPRINT'"
+            class="scope-pill"
+          >
+            <app-icon name="zap" [size]="14"></app-icon> By Sprint
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('MONTH')"
+            [class.active]="selectedTimeScope() === 'MONTH'"
+            class="scope-pill"
+          >
+            <app-icon name="calendar" [size]="14"></app-icon> By Month
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('QUARTER')"
+            [class.active]="selectedTimeScope() === 'QUARTER'"
+            class="scope-pill"
+          >
+            <app-icon name="bar-chart" [size]="14"></app-icon> By Quarter
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('CUSTOM')"
+            [class.active]="selectedTimeScope() === 'CUSTOM'"
+            class="scope-pill"
+          >
+            <app-icon name="clock" [size]="14"></app-icon> Custom Date Frame
+          </button>
+          <button
+            type="button"
+            (click)="selectedTimeScope.set('ALL')"
+            [class.active]="selectedTimeScope() === 'ALL'"
+            class="scope-pill"
+          >
+            <app-icon name="eye" [size]="14"></app-icon> All Time
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Dynamic Sub-Period Selector -->
+      @if (selectedTimeScope() === 'SPRINT') {
+        <div class="filter-group animate-fade-in">
+          <label class="filter-label">Select Sprint Board</label>
+          <select [ngModel]="effectiveSprintId()" (ngModelChange)="selectedSprintId.set($event)" class="control-select">
+            <option value="ALL">All Sprints Combined</option>
+            @for (sprint of state.sprints(); track sprint.id) {
+              <option [value]="sprint.id">{{ sprint.name }} {{ sprint.isActive ? '(Active)' : '' }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (selectedTimeScope() === 'MONTH') {
+        <div class="filter-group animate-fade-in">
+          <label class="filter-label">Select Month</label>
+          <select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)" class="control-select">
+            @for (m of monthsList; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (selectedTimeScope() === 'QUARTER') {
+        <div class="filter-group animate-fade-in">
+          <label class="filter-label">Select Quarter</label>
+          <select [ngModel]="selectedQuarter()" (ngModelChange)="selectedQuarter.set($event)" class="control-select">
+            @for (q of quartersList; track q.value) {
+              <option [value]="q.value">{{ q.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (selectedTimeScope() === 'CUSTOM') {
+        <div class="filter-group animate-fade-in custom-range-group">
+          <label class="filter-label">Custom Date Horizon</label>
+          <div class="custom-inputs-flex">
+            <input
+              type="date"
+              [ngModel]="startDate()"
+              (ngModelChange)="startDate.set($event)"
+              class="control-select date-select"
+            />
+            <span class="range-to-txt">to</span>
+            <input
+              type="date"
+              [ngModel]="endDate()"
+              (ngModelChange)="endDate.set($event)"
+              [min]="startDate()"
+              class="control-select date-select"
+            />
+          </div>
+          <div class="quick-preset-btns">
+            <button type="button" (click)="applyCustomPreset(7)" class="mini-preset">7d</button>
+            <button type="button" (click)="applyCustomPreset(14)" class="mini-preset">14d</button>
+            <button type="button" (click)="applyCustomPreset(30)" class="mini-preset">30d</button>
+            <button type="button" (click)="applyThisMonthPreset()" class="mini-preset">This Month</button>
+            <button type="button" (click)="applySprintDatesPreset()" class="mini-preset">Sprint</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Live KPI Preview Grid -->
+  <div class="metrics-grid">
+    <div class="glass-panel metric-card">
+      <div class="metric-icon-box" style="color: var(--accent-secondary);">
+        <app-icon name="clock" [size]="20"></app-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Work Items In Scope</span>
+        <span class="metric-val">{{ previewWorkItems().length }}</span>
+        <span class="metric-sub">User stories, tasks & defects</span>
+      </div>
+    </div>
+
+    <div class="glass-panel metric-card">
+      <div class="metric-icon-box" style="color: var(--accent-primary);">
+        <app-icon name="check-circle" [size]="20"></app-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Story Points Delivered</span>
+        <span class="metric-val">{{ previewDonePoints() }} / {{ previewTotalPoints() }} Pts</span>
+        <span class="metric-sub">{{ previewTotalPoints() > 0 ? (previewDonePoints() / previewTotalPoints() * 100 | number:'1.0-0') : 0 }}% completion velocity</span>
+      </div>
+    </div>
+
+    <div class="glass-panel metric-card">
+      <div class="metric-icon-box" style="color: var(--accent-purple);">
+        <app-icon name="git-pull-request" [size]="20"></app-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Pull Requests Authored</span>
+        <span class="metric-val">{{ previewTotalPrs() }} PRs</span>
+        <span class="metric-sub">{{ previewTotalComments() }} review discussions</span>
+      </div>
+    </div>
+
+    <div class="glass-panel metric-card">
+      <div class="metric-icon-box" style="color: var(--accent-warning);">
+        <app-icon name="sparkles" [size]="20"></app-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Actionable Improvements</span>
+        <span class="metric-val">{{ previewActionableComments() }}</span>
+        <span class="metric-sub">{{ previewTotalComments() > 0 ? (previewActionableComments() / previewTotalComments() * 100 | number:'1.0-0') : 0 }}% actionability index</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scope Preview Content (Work Items & PRs) -->
+  <div class="preview-tables-grid">
+    <!-- Work Items Table Preview -->
+    <div class="glass-panel preview-table-card">
+      <div class="table-card-header">
+        <h4 class="table-title">
+          <app-icon name="clock" [size]="16" color="var(--accent-secondary)"></app-icon>
+          Work Items & Cycle Time ({{ previewWorkItems().length }})
+        </h4>
+      </div>
+      <div class="table-responsive">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Pts</th>
+              <th>Status</th>
+              <th>Cycle Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of previewWorkItems(); track item.id) {
+              <tr>
+                <td><span class="item-key-badge">{{ item.key }}</span></td>
+                <td class="cell-title">{{ item.title }}</td>
+                <td><span class="cat-pill">{{ item.type }}</span></td>
+                <td><strong>{{ item.storyPoints }}</strong></td>
+                <td><span class="status-pill">{{ item.status }}</span></td>
+                <td>{{ item.totalCycleTimeHours ? item.totalCycleTimeHours + 'h' : 'In Progress' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="empty-cell">No work items found matching this filter criteria.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pull Requests Table Preview -->
+    <div class="glass-panel preview-table-card">
+      <div class="table-card-header">
+        <h4 class="table-title">
+          <app-icon name="git-pull-request" [size]="16" color="var(--accent-purple)"></app-icon>
+          Pull Requests & Code Feedback ({{ previewPrLogs().length }})
+        </h4>
+      </div>
+      <div class="table-responsive">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>PR #</th>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Comments (Tot/Act)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (pr of previewPrLogs(); track pr.id) {
+              <tr>
+                <td><span class="pr-key-badge">{{ pr.prNumber }}</span></td>
+                <td class="cell-title">{{ pr.prTitle }}</td>
+                <td>{{ pr.authorName | cleanName }}</td>
+                <td>
+                  <span class="comment-count-badge">{{ pr.totalCommentsCount }} / {{ pr.actionableCommentsCount }}</span>
+                </td>
+                <td><span class="status-pill pr-status">{{ pr.reviewStatus }}</span></td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty-cell">No pull requests found matching this filter criteria.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 360° Executive Intelligence & Strengths / Weaknesses Analysis -->
+  @if (aiData(); as ai) {
+    <div class="glass-panel ai-executive-panel animate-slide-up">
+      <div class="ai-exec-header">
+        <div class="ai-title-wrap">
+          <app-icon name="sparkles" [size]="22" color="var(--accent-warning)"></app-icon>
+          <div>
+            <h4 class="ai-exec-title">{{ ai.title }}</h4>
+            <p class="ai-exec-sub">{{ ai.summary }}</p>
+          </div>
+        </div>
+        <div class="ai-header-right">
+          <span class="glass-badge" [style.color]="ai.riskLevel.includes('High') ? 'var(--accent-danger)' : (ai.riskLevel.includes('Medium') ? 'var(--accent-warning)' : 'var(--accent-success)')">
+            {{ ai.riskLevel }}
+          </span>
+          <button (click)="refreshAiIntelligence()" [disabled]="loadingAi()" class="btn-refresh-ai" title="Re-evaluate AI Telemetry">
+            <app-icon name="refresh-cw" [size]="14"></app-icon> Refresh AI Analysis
+          </button>
+        </div>
+      </div>
+
+      <div class="ai-split-grid">
+        <!-- Left: Key Strengths & Telemetry -->
+        <div class="ai-col">
+          <h5 class="ai-col-heading">
+            <app-icon name="activity" [size]="16" color="var(--accent-primary)"></app-icon>
+            Strengths & Telemetry Findings
+          </h5>
+          <ul class="ai-findings-list">
+            @for (finding of ai.keyFindings; track finding) {
+              <li class="ai-finding-item" [class.strength-item]="finding.includes('STRENGTH')" [class.weakness-item]="finding.includes('WEAKNESS') || finding.includes('RISK')">
+                {{ finding }}
+              </li>
+            }
+          </ul>
+        </div>
+
+        <!-- Right: Actionable Recommendations & Weakness Mitigation -->
+        <div class="ai-col">
+          <h5 class="ai-col-heading">
+            <app-icon name="target" [size]="16" color="var(--accent-warning)"></app-icon>
+            Actionable AI Recommendations & Growth Plan
+          </h5>
+          <ul class="ai-recs-list">
+            @for (rec of ai.actionableRecommendations; track rec) {
+              <li class="ai-rec-item">{{ rec }}</li>
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Narrative Report Section -->
+  @if (state.executiveReport()) {
+    <div class="glass-panel narrative-panel">
+      <div class="narrative-header">
+        <h4 class="narrative-title">
+          <app-icon name="bot" [size]="18" color="var(--accent-primary)"></app-icon>
+          Sprint Governance Briefing
+        </h4>
+      </div>
+      <pre class="narrative-content">{{ state.executiveReport()?.executiveSummaryMarkdown }}</pre>
+    </div>
+  }
+</section>

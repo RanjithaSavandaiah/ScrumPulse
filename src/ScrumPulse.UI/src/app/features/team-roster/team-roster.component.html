@@ -1,0 +1,162 @@
+<section class="animate-fade-in team-roster-section">
+  <div class="section-header">
+    <div>
+      <div class="title-wrap">
+        <app-icon name="users" [size]="24" color="var(--accent-primary)"></app-icon>
+        <h3>Squad Roster & Capacity Administration</h3>
+      </div>
+      <p class="section-subtitle">Scrum Master Management &bull; Add, assign, and manage team members and roles</p>
+    </div>
+    <div>
+      <button (click)="showAddModal.set(true)" class="btn-primary">
+        <app-icon name="plus" [size]="16"></app-icon> Add Team Member
+      </button>
+    </div>
+  </div>
+
+  <!-- Squad Stats Overview -->
+  <div class="stats-overview-grid">
+    <div class="glass-panel stat-box">
+      <span class="stat-label">Total Squad Members</span>
+      <span class="stat-number">{{ state.members().length }}</span>
+      <span class="stat-sub">Active Squad Capacity</span>
+    </div>
+    <div class="glass-panel stat-box">
+      <span class="stat-label">Engineering Capacity</span>
+      <span class="stat-number" style="color: var(--accent-primary);">
+        {{ developerCount() }}
+      </span>
+      <span class="stat-sub">Developers in Sprint</span>
+    </div>
+    <div class="glass-panel stat-box">
+      <span class="stat-label">Quality Assurance</span>
+      <span class="stat-number" style="color: var(--accent-success);">
+        {{ qaCount() }}
+      </span>
+      <span class="stat-sub">QA Guardians</span>
+    </div>
+    <div class="glass-panel stat-box">
+      <span class="stat-label">Leadership & Alignment</span>
+      <span class="stat-number" style="color: var(--accent-warning);">
+        {{ leadershipCount() }}
+      </span>
+      <span class="stat-sub">SM & CDL Leads</span>
+    </div>
+  </div>
+
+  <!-- Team Members Grid -->
+  <div class="roster-grid">
+    @for (member of state.members(); track member.id) {
+      <div class="glass-panel member-card">
+        <div class="card-top-row">
+          <div class="member-avatar-box">
+            <div class="member-avatar" [style.background]="getRoleBadgeColor(member.role)">
+              {{ member.name | initials }}
+            </div>
+            <div>
+              <h4 class="member-name">{{ member.name | cleanName }}</h4>
+              <span class="glass-badge role-badge" [style.color]="getRoleBadgeColor(member.role)">
+                {{ member.role | roleLabel }}
+              </span>
+            </div>
+          </div>
+          @if (state.canEditOrDelete()) {
+            <button (click)="onDeleteMember(member)" class="delete-btn" title="Remove Member from Squad">
+              &times;
+            </button>
+          }
+        </div>
+
+        <div class="card-bottom-meta">
+          <span class="assigned-badge">
+            <app-icon name="book-open" [size]="14"></app-icon>
+            <strong>{{ getAssignedCount(member.id) }}</strong> active tasks
+          </span>
+        </div>
+      </div>
+    } @empty {
+      <div class="glass-panel empty-roster">
+        <app-icon name="users" [size]="32" color="var(--text-secondary)"></app-icon>
+        <p>No squad members found. Click "+ Add Team Member" to build your squad roster.</p>
+      </div>
+    }
+  </div>
+
+  <!-- Simplified Add Member Modal -->
+  @if (showAddModal()) {
+    <div class="modal-backdrop">
+      <div class="glass-panel modal-content animate-fade-in">
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">
+              <app-icon name="user-check" [size]="22" color="var(--accent-primary)"></app-icon>
+              Add Squad Team Member
+            </h3>
+            <p class="modal-subtitle">Register a new squad member to the team</p>
+          </div>
+          <button (click)="showAddModal.set(false)" class="close-btn">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Role Selector Cards -->
+          <div class="form-group">
+            <label class="input-label">Squad Role</label>
+            <div class="role-cards-grid">
+              @for (r of roles; track r.value) {
+                <button
+                  type="button"
+                  (click)="newMember.role = r.value"
+                  [class.selected]="newMember.role === r.value"
+                  class="role-card"
+                >
+                  <app-icon [name]="r.icon" [size]="20"></app-icon>
+                  <span class="role-card-title">{{ r.label }}</span>
+                  <span class="role-card-desc">{{ r.desc }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Full Name & Title -->
+          <div class="form-group">
+            <label class="input-label">Full Name & Title</label>
+            <input
+              [(ngModel)]="newMember.name"
+              placeholder="e.g. Kaushik (Developer) or Priya (QA)"
+              class="interactive-input"
+              autofocus
+            />
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button (click)="showAddModal.set(false)" class="btn-secondary">Cancel</button>
+          <button (click)="onSaveMember()" [disabled]="!newMember.name.trim()" class="btn-primary btn-save">
+            <app-icon name="check" [size]="16"></app-icon> Save Member to Squad
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Sleek Custom Delete Squad Member Confirmation Modal -->
+  @if (memberToDelete(); as member) {
+    <app-confirm-modal
+      title="Remove Squad Member"
+      [message]="'Are you sure you want to remove ' + (member.name | cleanName) + ' from the active squad roster?'"
+      subMessage="Any work items currently assigned to this member will become unassigned."
+      confirmText="Remove Member"
+      cancelText="Keep in Squad"
+      confirmVariant="danger"
+      icon="trash-2"
+      [memberPreview]="{
+        name: (member.name | cleanName),
+        role: (member.role | roleLabel),
+        avatar: (member.name | initials),
+        badgeColor: getRoleBadgeColor(member.role)
+      }"
+      (confirm)="onConfirmDeleteMember()"
+      (cancel)="onCancelDeleteMember()"
+    ></app-confirm-modal>
+  }
+</section>

@@ -1,0 +1,43 @@
+<div class="glass-panel blocker-card" [class.sla-breached-glow]="blocker.isSlaBreached">
+  <div class="blocker-header">
+    <div class="header-left">
+      <span class="glass-badge category-badge">{{ blocker.category }}</span>
+      <h4 class="blocker-title">{{ blocker.title }}</h4>
+    </div>
+    <div class="header-right">
+      <span class="glass-badge status-badge" [style.color]="blocker.isResolved ? 'var(--accent-success)' : (blocker.isSlaBreached ? 'var(--accent-danger)' : 'var(--accent-warning)')">
+        @if (blocker.isSlaBreached) {
+          <app-icon name="alert-triangle" [size]="12"></app-icon>
+        } @else if (!blocker.isResolved) {
+          <app-icon name="clock" [size]="12"></app-icon>
+        } @else {
+          <app-icon name="check" [size]="12"></app-icon>
+        }
+        {{ blocker.isResolved ? 'Resolved' : (blocker.isSlaBreached ? 'SLA BREACHED' : 'Waiting ' + blocker.hoursWaiting + 'h / Limit ' + blocker.slaHoursLimit + 'h') }}
+      </span>
+      @if (!blocker.isResolved) {
+        <button (click)="resolve.emit(blocker)" class="btn-primary btn-resolve">
+          <app-icon name="check" [size]="12"></app-icon> Mark Resolved
+        </button>
+      }
+      <div class="card-action-btns">
+        <button type="button" (click)="edit.emit(blocker)" class="card-action-btn edit-btn" title="Edit Blocker">
+          <app-icon name="edit" [size]="14"></app-icon>
+        </button>
+        <button type="button" (click)="delete.emit(blocker)" class="card-action-btn delete-btn" title="Delete Blocker">
+          <app-icon name="trash" [size]="14"></app-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+  <p class="blocker-desc">{{ blocker.description }}</p>
+  <div class="blocker-meta">
+    <span>Raised by: <strong>{{ blocker.raisedByName || 'Team Member' }}</strong></span>
+    @if (blocker.workItemKey) {
+      <span>Related PBI: <strong>{{ blocker.workItemKey }}</strong></span>
+    }
+    @if (blocker.resolutionNotes) {
+      <span>Resolution: <strong>{{ blocker.resolutionNotes }}</strong></span>
+    }
+  </div>
+</div>

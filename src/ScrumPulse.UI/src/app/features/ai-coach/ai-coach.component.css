@@ -1,0 +1,10 @@
+.ai-coach-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.coach-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}

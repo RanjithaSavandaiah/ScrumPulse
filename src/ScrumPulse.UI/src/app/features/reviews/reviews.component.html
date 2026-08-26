@@ -1,0 +1,108 @@
+<section class="animate-fade-in reviews-section">
+  <div class="section-header">
+    <div>
+      <h3 class="section-title">
+        <app-icon name="file-text" [size]="20" color="var(--accent-secondary)"></app-icon>
+        Monthly 1:1 Reviews & 360° Feedback System
+      </h3>
+      <p class="section-subtitle">4-Way Input: Scrum Master, CDL, Client, and Self-Reflection + Happiness & Rating Index</p>
+    </div>
+    <button (click)="onOpenCreateModal()" class="btn-primary">
+      <app-icon name="plus" [size]="16"></app-icon> Record 1:1 Feedback
+    </button>
+  </div>
+
+  <div class="feedback-list">
+    @for (feedback of state.monthlyFeedbacks(); track feedback.id) {
+      <div class="glass-panel feedback-card">
+        <div class="feedback-header">
+          <div>
+            <h4 class="member-month-title">{{ feedback.teamMemberName | cleanName }} &bull; {{ feedback.monthYear }}</h4>
+            <span class="recorded-date">Recorded on {{ feedback.createdAtUtc | date:'mediumDate' }}</span>
+          </div>
+          <div class="badges-row">
+            <span class="glass-badge sm-badge">
+              <app-icon name="star" [size]="12"></app-icon> SM Rating: {{ feedback.smRating }}/10
+            </span>
+            <span class="glass-badge happiness-badge">
+              <app-icon name="zap" [size]="12"></app-icon> Happiness Index: {{ feedback.happinessIndex }}/10
+            </span>
+            <div class="card-action-btns">
+              <button type="button" (click)="onOpenEditModal(feedback)" class="card-action-btn edit-btn" title="Edit 1:1 Review">
+                <app-icon name="edit" [size]="14"></app-icon>
+              </button>
+              <button type="button" (click)="onPromptDeleteFeedback(feedback)" class="card-action-btn delete-btn" title="Delete 1:1 Review">
+                <app-icon name="trash" [size]="14"></app-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="feedback-grid">
+          <div class="feedback-quadrant">
+            <span class="quadrant-title">
+              <app-icon name="user-check" [size]="14"></app-icon> Scrum Master Feedback
+            </span>
+            <p class="quadrant-text">{{ feedback.scrumMasterFeedback }}</p>
+          </div>
+          <div class="feedback-quadrant">
+            <span class="quadrant-title">
+              <app-icon name="briefcase" [size]="14"></app-icon> CDL Feedback
+            </span>
+            <p class="quadrant-text">{{ feedback.cdlFeedback }}</p>
+          </div>
+          <div class="feedback-quadrant">
+            <span class="quadrant-title">
+              <app-icon name="building" [size]="14"></app-icon> Client Perception
+            </span>
+            <p class="quadrant-text">{{ feedback.clientFeedback }}</p>
+          </div>
+          <div class="feedback-quadrant">
+            <span class="quadrant-title">
+              <app-icon name="user" [size]="14"></app-icon> Developer Self-Reflection
+            </span>
+            <p class="quadrant-text">{{ feedback.selfReflection }}</p>
+          </div>
+        </div>
+
+        <!-- AI Coaching Synthesis -->
+        @if (feedback.aiSynthesizedStrengths) {
+          <div class="ai-synthesis">
+            <span class="synthesis-label">
+              <app-icon name="bot" [size]="16"></app-icon> Microsoft Agent Synthesis:
+            </span>
+            <span class="synthesis-text"> {{ feedback.aiSynthesizedStrengths }} | {{ feedback.aiGrowthRecommendations }}</span>
+          </div>
+        }
+      </div>
+    } @empty {
+      <div class="glass-panel empty-state">No 1:1 reviews recorded yet for this cycle.</div>
+    }
+  </div>
+
+  <!-- Record / Edit Feedback Modal -->
+  @if (showFeedbackModal()) {
+    <app-record-feedback-modal
+      [members]="state.members()"
+      [editFeedback]="selectedFeedbackForEdit()"
+      (close)="onCloseFeedbackModal()"
+      (save)="onSaveFeedback($event)"
+      (delete)="onDeleteFromModal($event)"
+    ></app-record-feedback-modal>
+  }
+
+  <!-- Delete Confirmation Modal -->
+  @if (feedbackToDelete(); as fToDelete) {
+    <app-confirm-modal
+      title="Delete 1:1 Review Record"
+      [message]="'Are you sure you want to delete 1:1 review for \u0022' + (fToDelete.teamMemberName | cleanName) + ' (' + fToDelete.monthYear + ')\u0022?'"
+      subMessage="This will remove the 360° feedback and AI synthesis from the team record."
+      confirmText="Delete Review"
+      cancelText="Keep Review"
+      confirmVariant="danger"
+      icon="trash-2"
+      (confirm)="onConfirmDeleteFeedback()"
+      (cancel)="feedbackToDelete.set(null)"
+    ></app-confirm-modal>
+  }
+</section>

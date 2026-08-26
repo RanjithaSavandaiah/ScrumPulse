@@ -1,0 +1,256 @@
+<section class="animate-fade-in tech-hub-section">
+  <!-- Top Hub Navigation & Stats Overview -->
+  <div class="tech-hub-grid">
+    <!-- 1. Tech Debt Backlog Column -->
+    <div class="hub-column">
+      <div class="column-header">
+        <div class="title-with-badge">
+          <h3 class="section-title">
+            <app-icon name="wrench" [size]="20" color="var(--accent-warning)"></app-icon>
+            Tech Debt Payoff Backlog
+          </h3>
+          <span class="count-badge">{{ filteredTechDebt().length }}</span>
+        </div>
+        <button (click)="openCreateTechDebt()" class="btn-action-primary btn-add-debt">
+          <app-icon name="plus" [size]="15"></app-icon> Log Tech Debt
+        </button>
+      </div>
+
+      <!-- Filter Pills -->
+      <div class="filter-pills-row">
+        <button
+          type="button"
+          (click)="techDebtFilter.set('ALL')"
+          [class.active]="techDebtFilter() === 'ALL'"
+          class="hub-pill"
+        >
+          All ({{ state.techDebt().length }})
+        </button>
+        <button
+          type="button"
+          (click)="techDebtFilter.set('Identified')"
+          [class.active]="techDebtFilter() === 'Identified'"
+          class="hub-pill"
+        >
+          Identified
+        </button>
+        <button
+          type="button"
+          (click)="techDebtFilter.set('In Progress')"
+          [class.active]="techDebtFilter() === 'In Progress'"
+          class="hub-pill"
+        >
+          In Progress
+        </button>
+        <button
+          type="button"
+          (click)="techDebtFilter.set('Resolved')"
+          [class.active]="techDebtFilter() === 'Resolved'"
+          class="hub-pill"
+        >
+          Resolved
+        </button>
+      </div>
+
+      <div class="card-list">
+        @for (item of filteredTechDebt(); track item.id) {
+          <div class="glass-panel hub-card" [class.resolved-card]="item.status === 'Resolved'">
+            <div class="hub-card-top">
+              <div class="card-title-group">
+                <h4 class="card-title" (click)="openEditTechDebt(item)">{{ item.title }}</h4>
+                <div class="badges-row">
+                  <span class="glass-badge" [ngClass]="'severity-' + (item.severity || 'Medium').toLowerCase()">
+                    {{ item.severity }}
+                  </span>
+                  <span class="glass-badge badge-hours">
+                    <app-icon name="clock" [size]="12"></app-icon> {{ item.estimatedHours }}h
+                  </span>
+                  <span class="glass-badge" [ngClass]="'status-' + (item.status || 'Identified').toLowerCase().replace(' ', '-')">
+                    {{ item.status || 'Identified' }}
+                  </span>
+                  <span class="glass-badge badge-assignee">
+                    <app-icon name="user" [size]="12" color="var(--accent-secondary)"></app-icon> {{ getAssigneeName(item) }}
+                  </span>
+                  @if (item.payoffSprintId) {
+                    <span class="glass-badge badge-sprint">
+                      <app-icon name="calendar" [size]="12" color="var(--accent-primary)"></app-icon> {{ getSprintName(item.payoffSprintId) }}
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Quick Item Actions -->
+              <div class="card-actions">
+                <button
+                  type="button"
+                  (click)="toggleResolveTechDebt(item, $event)"
+                  class="btn-icon-sm"
+                  [title]="item.status === 'Resolved' ? 'Reopen Tech Debt' : 'Mark as Resolved'"
+                >
+                  <app-icon [name]="item.status === 'Resolved' ? 'rotate-ccw' : 'check'" [size]="14" [color]="item.status === 'Resolved' ? 'var(--text-muted)' : 'var(--accent-success)'"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="openEditTechDebt(item)"
+                  class="btn-icon-sm"
+                  title="Edit Tech Debt"
+                >
+                  <app-icon name="edit" [size]="14" color="var(--accent-primary)"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="quickDeleteTechDebt(item, $event)"
+                  class="btn-icon-sm btn-delete"
+                  title="Delete Tech Debt"
+                >
+                  <app-icon name="trash" [size]="14" color="var(--accent-danger)"></app-icon>
+                </button>
+              </div>
+            </div>
+
+            @if (item.description) {
+              <p class="card-desc">{{ item.description }}</p>
+            }
+          </div>
+        } @empty {
+          <div class="glass-panel empty-state">
+            <app-icon name="wrench" [size]="32" color="var(--text-muted)"></app-icon>
+            <p>No technical debt items in this view.</p>
+            <button (click)="openCreateTechDebt()" class="btn-secondary btn-sm">
+              <app-icon name="plus" [size]="14"></app-icon> Log First Tech Debt
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- 2. Tech Talks Column -->
+    <div class="hub-column">
+      <div class="column-header">
+        <div class="title-with-badge">
+          <h3 class="section-title">
+            <app-icon name="mic" [size]="20" color="var(--accent-secondary)"></app-icon>
+            Weekly Offshore Tech Sharing Sessions
+          </h3>
+          <span class="count-badge badge-cyan">{{ state.techTalks().length }}</span>
+        </div>
+        <button (click)="openCreateTechTalk()" class="btn-action-primary btn-add-talk">
+          <app-icon name="plus" [size]="15"></app-icon> Log Tech Talk
+        </button>
+      </div>
+
+      <div class="card-list">
+        @for (talk of state.techTalks(); track talk.id) {
+          <div class="glass-panel hub-card talk-card">
+            <div class="hub-card-top">
+              <div class="talk-title-wrap">
+                <h4 class="talk-topic" (click)="openEditTechTalk(talk)">{{ talk.topic }}</h4>
+                <div class="talk-meta-row">
+                  <span class="meta-item presenter-tag">
+                    <app-icon name="user" [size]="13" color="var(--accent-secondary)"></app-icon>
+                    <strong>{{ getPresenterName(talk) }}</strong>
+                  </span>
+                  <span class="meta-item">
+                    <app-icon name="calendar" [size]="13"></app-icon>
+                    {{ talk.talkDate | date:'mediumDate' }}
+                  </span>
+                  <span class="meta-item duration-pill">
+                    <app-icon name="clock" [size]="12"></app-icon>
+                    {{ talk.durationMinutes }} mins
+                  </span>
+                </div>
+              </div>
+
+              <!-- Quick Talk Actions -->
+              <div class="card-actions">
+                @if (talk.slidesUrl) {
+                  <a [href]="talk.slidesUrl" target="_blank" class="btn-icon-sm" title="View Slides / Recording">
+                    <app-icon name="external-link" [size]="14" color="var(--accent-secondary)"></app-icon>
+                  </a>
+                }
+                <button
+                  type="button"
+                  (click)="openEditTechTalk(talk)"
+                  class="btn-icon-sm"
+                  title="Edit Tech Talk"
+                >
+                  <app-icon name="edit" [size]="14" color="var(--accent-primary)"></app-icon>
+                </button>
+                <button
+                  type="button"
+                  (click)="quickDeleteTechTalk(talk, $event)"
+                  class="btn-icon-sm btn-delete"
+                  title="Delete Tech Talk"
+                >
+                  <app-icon name="trash" [size]="14" color="var(--accent-danger)"></app-icon>
+                </button>
+              </div>
+            </div>
+
+            @if (talk.keyTakeaways) {
+              <p class="card-desc talk-takeaways">{{ talk.keyTakeaways }}</p>
+            }
+          </div>
+        } @empty {
+          <div class="glass-panel empty-state">
+            <app-icon name="mic" [size]="32" color="var(--text-muted)"></app-icon>
+            <p>No tech sharing sessions recorded yet.</p>
+            <button (click)="openCreateTechTalk()" class="btn-secondary btn-sm">
+              <app-icon name="plus" [size]="14"></app-icon> Record First Tech Talk
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Tech Debt Modal -->
+  @if (isTechDebtModalOpen()) {
+    <app-tech-debt-modal
+      [techDebt]="selectedTechDebt()"
+      (close)="closeTechDebtModal()"
+      (save)="saveTechDebt($event)"
+      (delete)="deleteTechDebt($event)"
+    ></app-tech-debt-modal>
+  }
+
+  <!-- Tech Talk Modal -->
+  @if (isTechTalkModalOpen()) {
+    <app-tech-talk-modal
+      [techTalk]="selectedTechTalk()"
+      (close)="closeTechTalkModal()"
+      (save)="saveTechTalk($event)"
+      (delete)="deleteTechTalk($event)"
+    ></app-tech-talk-modal>
+  }
+
+  <!-- Confirm Delete Tech Debt -->
+  @if (debtToDelete(); as debt) {
+    <app-confirm-modal
+      title="Delete Tech Debt Task"
+      [message]="'Are you sure you want to delete \u0022' + debt.title + '\u0022?'"
+      subMessage="This will remove the item from the offshore engineering debt tracker."
+      confirmText="Delete Debt Item"
+      cancelText="Keep Item"
+      confirmVariant="danger"
+      icon="trash-2"
+      (confirm)="onConfirmDeleteTechDebt()"
+      (cancel)="onCancelDeleteTechDebt()"
+    ></app-confirm-modal>
+  }
+
+  <!-- Confirm Delete Tech Talk -->
+  @if (talkToDelete(); as talk) {
+    <app-confirm-modal
+      title="Delete Tech Talk Session"
+      [message]="'Are you sure you want to delete the tech talk \u0022' + talk.topic + '\u0022?'"
+      subMessage="This will remove the knowledge sharing record and presentation link."
+      confirmText="Delete Session"
+      cancelText="Keep Session"
+      confirmVariant="danger"
+      icon="trash-2"
+      (confirm)="onConfirmDeleteTechTalk()"
+      (cancel)="onCancelDeleteTechTalk()"
+    ></app-confirm-modal>
+  }
+</section>

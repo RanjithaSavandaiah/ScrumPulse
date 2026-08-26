@@ -1,0 +1,169 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">
+          <app-icon [name]="isEditMode ? 'edit-3' : 'palmtree'" [size]="22" color="var(--accent-secondary)"></app-icon>
+          {{ isEditMode ? 'Edit Planned Leave / PTO' : 'Schedule Planned Leave / PTO' }}
+        </h3>
+        <p class="modal-subtitle">Automatically adjusts sprint velocity commitment & focus hours</p>
+      </div>
+      <button (click)="close.emit()" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Member Selection with Dropdown & Quick Chips -->
+      <div class="form-group">
+        <label class="input-label">Select Team Member</label>
+        <select [(ngModel)]="leave.teamMemberId" class="interactive-input member-select">
+          <option value="" disabled>-- Choose Team Member --</option>
+          @for (member of teamMembers; track member.id) {
+            <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
+          }
+        </select>
+
+        <div class="member-pills">
+          @for (member of teamMembers; track member.id) {
+            <button
+              type="button"
+              (click)="leave.teamMemberId = member.id"
+              [class.selected]="leave.teamMemberId === member.id"
+              class="member-chip"
+            >
+              <span class="chip-avatar">{{ member.name | initials }}</span>
+              <span class="chip-name">{{ member.name | cleanName }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Leave Category Cards -->
+      <div class="form-group">
+        <label class="input-label">Leave Category</label>
+        <div class="type-cards-grid">
+          @for (t of leaveTypes; track t.value) {
+            <button
+              type="button"
+              (click)="leave.leaveType = t.value"
+              [class.selected]="leave.leaveType === t.value"
+              class="type-card"
+            >
+              <app-icon [name]="t.icon" [size]="20"></app-icon>
+              <span class="type-label">{{ t.label }}</span>
+              <span class="type-desc">{{ t.desc }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Half Day / Full Day Slot Selector -->
+      <div class="form-group">
+        <label class="input-label">Leave Day Duration & Slot</label>
+        <div class="slot-cards-grid">
+          @for (slot of slotOptions; track slot.value) {
+            <button
+              type="button"
+              (click)="onSelectSlot(slot.value)"
+              [class.selected]="leave.leaveSlot === slot.value"
+              class="slot-card"
+            >
+              <span class="slot-badge">{{ slot.duration }}</span>
+              <span class="slot-title">{{ slot.label }}</span>
+              <span class="slot-desc" [innerHTML]="slot.desc"></span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Dates & Quick Duration Chips -->
+      <div class="form-group">
+        <div class="split-controls">
+          <div class="control-col">
+            <label class="input-label">Start Date</label>
+            <input
+              type="date"
+              [(ngModel)]="leave.startDate"
+              (ngModelChange)="onStartDateChange()"
+              class="interactive-input date-input"
+            />
+          </div>
+          <div class="control-col">
+            <label class="input-label">End Date</label>
+            <input
+              type="date"
+              [(ngModel)]="leave.endDate"
+              (ngModelChange)="onEndDateChange()"
+              [min]="leave.startDate"
+              [disabled]="leave.leaveSlot !== 'FullDay'"
+              class="interactive-input date-input"
+              [class.input-error]="isInvalidDateRange"
+            />
+          </div>
+        </div>
+
+        @if (isInvalidDateRange) {
+          <div class="date-validation-alert animate-fade-in">
+            <app-icon name="alert-triangle" [size]="14" color="var(--accent-danger)"></app-icon>
+            <span>End date ({{ leave.endDate }}) cannot be earlier than Start date ({{ leave.startDate }}).</span>
+          </div>
+        }
+
+        <div class="duration-chips">
+          <span class="duration-label">Quick Presets:</span>
+          <button type="button" (click)="applyHalfDay('FirstHalf')" [class.active-chip]="leave.leaveSlot === 'FirstHalf'" class="duration-chip">
+            ½ Day (1st Half)
+          </button>
+          <button type="button" (click)="applyHalfDay('SecondHalf')" [class.active-chip]="leave.leaveSlot === 'SecondHalf'" class="duration-chip">
+            ½ Day (2nd Half)
+          </button>
+          <button type="button" (click)="applyDuration(1)" [class.active-chip]="leave.leaveSlot === 'FullDay' && selectedDurationDays === 1" class="duration-chip">
+            1 Full Day
+          </button>
+          <button type="button" (click)="applyDuration(2)" [class.active-chip]="leave.leaveSlot === 'FullDay' && selectedDurationDays === 2" class="duration-chip">
+            2 Days
+          </button>
+          <button type="button" (click)="applyDuration(3)" [class.active-chip]="leave.leaveSlot === 'FullDay' && selectedDurationDays === 3" class="duration-chip">
+            3 Days
+          </button>
+          <button type="button" (click)="applyDuration(5)" [class.active-chip]="leave.leaveSlot === 'FullDay' && selectedDurationDays === 5" class="duration-chip">
+            1 Week (5d)
+          </button>
+        </div>
+      </div>
+
+      <!-- Reason Presets & Description -->
+      <div class="form-group">
+        <label class="input-label">Context / Reason</label>
+        <div class="preset-chips">
+          @for (preset of reasonPresets; track preset) {
+            <button type="button" (click)="setReason(preset)" class="preset-chip">
+              + {{ preset }}
+            </button>
+          }
+        </div>
+        <input
+          [(ngModel)]="leave.reason"
+          placeholder="e.g. Doctor appointment / Personal errand..."
+          class="interactive-input"
+        />
+      </div>
+    </div>
+
+    <div class="modal-footer" [class.footer-split]="isEditMode">
+      <div class="footer-left">
+        @if (isEditMode) {
+          <button (click)="onDelete()" type="button" class="btn-danger">
+            <app-icon name="trash-2" [size]="15"></app-icon> Delete Leave
+          </button>
+        }
+      </div>
+      <div class="footer-right">
+        <button (click)="close.emit()" type="button" class="btn-secondary">Cancel</button>
+        <button (click)="onConfirmSubmit()" type="button" [disabled]="!canSubmit" class="btn-primary btn-save">
+          <app-icon name="check" [size]="16"></app-icon>
+          {{ isEditMode ? 'Save Changes' : 'Confirm & Recalculate Capacity' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
