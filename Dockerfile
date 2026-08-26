@@ -4,7 +4,7 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY src/ScrumPulse.UI/package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY src/ScrumPulse.UI/ ./
 RUN npm run build
 
