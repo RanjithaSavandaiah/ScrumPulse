@@ -23,6 +23,7 @@ export class SmPinModalComponent implements OnInit {
   errorMessage = signal<string>('');
   isShaking = signal<boolean>(false);
   showDigits = signal<boolean>(false);
+  isVerifying = signal<boolean>(false);
 
   digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -33,11 +34,15 @@ export class SmPinModalComponent implements OnInit {
   }
 
   focusInput(): void {
-    this.pinInputRef?.nativeElement?.focus();
+    if (!this.isVerifying()) {
+      this.pinInputRef?.nativeElement?.focus();
+    }
   }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent): void {
+    if (this.isVerifying()) return;
+
     if (event.key === 'Escape') {
       this.onCancel();
     } else if (event.key === 'Enter') {
@@ -52,6 +57,8 @@ export class SmPinModalComponent implements OnInit {
   }
 
   appendDigit(digit: number | string): void {
+    if (this.isVerifying()) return;
+
     if (this.pin.length < 4) {
       this.pin += String(digit);
       this.errorMessage.set('');
@@ -63,6 +70,8 @@ export class SmPinModalComponent implements OnInit {
   }
 
   backspace(): void {
+    if (this.isVerifying()) return;
+
     if (this.pin.length > 0) {
       this.pin = this.pin.slice(0, -1);
       this.errorMessage.set('');
@@ -70,25 +79,38 @@ export class SmPinModalComponent implements OnInit {
   }
 
   clear(): void {
+    if (this.isVerifying()) return;
+
     this.pin = '';
     this.errorMessage.set('');
   }
 
   submitPin(): void {
-    if (!this.pin) {
+    if (this.isVerifying()) return;
+
+    if (!this.pin || this.pin.length < 4) {
       this.triggerError('Please enter your 4-digit Scrum Master PIN.');
       return;
     }
 
-    const success = this.state.verifyAndUnlockSm(this.pin);
-    if (success) {
-      this.authenticated.emit();
-    } else {
-      this.triggerError('Incorrect Security PIN. Scrum Master access denied.');
-      this.pin = '';
-    }
+    this.isVerifying.set(true);
+    this.state.verifyAndUnlockSm(this.pin).subscribe({
+      next: (success) => {
+        this.isVerifying.set(false);
+        if (success) {
+          this.authenticated.emit();
+        } else {
+          this.triggerError('Incorrect Security PIN. Scrum Master access denied.');
+          this.pin = '';
+        }
+      },
+      error: () => {
+        this.isVerifying.set(false);
+        this.triggerError('Authentication failed. Server unreachable.');
+        this.pin = '';
+      }
+    });
   }
-
 
   private triggerError(msg: string): void {
     this.errorMessage.set(msg);
@@ -97,6 +119,7 @@ export class SmPinModalComponent implements OnInit {
   }
 
   onCancel(): void {
+    if (this.isVerifying()) return;
     this.cancelled.emit();
   }
 }

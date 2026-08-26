@@ -162,6 +162,14 @@
   background: rgba(245, 158, 11, 0.2);
 }
 
+.key-btn:disabled,
+.btn-secondary:disabled,
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .key-action {
   font-size: 0.85rem;
   color: var(--text-secondary);
@@ -210,4 +218,13 @@
   margin-top: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

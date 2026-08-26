@@ -25,6 +25,7 @@
       (ngModelChange)="pin = $event.slice(0, 4); errorMessage.set(''); pin.length === 4 && submitPin()"
       class="hidden-pin-field"
       autocomplete="off"
+      [disabled]="isVerifying()"
     />
 
     <!-- 4-Digit Display Boxes -->
@@ -62,17 +63,17 @@
     <!-- Numeric Keypad -->
     <div class="keypad-grid">
       @for (d of digits; track d) {
-        <button type="button" (click)="appendDigit(d)" class="key-btn">
+        <button type="button" (click)="appendDigit(d)" [disabled]="isVerifying()" class="key-btn">
           {{ d }}
         </button>
       }
-      <button type="button" (click)="clear()" class="key-btn key-action" title="Clear all digits">
+      <button type="button" (click)="clear()" [disabled]="isVerifying()" class="key-btn key-action" title="Clear all digits">
         CLR
       </button>
-      <button type="button" (click)="appendDigit(0)" class="key-btn">
+      <button type="button" (click)="appendDigit(0)" [disabled]="isVerifying()" class="key-btn">
         0
       </button>
-      <button type="button" (click)="backspace()" class="key-btn key-action" title="Backspace">
+      <button type="button" (click)="backspace()" [disabled]="isVerifying()" class="key-btn key-action" title="Backspace">
         <app-icon name="x" [size]="16"></app-icon>
       </button>
     </div>
@@ -91,11 +92,15 @@
 
     <!-- Footer Controls -->
     <div class="pin-footer">
-      <button type="button" (click)="onCancel()" class="btn-secondary">
+      <button type="button" (click)="onCancel()" [disabled]="isVerifying()" class="btn-secondary">
         Cancel (Stay as Developer)
       </button>
-      <button type="button" (click)="submitPin()" [disabled]="pin.length < 4" class="btn-primary">
-        <app-icon name="check" [size]="16"></app-icon> Unlock SM Access
+      <button type="button" (click)="submitPin()" [disabled]="pin.length < 4 || isVerifying()" class="btn-primary">
+        @if (isVerifying()) {
+          <app-icon name="loader" [size]="16" class="spin-icon"></app-icon> Verifying...
+        } @else {
+          <app-icon name="check" [size]="16"></app-icon> Unlock SM Access
+        }
       </button>
     </div>
   </div>

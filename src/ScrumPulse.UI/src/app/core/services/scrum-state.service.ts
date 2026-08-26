@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import {
   AppState,
   SprintActions,
@@ -361,13 +361,18 @@ export class ScrumStateService {
     this.store.dispatch(TeamMemberActions.setCurrentRole({ role }));
   }
 
-  verifyAndUnlockSm(pin: string): boolean {
-    if (pin === '1234') {
-      this.isSmAuthenticated.set(true);
-      this.setCurrentRole('ScrumMaster');
-      return true;
-    }
-    return false;
+  verifyAndUnlockSm(pin: string): Observable<boolean> {
+    return this.http.post<{ success: boolean; message: string }>(`${this.apiUrl}/auth/verify-pin`, { pin }).pipe(
+      map(res => {
+        if (res && res.success) {
+          this.isSmAuthenticated.set(true);
+          this.setCurrentRole('ScrumMaster');
+          return true;
+        }
+        return false;
+      }),
+      catchError(() => of(false))
+    );
   }
 
   lockSmSession(): void {
