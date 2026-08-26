@@ -4,7 +4,15 @@ using ScrumPulse.Api.Middleware;
 using ScrumPulse.Infrastructure;
 using ScrumPulse.Infrastructure.Persistence;
 
-var builder = WebApplication.CreateBuilder(args);
+// Prevent Linux container inotify limit exception on cloud hosting (Render/AWS/Kubernetes)
+Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
+Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
+
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 // Ensure WebRoot directory exists so StaticFileMiddleware initializes with zero warnings
 var wwwrootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");

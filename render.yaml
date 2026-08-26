@@ -13,3 +13,7 @@ services:
         value: PostgreSql
       - key: ConnectionStrings__DefaultConnection
         sync: false
+      - key: DOTNET_USE_POLLING_FILE_WATCHER
+        value: "true"
+      - key: DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE
+        value: "false"
