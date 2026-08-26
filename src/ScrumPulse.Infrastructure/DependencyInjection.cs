@@ -23,8 +23,9 @@ public static class DependencyInjection
 
         if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
         {
+            var normalizedConnStr = NormalizePostgresConnectionString(connectionString);
             services.AddDbContext<AppDbContext>(dbContextOptions =>
-                dbContextOptions.UseNpgsql(connectionString, npgsqlOptions =>
+                dbContextOptions.UseNpgsql(normalizedConnStr, npgsqlOptions =>
                 {
                     npgsqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                     npgsqlOptions.EnableRetryOnFailure(
@@ -69,5 +70,32 @@ public static class DependencyInjection
         services.AddScoped<WorkItemCompletionSaga>();
 
         return services;
+    }
+
+    private static string NormalizePostgresConnectionString(string connStr)
+    {
+        if (string.IsNullOrWhiteSpace(connStr)) return connStr;
+
+        if (connStr.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+            connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var uri = new Uri(connStr);
+                var userInfo = uri.UserInfo.Split(':');
+                var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+                var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+                var host = uri.Host;
+                var port = uri.Port > 0 ? uri.Port : 5432;
+                var database = uri.AbsolutePath.TrimStart('/');
+
+                return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+            }
+            catch
+            {
+                return connStr;
+            }
+        }
+        return connStr;
     }
 }
