@@ -2,6 +2,7 @@ namespace ScrumPulse.Application.CQRS.WorkItems;
 
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Application.Sagas.WorkItemCompletion;
 using ScrumPulse.Application.Specifications;
 using ScrumPulse.Application.Common.Interfaces;
@@ -17,25 +18,7 @@ public class GetWorkItemsQueryHandler(IUnitOfWork unitOfWork) : IQueryHandler<Ge
     {
         var repo = unitOfWork.Repository<WorkItem>();
         var items = await repo.ListAsync(new WorkItemsFilterSpecification(query.SprintId, query.Status), ct);
-
-        return items.Select(item => new WorkItemDto(
-            item.Id, item.Key, item.Title, item.Description,
-            item.Type, item.Status, item.Priority, item.StoryPoints,
-            item.AssigneeId, item.Assignee?.Name, item.SprintId,
-            item.PrNumber, item.PrUrl, item.PrBranch, item.TargetBranch,
-            item.PrReviewerId, item.PrReviewer?.Name,
-            item.CreatedAtUtc, item.PickedUpAtUtc, item.PrCreatedAtUtc,
-            item.PrApprovedAtUtc, item.PrMergedAtUtc, item.QaStartedAtUtc,
-            item.CompletedAtUtc,
-            item.DorAcceptanceCriteriaDefined, item.DorDependenciesIdentified,
-            item.DorWireframeAvailable, item.DodUnitTestsPassed,
-            item.DodPeerReviewCompleted, item.DodMergedToMaster,
-            item.DodStagingVerified, item.IsEscapedDefect, item.DefectRootCause,
-            item.PickupLatencyHours, item.DevCycleTimeHours,
-            item.PrReviewLatencyHours, item.PrMergeLatencyHours,
-            item.QaTestingLatencyHours, item.TotalCycleTimeHours,
-            item.EstimatedHours
-        ));
+        return items.ToDtos();
     }
 }
 
@@ -69,27 +52,14 @@ public class CreateWorkItemCommandHandler(IUnitOfWork unitOfWork) : ICommandHand
         await repo.AddAsync(workItem, ct);
         await unitOfWork.CommitAsync(ct);
 
-        string? assigneeName = null;
+        // Hydrate assignee name for response
         if (workItem.AssigneeId.HasValue)
         {
             var member = await unitOfWork.Repository<TeamMember>().GetByIdAsync(workItem.AssigneeId.Value, ct);
-            assigneeName = member?.Name;
+            workItem.Assignee = member;
         }
 
-        return new WorkItemDto(
-            workItem.Id, workItem.Key, workItem.Title, workItem.Description,
-            workItem.Type, workItem.Status, workItem.Priority, workItem.StoryPoints,
-            workItem.AssigneeId, assigneeName, workItem.SprintId,
-            workItem.PrNumber, workItem.PrUrl, workItem.PrBranch, workItem.TargetBranch,
-            null, null,
-            workItem.CreatedAtUtc, null, null, null, null, null, null,
-            workItem.DorAcceptanceCriteriaDefined, workItem.DorDependenciesIdentified,
-            workItem.DorWireframeAvailable, workItem.DodUnitTestsPassed,
-            workItem.DodPeerReviewCompleted, workItem.DodMergedToMaster,
-            workItem.DodStagingVerified, false, null,
-            null, null, null, null, null, null,
-            workItem.EstimatedHours
-        );
+        return workItem.ToDto();
     }
 }
 
@@ -157,23 +127,6 @@ public class AdvanceWorkItemStageCommandHandler(
         workItem.AddDomainEvent(new WorkItemStageAdvancedEvent(workItem.Id, workItem.Key, prevStatus, workItem.Status, workItem.AssigneeId));
         await unitOfWork.CommitAsync(ct);
 
-        return new WorkItemDto(
-            workItem.Id, workItem.Key, workItem.Title, workItem.Description,
-            workItem.Type, workItem.Status, workItem.Priority, workItem.StoryPoints,
-            workItem.AssigneeId, workItem.Assignee?.Name, workItem.SprintId,
-            workItem.PrNumber, workItem.PrUrl, workItem.PrBranch, workItem.TargetBranch,
-            workItem.PrReviewerId, workItem.PrReviewer?.Name,
-            workItem.CreatedAtUtc, workItem.PickedUpAtUtc, workItem.PrCreatedAtUtc,
-            workItem.PrApprovedAtUtc, workItem.PrMergedAtUtc, workItem.QaStartedAtUtc,
-            workItem.CompletedAtUtc,
-            workItem.DorAcceptanceCriteriaDefined, workItem.DorDependenciesIdentified,
-            workItem.DorWireframeAvailable, workItem.DodUnitTestsPassed,
-            workItem.DodPeerReviewCompleted, workItem.DodMergedToMaster,
-            workItem.DodStagingVerified, workItem.IsEscapedDefect, workItem.DefectRootCause,
-            workItem.PickupLatencyHours, workItem.DevCycleTimeHours,
-            workItem.PrReviewLatencyHours, workItem.PrMergeLatencyHours,
-            workItem.QaTestingLatencyHours, workItem.TotalCycleTimeHours,
-            workItem.EstimatedHours
-        );
+        return workItem.ToDto();
     }
 }

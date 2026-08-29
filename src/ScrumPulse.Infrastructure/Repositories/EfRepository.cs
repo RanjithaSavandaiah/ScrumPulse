@@ -6,6 +6,10 @@ using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Domain.Common;
 using ScrumPulse.Infrastructure.Persistence;
 
+/// <summary>
+/// Generic EF Core repository with read-optimized queries (AsNoTracking by default),
+/// Specification pattern support, and soft-delete awareness.
+/// </summary>
 public class EfRepository<T>(AppDbContext db) : IAsyncRepository<T> where T : BaseEntity
 {
     private readonly DbSet<T> _dbSet = db.Set<T>();
@@ -14,7 +18,7 @@ public class EfRepository<T>(AppDbContext db) : IAsyncRepository<T> where T : Ba
         await _dbSet.FirstOrDefaultAsync(entity => entity.Id == id, ct);
 
     public async Task<IReadOnlyList<T>> ListAllAsync(CancellationToken ct = default) =>
-        await _dbSet.ToListAsync(ct);
+        await _dbSet.AsNoTracking().ToListAsync(ct);
 
     public async Task<IReadOnlyList<T>> ListAsync(ISpecification<T> spec, CancellationToken ct = default) =>
         await ApplySpecification(spec).ToListAsync(ct);
@@ -40,6 +44,17 @@ public class EfRepository<T>(AppDbContext db) : IAsyncRepository<T> where T : Ba
     public Task DeleteAsync(T entity, CancellationToken ct = default)
     {
         _dbSet.Remove(entity);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Soft-delete: marks the entity as deleted without physical removal.
+    /// The global query filter will exclude it from future queries.
+    /// </summary>
+    public Task SoftDeleteAsync(T entity, CancellationToken ct = default)
+    {
+        entity.IsDeleted = true;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
         return Task.CompletedTask;
     }
 

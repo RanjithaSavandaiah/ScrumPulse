@@ -1,13 +1,16 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.WorkItems;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Enums;
 
+/// <summary>Work item management with CQRS for mutations and centralized DTO mapping.</summary>
 public class WorkItemsController(
     IMediator mediator,
     IIdempotencyStore idempotencyStore,
@@ -15,37 +18,43 @@ public class WorkItemsController(
 ) : BaseApiController
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<WorkItemDto>>> GetAll([FromQuery] Guid? sprintId, [FromQuery] WorkItemStatus? status) =>
-        Ok(await mediator.QueryAsync(new GetWorkItemsQuery(sprintId, status)));
+    [ProducesResponseType(typeof(IEnumerable<WorkItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<WorkItemDto>>> GetAll(
+        [FromQuery] Guid? sprintId, [FromQuery] WorkItemStatus? status, CancellationToken ct) =>
+        Ok(await mediator.QueryAsync(new GetWorkItemsQuery(sprintId, status), ct));
 
     [HttpPost]
+    [ProducesResponseType(typeof(WorkItemDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<WorkItemDto>> Create(
         [FromBody] CreateWorkItemRequest request,
-        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey)
+        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey,
+        CancellationToken ct)
     {
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
-            var cached = await idempotencyStore.GetResponseAsync<WorkItemDto>(idempotencyKey);
+            var cached = await idempotencyStore.GetResponseAsync<WorkItemDto>(idempotencyKey, ct);
             if (cached != null) return Ok(cached);
         }
 
-        var result = await mediator.SendAsync(new CreateWorkItemCommand(request));
+        var result = await mediator.SendAsync(new CreateWorkItemCommand(request), ct);
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
-            await idempotencyStore.SaveResponseAsync(idempotencyKey, result);
+            await idempotencyStore.SaveResponseAsync(idempotencyKey, result, null, ct);
         }
 
         return Ok(result);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<WorkItemDto>> Update(Guid id, [FromBody] UpdateWorkItemRequest request)
+    [ProducesResponseType(typeof(WorkItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WorkItemDto>> Update(Guid id, [FromBody] UpdateWorkItemRequest request, CancellationToken ct)
     {
         var workItem = await db.WorkItems
             .Include(item => item.Assignee)
             .Include(item => item.PrReviewer)
-            .FirstOrDefaultAsync(item => item.Id == id);
+            .FirstOrDefaultAsync(item => item.Id == id, ct);
 
         if (workItem == null) return NotFound();
 
@@ -61,53 +70,41 @@ public class WorkItemsController(
         if (request.PrUrl != null) workItem.PrUrl = request.PrUrl;
         if (request.PrBranch != null) workItem.PrBranch = request.PrBranch;
         if (request.TargetBranch != null) workItem.TargetBranch = request.TargetBranch;
-        workItem.UpdatedAtUtc = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
+        // Re-fetch with includes to ensure accurate DTO mapping
         var updated = await db.WorkItems
             .Include(item => item.Assignee)
             .Include(item => item.PrReviewer)
-            .FirstAsync(item => item.Id == id);
+            .FirstAsync(item => item.Id == id, ct);
 
-        return Ok(new WorkItemDto(
-            updated.Id, updated.Key, updated.Title, updated.Description,
-            updated.Type, updated.Status, updated.Priority, updated.StoryPoints,
-            updated.AssigneeId, updated.Assignee?.Name, updated.SprintId,
-            updated.PrNumber, updated.PrUrl, updated.PrBranch, updated.TargetBranch,
-            updated.PrReviewerId, updated.PrReviewer?.Name,
-            updated.CreatedAtUtc, updated.PickedUpAtUtc, updated.PrCreatedAtUtc,
-            updated.PrApprovedAtUtc, updated.PrMergedAtUtc, updated.QaStartedAtUtc,
-            updated.CompletedAtUtc,
-            updated.DorAcceptanceCriteriaDefined, updated.DorDependenciesIdentified,
-            updated.DorWireframeAvailable, updated.DodUnitTestsPassed,
-            updated.DodPeerReviewCompleted, updated.DodMergedToMaster,
-            updated.DodStagingVerified, updated.IsEscapedDefect, updated.DefectRootCause,
-            updated.PickupLatencyHours, updated.DevCycleTimeHours,
-            updated.PrReviewLatencyHours, updated.PrMergeLatencyHours,
-            updated.QaTestingLatencyHours, updated.TotalCycleTimeHours,
-            updated.EstimatedHours
-        ));
+        return Ok(updated.ToDto());
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var workItem = await db.WorkItems.FirstOrDefaultAsync(item => item.Id == id);
+        var workItem = await db.WorkItems.FirstOrDefaultAsync(item => item.Id == id, ct);
         if (workItem == null) return NotFound();
 
         db.WorkItems.Remove(workItem);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpPost("{id:guid}/advance")]
     [HttpPost("{id:guid}/advance-stage")]
-    public async Task<ActionResult<WorkItemDto>> AdvanceStage(Guid id, [FromBody] AdvanceStageRequest request)
+    [ProducesResponseType(typeof(WorkItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<WorkItemDto>> AdvanceStage(Guid id, [FromBody] AdvanceStageRequest request, CancellationToken ct)
     {
         try
         {
-            var result = await mediator.SendAsync(new AdvanceWorkItemStageCommand(id, request));
+            var result = await mediator.SendAsync(new AdvanceWorkItemStageCommand(id, request), ct);
             return Ok(result);
         }
         catch (KeyNotFoundException)
@@ -121,9 +118,12 @@ public class WorkItemsController(
     }
 
     [HttpPost("{id:guid}/quality-gates")]
-    public async Task<ActionResult<WorkItemDto>> UpdateQualityGates(Guid id, [FromBody] UpdateQualityGatesRequest request)
+    [ProducesResponseType(typeof(WorkItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WorkItemDto>> UpdateQualityGates(Guid id, [FromBody] UpdateQualityGatesRequest request, CancellationToken ct)
     {
-        var workItem = await db.WorkItems.Include(item => item.Assignee).Include(item => item.PrReviewer).FirstOrDefaultAsync(item => item.Id == id);
+        var workItem = await db.WorkItems.Include(item => item.Assignee).Include(item => item.PrReviewer)
+            .FirstOrDefaultAsync(item => item.Id == id, ct);
         if (workItem == null) return NotFound();
 
         workItem.DorAcceptanceCriteriaDefined = request.DorAcceptanceCriteria;
@@ -134,25 +134,8 @@ public class WorkItemsController(
         workItem.DodMergedToMaster = request.DodMergedToMaster;
         workItem.DodStagingVerified = request.DodStagingVerified;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        return Ok(new WorkItemDto(
-            workItem.Id, workItem.Key, workItem.Title, workItem.Description,
-            workItem.Type, workItem.Status, workItem.Priority, workItem.StoryPoints,
-            workItem.AssigneeId, workItem.Assignee?.Name, workItem.SprintId,
-            workItem.PrNumber, workItem.PrUrl, workItem.PrBranch, workItem.TargetBranch,
-            workItem.PrReviewerId, workItem.PrReviewer?.Name,
-            workItem.CreatedAtUtc, workItem.PickedUpAtUtc, workItem.PrCreatedAtUtc,
-            workItem.PrApprovedAtUtc, workItem.PrMergedAtUtc, workItem.QaStartedAtUtc,
-            workItem.CompletedAtUtc,
-            workItem.DorAcceptanceCriteriaDefined, workItem.DorDependenciesIdentified,
-            workItem.DorWireframeAvailable, workItem.DodUnitTestsPassed,
-            workItem.DodPeerReviewCompleted, workItem.DodMergedToMaster,
-            workItem.DodStagingVerified, workItem.IsEscapedDefect, workItem.DefectRootCause,
-            workItem.PickupLatencyHours, workItem.DevCycleTimeHours,
-            workItem.PrReviewLatencyHours, workItem.PrMergeLatencyHours,
-            workItem.QaTestingLatencyHours, workItem.TotalCycleTimeHours,
-            workItem.EstimatedHours
-        ));
+        return Ok(workItem.ToDto());
     }
 }

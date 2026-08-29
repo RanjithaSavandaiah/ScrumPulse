@@ -1,66 +1,79 @@
 namespace ScrumPulse.Tests.AI;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using ScrumPulse.AI.Configuration;
 using ScrumPulse.AI.Services;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Enums;
 using ScrumPulse.Infrastructure.Persistence;
+using ScrumPulse.Infrastructure.Services;
 using Xunit;
 
 public class MicrosoftAgentServiceTests
 {
-    private AppDbContext CreateInMemoryDbContext()
+    private (AppDbContext db, MicrosoftAgentService aiService) CreateTestService()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"ScrumPulse_AiTestDb_{Guid.NewGuid()}")
             .Options;
 
-        return new AppDbContext(options);
+        var db = new AppDbContext(options);
+        var store = new MemoryIdempotencyStore();
+        var config = new AgentConfiguration();
+        var aiService = new MicrosoftAgentService(db, store, config, NullLogger<MicrosoftAgentService>.Instance);
+        return (db, aiService);
     }
 
     [Fact]
     public async Task AnalyzeIndividualPerformanceAsync_ReturnsSynthesizedRecommendations()
     {
-        using var db = CreateInMemoryDbContext();
-        var aiService = new MicrosoftAgentService(db);
-        var memberId = Guid.NewGuid();
-        var result = await aiService.GenerateIndividualCoachingAsync(memberId);
+        var (db, aiService) = CreateTestService();
+        using (db)
+        {
+            var memberId = Guid.NewGuid();
+            var result = await aiService.GenerateIndividualCoachingAsync(memberId);
 
-        Assert.NotNull(result);
-        Assert.Contains("Coaching Plan", result.Title);
-        Assert.NotEmpty(result.Summary);
-        Assert.NotEmpty(result.KeyFindings);
-        Assert.NotEmpty(result.ActionableRecommendations);
-        Assert.NotEmpty(result.RiskLevel);
+            Assert.NotNull(result);
+            Assert.Contains("Coaching Plan", result.Title);
+            Assert.NotEmpty(result.Summary);
+            Assert.NotEmpty(result.KeyFindings);
+            Assert.NotEmpty(result.ActionableRecommendations);
+            Assert.NotEmpty(result.RiskLevel);
+        }
     }
 
     [Fact]
     public async Task AnalyzeProjectRisksAsync_ReturnsRiskRadarInsights()
     {
-        using var db = CreateInMemoryDbContext();
-        var aiService = new MicrosoftAgentService(db);
-        var sprintId = Guid.NewGuid();
-        var result = await aiService.GenerateProjectSprintInsightsAsync(sprintId);
+        var (db, aiService) = CreateTestService();
+        using (db)
+        {
+            var sprintId = Guid.NewGuid();
+            var result = await aiService.GenerateProjectSprintInsightsAsync(sprintId);
 
-        Assert.NotNull(result);
-        Assert.Contains("Sprint Risk", result.Title);
-        Assert.NotEmpty(result.Summary);
-        Assert.NotEmpty(result.KeyFindings);
-        Assert.NotEmpty(result.ActionableRecommendations);
+            Assert.NotNull(result);
+            Assert.Contains("Sprint Risk", result.Title);
+            Assert.NotEmpty(result.Summary);
+            Assert.NotEmpty(result.KeyFindings);
+            Assert.NotEmpty(result.ActionableRecommendations);
+        }
     }
 
     [Fact]
     public async Task AnalyzeCompanyStrategicCollaborationAsync_ReturnsStrategicReport()
     {
-        using var db = CreateInMemoryDbContext();
-        var aiService = new MicrosoftAgentService(db);
-        var result = await aiService.GenerateCompanyStrategicInsightsAsync();
+        var (db, aiService) = CreateTestService();
+        using (db)
+        {
+            var result = await aiService.GenerateCompanyStrategicInsightsAsync();
 
-        Assert.NotNull(result);
-        Assert.Contains("Strategic", result.Title);
-        Assert.NotEmpty(result.Summary);
-        Assert.NotEmpty(result.KeyFindings);
-        Assert.NotEmpty(result.ActionableRecommendations);
+            Assert.NotNull(result);
+            Assert.Contains("Strategic", result.Title);
+            Assert.NotEmpty(result.Summary);
+            Assert.NotEmpty(result.KeyFindings);
+            Assert.NotEmpty(result.ActionableRecommendations);
+        }
     }
 
     [Theory]
@@ -71,12 +84,14 @@ public class MicrosoftAgentServiceTests
     [InlineData("ClientStakeholder", "What is our offshore delivery predictability?")]
     public async Task AskAgileCopilotAsync_ProvidesTailoredContextualAnswersForDifferentRoles(string role, string prompt)
     {
-        using var db = CreateInMemoryDbContext();
-        var aiService = new MicrosoftAgentService(db);
-        var response = await aiService.ProcessCopilotChatAsync(new CopilotChatRequest(prompt, role));
+        var (db, aiService) = CreateTestService();
+        using (db)
+        {
+            var response = await aiService.ProcessCopilotChatAsync(new CopilotChatRequest(prompt, role));
 
-        Assert.NotNull(response);
-        Assert.NotEmpty(response.Answer);
-        Assert.NotEmpty(response.SuggestedFollowUps);
+            Assert.NotNull(response);
+            Assert.NotEmpty(response.Answer);
+            Assert.NotEmpty(response.SuggestedFollowUps);
+        }
     }
 }

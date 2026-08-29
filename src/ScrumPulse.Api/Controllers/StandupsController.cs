@@ -4,30 +4,26 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Entities;
 
+/// <summary>Daily standup management with protected admin endpoints.</summary>
 public class StandupsController(IAppDbContext db) : BaseApiController
 {
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<DailyStandupDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<DailyStandupDto>>> GetAll(
         [FromQuery] Guid? sprintId = null,
         [FromQuery] Guid? memberId = null,
-        [FromQuery] DateTime? date = null)
+        [FromQuery] DateTime? date = null,
+        CancellationToken ct = default)
     {
         var query = db.DailyStandups
             .Include(standup => standup.TeamMember)
             .AsQueryable();
 
-        if (sprintId.HasValue)
-        {
-            query = query.Where(s => s.SprintId == sprintId.Value);
-        }
-
-        if (memberId.HasValue)
-        {
-            query = query.Where(s => s.TeamMemberId == memberId.Value);
-        }
-
+        if (sprintId.HasValue) query = query.Where(s => s.SprintId == sprintId.Value);
+        if (memberId.HasValue) query = query.Where(s => s.TeamMemberId == memberId.Value);
         if (date.HasValue)
         {
             var targetDate = date.Value.Date;
@@ -37,24 +33,15 @@ public class StandupsController(IAppDbContext db) : BaseApiController
         var list = await query
             .OrderByDescending(standup => standup.StandupDate)
             .ThenByDescending(standup => standup.CreatedAtUtc)
-            .ToListAsync();
+            .AsNoTracking()
+            .ToListAsync(ct);
 
-        return Ok(list.Select(standup => new DailyStandupDto(
-            standup.Id,
-            standup.TeamMemberId,
-            standup.TeamMember?.Name ?? "Member",
-            standup.TeamMember?.Avatar ?? "",
-            standup.StandupDate,
-            standup.YesterdaySummary,
-            standup.TodayPlan,
-            standup.BlockersText,
-            standup.MoodScore,
-            standup.SprintId
-        )));
+        return Ok(list.ToDtos());
     }
 
     [HttpPost]
-    public async Task<ActionResult<DailyStandupDto>> Submit([FromBody] SubmitStandupRequest request)
+    [ProducesResponseType(typeof(DailyStandupDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DailyStandupDto>> Submit([FromBody] SubmitStandupRequest request, CancellationToken ct)
     {
         var standup = new DailyStandup
         {
@@ -67,28 +54,20 @@ public class StandupsController(IAppDbContext db) : BaseApiController
             StandupDate = DateTime.UtcNow
         };
         db.DailyStandups.Add(standup);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var member = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId, ct);
+        standup.TeamMember = member;
 
-        return Ok(new DailyStandupDto(
-            standup.Id,
-            standup.TeamMemberId,
-            member?.Name ?? "Member",
-            member?.Avatar ?? "",
-            standup.StandupDate,
-            standup.YesterdaySummary,
-            standup.TodayPlan,
-            standup.BlockersText,
-            standup.MoodScore,
-            standup.SprintId
-        ));
+        return Ok(standup.ToDto());
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<DailyStandupDto>> Update(Guid id, [FromBody] SubmitStandupRequest request)
+    [ProducesResponseType(typeof(DailyStandupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DailyStandupDto>> Update(Guid id, [FromBody] SubmitStandupRequest request, CancellationToken ct)
     {
-        var standup = await db.DailyStandups.FindAsync(id);
+        var standup = await db.DailyStandups.FindAsync([id], ct);
         if (standup == null) return NotFound();
 
         standup.TeamMemberId = request.TeamMemberId;
@@ -98,40 +77,50 @@ public class StandupsController(IAppDbContext db) : BaseApiController
         standup.BlockersText = request.BlockersText ?? "None";
         standup.MoodScore = request.MoodScore;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.TeamMemberId);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.TeamMemberId, ct);
+        standup.TeamMember = member;
 
-        return Ok(new DailyStandupDto(
-            standup.Id,
-            standup.TeamMemberId,
-            member?.Name ?? "Member",
-            member?.Avatar ?? "",
-            standup.StandupDate,
-            standup.YesterdaySummary,
-            standup.TodayPlan,
-            standup.BlockersText,
-            standup.MoodScore,
-            standup.SprintId
-        ));
+        return Ok(standup.ToDto());
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var item = await db.DailyStandups.FindAsync(id);
+        var item = await db.DailyStandups.FindAsync([id], ct);
         if (item == null) return NotFound();
         db.DailyStandups.Remove(item);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
+    /// <summary>
+    /// Administrative endpoint to clear all standup data.
+    /// Protected — requires the X-Admin-Key header matching the configured SM_PIN.
+    /// </summary>
     [HttpDelete("clear-all")]
-    public async Task<IActionResult> ClearAll()
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ClearAll(
+        [FromHeader(Name = "X-Admin-Key")] string? adminKey,
+        [FromServices] IConfiguration configuration,
+        CancellationToken ct)
     {
-        var items = await db.DailyStandups.ToListAsync();
+        // Require admin key to prevent accidental/malicious mass deletion
+        var configuredPin = Environment.GetEnvironmentVariable("SM_PIN")
+            ?? configuration["Auth:ScrumMasterPin"];
+
+        if (string.IsNullOrWhiteSpace(adminKey) || adminKey != configuredPin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Admin key required for bulk deletion." });
+        }
+
+        var items = await db.DailyStandups.ToListAsync(ct);
         db.DailyStandups.RemoveRange(items);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 }

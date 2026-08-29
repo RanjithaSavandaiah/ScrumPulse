@@ -5,27 +5,26 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Entities;
 
+/// <summary>Sprint retrospective cards and action items management.</summary>
 public class RetrospectivesController(IAppDbContext db) : BaseApiController
 {
     [HttpGet("cards")]
-    public async Task<ActionResult<IEnumerable<RetroCardDto>>> GetCards([FromQuery] Guid? sprintId)
+    [ProducesResponseType(typeof(IEnumerable<RetroCardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<RetroCardDto>>> GetCards([FromQuery] Guid? sprintId, CancellationToken ct)
     {
         var query = db.RetroCards.Include(retroCard => retroCard.Author).AsQueryable();
         if (sprintId.HasValue) query = query.Where(retroCard => retroCard.SprintId == sprintId.Value);
 
-        var list = await query.OrderByDescending(retroCard => retroCard.UpvotesCount).ToListAsync();
-        return Ok(list.Select(retroCard => new RetroCardDto(
-            retroCard.Id, retroCard.SprintId, retroCard.Category, retroCard.Content, retroCard.AuthorId,
-            retroCard.IsAnonymous ? "Anonymous" : retroCard.Author?.Name,
-            retroCard.IsAnonymous, retroCard.UpvotesCount,
-            JsonSerializer.Deserialize<List<Guid>>(retroCard.UpvoterMemberIdsJson) ?? []
-        )));
+        var list = await query.OrderByDescending(retroCard => retroCard.UpvotesCount).AsNoTracking().ToListAsync(ct);
+        return Ok(list.ToDtos());
     }
 
     [HttpPost("cards")]
-    public async Task<ActionResult<RetroCardDto>> CreateCard([FromBody] CreateRetroCardRequest request)
+    [ProducesResponseType(typeof(RetroCardDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RetroCardDto>> CreateCard([FromBody] CreateRetroCardRequest request, CancellationToken ct)
     {
         var retroCard = new RetroCard
         {
@@ -37,47 +36,42 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
             UpvotesCount = 1
         };
         db.RetroCards.Add(retroCard);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var author = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == request.AuthorId);
+        var author = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == request.AuthorId, ct);
+        retroCard.Author = author;
 
-        return Ok(new RetroCardDto(
-            retroCard.Id, retroCard.SprintId, retroCard.Category, retroCard.Content, retroCard.AuthorId,
-            retroCard.IsAnonymous ? "Anonymous" : author?.Name,
-            retroCard.IsAnonymous, retroCard.UpvotesCount, []
-        ));
+        return Ok(retroCard.ToDto());
     }
 
     [HttpPost("cards/{id:guid}/vote")]
-    public async Task<IActionResult> VoteCard(Guid id)
+    [ProducesResponseType(typeof(RetroCardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> VoteCard(Guid id, CancellationToken ct)
     {
-        var card = await db.RetroCards.Include(c => c.Author).FirstOrDefaultAsync(retroCard => retroCard.Id == id);
+        var card = await db.RetroCards.Include(c => c.Author).FirstOrDefaultAsync(retroCard => retroCard.Id == id, ct);
         if (card == null) return NotFound();
         card.UpvotesCount += 1;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        return Ok(new RetroCardDto(
-            card.Id, card.SprintId, card.Category, card.Content, card.AuthorId,
-            card.IsAnonymous ? "Anonymous" : card.Author?.Name,
-            card.IsAnonymous, card.UpvotesCount,
-            JsonSerializer.Deserialize<List<Guid>>(card.UpvoterMemberIdsJson) ?? []
-        ));
+        return Ok(card.ToDto());
     }
 
     [HttpGet("actions")]
-    public async Task<ActionResult<IEnumerable<RetroActionItemDto>>> GetActionItems([FromQuery] Guid? sprintId)
+    [ProducesResponseType(typeof(IEnumerable<RetroActionItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<RetroActionItemDto>>> GetActionItems([FromQuery] Guid? sprintId, CancellationToken ct)
     {
         var query = db.RetroActionItems.Include(actionItem => actionItem.Assignee).AsQueryable();
         if (sprintId.HasValue) query = query.Where(actionItem => actionItem.SprintId == sprintId.Value);
 
-        var list = await query.OrderBy(actionItem => actionItem.IsCompleted).ThenBy(actionItem => actionItem.DueDate).ToListAsync();
-        return Ok(list.Select(actionItem => new RetroActionItemDto(
-            actionItem.Id, actionItem.SprintId, actionItem.Title, actionItem.AssigneeId, actionItem.Assignee?.Name, actionItem.DueDate, actionItem.IsCompleted
-        )));
+        var list = await query.OrderBy(actionItem => actionItem.IsCompleted).ThenBy(actionItem => actionItem.DueDate)
+            .AsNoTracking().ToListAsync(ct);
+        return Ok(list.ToDtos());
     }
 
     [HttpPost("actions")]
-    public async Task<ActionResult<RetroActionItemDto>> CreateActionItem([FromBody] CreateRetroActionItemRequest request)
+    [ProducesResponseType(typeof(RetroActionItemDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RetroActionItemDto>> CreateActionItem([FromBody] CreateRetroActionItemRequest request, CancellationToken ct)
     {
         var actionItem = new RetroActionItem
         {
@@ -88,19 +82,20 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
             IsCompleted = false
         };
         db.RetroActionItems.Add(actionItem);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var assignee = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == request.AssigneeId);
+        var assignee = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == request.AssigneeId, ct);
+        actionItem.Assignee = assignee;
 
-        return Ok(new RetroActionItemDto(
-            actionItem.Id, actionItem.SprintId, actionItem.Title, actionItem.AssigneeId, assignee?.Name, actionItem.DueDate, actionItem.IsCompleted
-        ));
+        return Ok(actionItem.ToDto());
     }
 
     [HttpPut("cards/{id:guid}")]
-    public async Task<ActionResult<RetroCardDto>> UpdateCard(Guid id, [FromBody] UpdateRetroCardRequest request)
+    [ProducesResponseType(typeof(RetroCardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RetroCardDto>> UpdateCard(Guid id, [FromBody] UpdateRetroCardRequest request, CancellationToken ct)
     {
-        var card = await db.RetroCards.Include(c => c.Author).FirstOrDefaultAsync(c => c.Id == id);
+        var card = await db.RetroCards.Include(c => c.Author).FirstOrDefaultAsync(c => c.Id == id, ct);
         if (card == null) return NotFound();
 
         card.Category = request.Category;
@@ -109,33 +104,34 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
         card.AuthorId = request.AuthorId;
         card.IsAnonymous = request.IsAnonymous;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var author = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.AuthorId);
+        if (card.Author == null || card.AuthorId != request.AuthorId)
+        {
+            card.Author = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.AuthorId, ct);
+        }
 
-        return Ok(new RetroCardDto(
-            card.Id, card.SprintId, card.Category, card.Content, card.AuthorId,
-            card.IsAnonymous ? "Anonymous" : author?.Name,
-            card.IsAnonymous, card.UpvotesCount,
-            JsonSerializer.Deserialize<List<Guid>>(card.UpvoterMemberIdsJson) ?? []
-        ));
+        return Ok(card.ToDto());
     }
 
     [HttpDelete("cards/{id:guid}")]
-    public async Task<IActionResult> DeleteCard(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteCard(Guid id, CancellationToken ct)
     {
-        var card = await db.RetroCards.FirstOrDefaultAsync(c => c.Id == id);
+        var card = await db.RetroCards.FirstOrDefaultAsync(c => c.Id == id, ct);
         if (card == null) return NotFound();
-
         db.RetroCards.Remove(card);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpPut("actions/{id:guid}")]
-    public async Task<ActionResult<RetroActionItemDto>> UpdateActionItem(Guid id, [FromBody] UpdateRetroActionItemRequest request)
+    [ProducesResponseType(typeof(RetroActionItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<RetroActionItemDto>> UpdateActionItem(Guid id, [FromBody] UpdateRetroActionItemRequest request, CancellationToken ct)
     {
-        var item = await db.RetroActionItems.Include(a => a.Assignee).FirstOrDefaultAsync(a => a.Id == id);
+        var item = await db.RetroActionItems.Include(a => a.Assignee).FirstOrDefaultAsync(a => a.Id == id, ct);
         if (item == null) return NotFound();
 
         item.Title = request.Title;
@@ -144,33 +140,37 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
         item.DueDate = request.DueDate;
         item.IsCompleted = request.IsCompleted;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.AssigneeId);
+        if (item.Assignee == null || item.AssigneeId != request.AssigneeId)
+        {
+            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.AssigneeId, ct);
+        }
 
-        return Ok(new RetroActionItemDto(
-            item.Id, item.SprintId, item.Title, item.AssigneeId, assignee?.Name, item.DueDate, item.IsCompleted
-        ));
+        return Ok(item.ToDto());
     }
 
     [HttpDelete("actions/{id:guid}")]
-    public async Task<IActionResult> DeleteActionItem(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteActionItem(Guid id, CancellationToken ct)
     {
-        var item = await db.RetroActionItems.FirstOrDefaultAsync(a => a.Id == id);
+        var item = await db.RetroActionItems.FirstOrDefaultAsync(a => a.Id == id, ct);
         if (item == null) return NotFound();
-
         db.RetroActionItems.Remove(item);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 
     [HttpPost("actions/{id:guid}/toggle")]
-    public async Task<IActionResult> ToggleActionItem(Guid id)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ToggleActionItem(Guid id, CancellationToken ct)
     {
-        var actionItem = await db.RetroActionItems.FirstOrDefaultAsync(item => item.Id == id);
+        var actionItem = await db.RetroActionItems.FirstOrDefaultAsync(item => item.Id == id, ct);
         if (actionItem == null) return NotFound();
         actionItem.IsCompleted = !actionItem.IsCompleted;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return Ok(new { actionItem.IsCompleted });
     }
 }

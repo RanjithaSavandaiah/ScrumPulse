@@ -4,12 +4,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Entities;
+using ScrumPulse.Domain.Enums;
 
+/// <summary>Pull request review log management with developer metrics aggregation.</summary>
 public class PullRequestsController(IAppDbContext db) : BaseApiController
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PullRequestLogDto>>> GetAll([FromQuery] Guid? sprintId)
+    [ProducesResponseType(typeof(IEnumerable<PullRequestLogDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<PullRequestLogDto>>> GetAll([FromQuery] Guid? sprintId, CancellationToken ct)
     {
         var query = db.PullRequestReviewLogs
             .Include(p => p.Author)
@@ -18,55 +22,25 @@ public class PullRequestsController(IAppDbContext db) : BaseApiController
             .Include(p => p.WorkItem)
             .AsNoTracking();
 
-        if (sprintId.HasValue)
-        {
-            query = query.Where(p => p.SprintId == sprintId.Value);
-        }
+        if (sprintId.HasValue) query = query.Where(p => p.SprintId == sprintId.Value);
 
-        var list = await query
-            .OrderByDescending(p => p.CreatedAtUtc)
-            .Select(p => new PullRequestLogDto(
-                p.Id,
-                p.WorkItemId,
-                p.WorkItem != null ? p.WorkItem.Title : null,
-                p.AuthorId,
-                p.Author != null ? p.Author.Name : "Unknown",
-                p.ReviewerId,
-                p.Reviewer != null ? p.Reviewer.Name : null,
-                p.SprintId,
-                p.Sprint != null ? p.Sprint.Name : null,
-                p.PrNumber,
-                p.PrTitle,
-                p.PrUrl,
-                p.TotalCommentsCount,
-                p.ActionableCommentsCount,
-                p.ReviewSummary,
-                p.ReviewStatus,
-                p.CreatedAtUtc,
-                p.MergedAtUtc
-            ))
-            .ToListAsync();
-
-        return Ok(list);
+        var list = await query.OrderByDescending(p => p.CreatedAtUtc).ToListAsync(ct);
+        return Ok(list.ToDtos());
     }
 
     [HttpGet("developer-metrics")]
-    public async Task<ActionResult<IEnumerable<DeveloperPrMetricsDto>>> GetDeveloperMetrics([FromQuery] Guid? sprintId)
+    [ProducesResponseType(typeof(IEnumerable<DeveloperPrMetricsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<DeveloperPrMetricsDto>>> GetDeveloperMetrics([FromQuery] Guid? sprintId, CancellationToken ct)
     {
-        var members = await db.TeamMembers.AsNoTracking().ToListAsync();
+        var members = await db.TeamMembers.AsNoTracking().ToListAsync(ct);
         var query = db.PullRequestReviewLogs
-            .Include(p => p.Author)
-            .Include(p => p.Reviewer)
-            .Include(p => p.Sprint)
-            .Include(p => p.WorkItem)
+            .Include(p => p.Author).Include(p => p.Reviewer)
+            .Include(p => p.Sprint).Include(p => p.WorkItem)
             .AsNoTracking();
 
-        if (sprintId.HasValue)
-        {
-            query = query.Where(p => p.SprintId == sprintId.Value);
-        }
+        if (sprintId.HasValue) query = query.Where(p => p.SprintId == sprintId.Value);
 
-        var prLogs = await query.ToListAsync();
+        var prLogs = await query.ToListAsync(ct);
 
         var metrics = members.Select(dev =>
         {
@@ -81,38 +55,10 @@ public class PullRequestsController(IAppDbContext db) : BaseApiController
                 ? Math.Round((double)totalComments / totalPrs, 1)
                 : 0.0;
 
-            var prDtos = devPrs.Select(p => new PullRequestLogDto(
-                p.Id,
-                p.WorkItemId,
-                p.WorkItem?.Title,
-                p.AuthorId,
-                dev.Name,
-                p.ReviewerId,
-                p.Reviewer?.Name,
-                p.SprintId,
-                p.Sprint?.Name,
-                p.PrNumber,
-                p.PrTitle,
-                p.PrUrl,
-                p.TotalCommentsCount,
-                p.ActionableCommentsCount,
-                p.ReviewSummary,
-                p.ReviewStatus,
-                p.CreatedAtUtc,
-                p.MergedAtUtc
-            )).ToList();
-
             return new DeveloperPrMetricsDto(
-                dev.Id,
-                dev.Name,
-                dev.Role.ToString(),
-                dev.Avatar,
-                totalPrs,
-                totalComments,
-                actionableComments,
-                actionabilityRate,
-                avgComments,
-                prDtos
+                dev.Id, dev.Name, dev.Role.ToString(), dev.Avatar,
+                totalPrs, totalComments, actionableComments, actionabilityRate, avgComments,
+                devPrs.ToDtos().ToList()
             );
         }).ToList();
 
@@ -120,8 +66,12 @@ public class PullRequestsController(IAppDbContext db) : BaseApiController
     }
 
     [HttpPost]
-    public async Task<ActionResult<PullRequestLogDto>> Create([FromBody] CreatePullRequestLogRequest request)
+    [ProducesResponseType(typeof(PullRequestLogDto), StatusCodes.Status201Created)]
+    public async Task<ActionResult<PullRequestLogDto>> Create([FromBody] CreatePullRequestLogRequest request, CancellationToken ct)
     {
+        var reviewStatus = Enum.TryParse<ReviewStatusType>(request.ReviewStatus, true, out var parsed)
+            ? parsed : ReviewStatusType.Approved;
+
         var log = new PullRequestReviewLog
         {
             WorkItemId = request.WorkItemId,
@@ -134,50 +84,31 @@ public class PullRequestsController(IAppDbContext db) : BaseApiController
             TotalCommentsCount = Math.Max(0, request.TotalCommentsCount),
             ActionableCommentsCount = Math.Clamp(request.ActionableCommentsCount, 0, Math.Max(0, request.TotalCommentsCount)),
             ReviewSummary = request.ReviewSummary,
-            ReviewStatus = string.IsNullOrWhiteSpace(request.ReviewStatus) ? "Approved" : request.ReviewStatus,
-            MergedAtUtc = request.ReviewStatus == "Merged" ? DateTime.UtcNow : null
+            ReviewStatus = reviewStatus,
+            MergedAtUtc = reviewStatus == ReviewStatusType.Merged ? DateTime.UtcNow : null
         };
 
         db.PullRequestReviewLogs.Add(log);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var author = await db.TeamMembers.FindAsync(log.AuthorId);
-        var reviewer = log.ReviewerId.HasValue ? await db.TeamMembers.FindAsync(log.ReviewerId.Value) : null;
-        var sprint = log.SprintId.HasValue ? await db.Sprints.FindAsync(log.SprintId.Value) : null;
-        var workItem = log.WorkItemId.HasValue ? await db.WorkItems.FindAsync(log.WorkItemId.Value) : null;
+        // Hydrate navigation properties for DTO
+        log.Author = await db.TeamMembers.FindAsync([log.AuthorId], ct);
+        if (log.ReviewerId.HasValue) log.Reviewer = await db.TeamMembers.FindAsync([log.ReviewerId.Value], ct);
+        if (log.SprintId.HasValue) log.Sprint = await db.Sprints.FindAsync([log.SprintId.Value], ct);
+        if (log.WorkItemId.HasValue) log.WorkItem = await db.WorkItems.FindAsync([log.WorkItemId.Value], ct);
 
-        var dto = new PullRequestLogDto(
-            log.Id,
-            log.WorkItemId,
-            workItem?.Title,
-            log.AuthorId,
-            author?.Name ?? "Unknown",
-            log.ReviewerId,
-            reviewer?.Name,
-            log.SprintId,
-            sprint?.Name,
-            log.PrNumber,
-            log.PrTitle,
-            log.PrUrl,
-            log.TotalCommentsCount,
-            log.ActionableCommentsCount,
-            log.ReviewSummary,
-            log.ReviewStatus,
-            log.CreatedAtUtc,
-            log.MergedAtUtc
-        );
-
-        return CreatedAtAction(nameof(GetAll), new { id = log.Id }, dto);
+        return CreatedAtAction(nameof(GetAll), new { id = log.Id }, log.ToDto());
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var log = await db.PullRequestReviewLogs.FindAsync(id);
+        var log = await db.PullRequestReviewLogs.FindAsync([id], ct);
         if (log == null) return NotFound();
-
         db.PullRequestReviewLogs.Remove(log);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 }

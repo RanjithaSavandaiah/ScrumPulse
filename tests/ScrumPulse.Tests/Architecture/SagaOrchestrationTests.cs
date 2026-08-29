@@ -1,7 +1,9 @@
 namespace ScrumPulse.Tests.Architecture;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using ScrumPulse.AI.Configuration;
 using ScrumPulse.AI.Services;
 using ScrumPulse.Application.Sagas.WorkItemCompletion;
 using ScrumPulse.Domain.Entities;
@@ -20,9 +22,13 @@ public class SagaOrchestrationTests
             .Options;
 
         var db = new AppDbContext(options);
-        var eventDispatcher = new DomainEventDispatcher(NullLogger<DomainEventDispatcher>.Instance);
-        var uow = new EfUnitOfWork(db, eventDispatcher);
-        var aiService = new MicrosoftAgentService(db);
+        var eventDispatcher = new DomainEventDispatcher(
+            new ServiceCollection().BuildServiceProvider(),
+            NullLogger<DomainEventDispatcher>.Instance);
+        var uow = new EfUnitOfWork(db, eventDispatcher, NullLogger<EfUnitOfWork>.Instance);
+        var store = new MemoryIdempotencyStore();
+        var agentConfig = new AgentConfiguration();
+        var aiService = new MicrosoftAgentService(db, store, agentConfig, NullLogger<MicrosoftAgentService>.Instance);
 
         var step1 = new ValidateQualityGatesStep(uow);
         var step2 = new TransitionWorkItemStatusStep(uow);
@@ -73,6 +79,8 @@ public class SagaOrchestrationTests
     public async Task WorkItemCompletionSaga_CompensatesExecutedSteps_WhenFailureOccurs()
     {
         var (db, _, uow) = CreateTestEnvironment();
+        var store = new MemoryIdempotencyStore();
+        var agentConfig = new AgentConfiguration();
 
         var sprint = new Sprint { Id = Guid.NewGuid(), Name = "Sprint 1", DeliveredStoryPoints = 10 };
         var workItem = new WorkItem
@@ -94,7 +102,6 @@ public class SagaOrchestrationTests
         var step1 = new ValidateQualityGatesStep(uow);
         var step2 = new TransitionWorkItemStatusStep(uow);
         var step3 = new RecalculateSprintVelocityStep(uow);
-        var failingStep4 = new TriggerMicrosoftAgentAiCoachingStep(new MicrosoftAgentService(db));
 
         // Create context
         var context = new WorkItemCompletionContext { WorkItemId = workItem.Id };

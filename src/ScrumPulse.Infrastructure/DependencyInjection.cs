@@ -18,6 +18,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // ── Database Provider Configuration ──────────────────────────────
         var databaseProvider = configuration["DatabaseProvider"] ?? "Sqlite";
         var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=ScrumPulse.db";
 
@@ -38,31 +39,42 @@ public static class DependencyInjection
         else
         {
             services.AddDbContext<AppDbContext>(dbContextOptions =>
-                dbContextOptions.UseSqlite(connectionString, sqliteOptions => sqliteOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+                dbContextOptions.UseSqlite(connectionString, sqliteOptions =>
+                    sqliteOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
         }
 
         services.AddScoped<IAppDbContext>(serviceProvider => serviceProvider.GetRequiredService<AppDbContext>());
+
+        // ── Core Infrastructure Services ─────────────────────────────────
         services.AddScoped<IMetricsCalculatorService, MetricsCalculatorService>();
-        
-        // Repositories & Unit of Work
         services.AddScoped(typeof(IAsyncRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
-        // Domain Events & Idempotency Store
-        services.AddSingleton<DomainEventDispatcher>();
-        services.AddSingleton<IIdempotencyStore, MemoryIdempotencyStore>();
+        // ── Domain Events ────────────────────────────────────────────────
+        // Scoped: dispatcher uses IServiceProvider to resolve handlers per-request
+        services.AddScoped<DomainEventDispatcher>();
 
-        // CQRS Mediator & Handlers
+        // ── Idempotency Store + Background Cleanup ──────────────────────
+        services.AddSingleton<MemoryIdempotencyStore>();
+        services.AddSingleton<IIdempotencyStore>(sp => sp.GetRequiredService<MemoryIdempotencyStore>());
+        services.AddHostedService<IdempotencyCleanupService>();
+
+        // ── CQRS Mediator ────────────────────────────────────────────────
         services.AddScoped<IMediator, AppMediator>();
+
+        // ── WorkItem Handlers ────────────────────────────────────────────
         services.AddScoped<IQueryHandler<GetWorkItemsQuery, IEnumerable<WorkItemDto>>, GetWorkItemsQueryHandler>();
         services.AddScoped<ICommandHandler<CreateWorkItemCommand, WorkItemDto>, CreateWorkItemCommandHandler>();
         services.AddScoped<ICommandHandler<AdvanceWorkItemStageCommand, WorkItemDto>, AdvanceWorkItemStageCommandHandler>();
-        
+
+        // ── Blocker Handlers ─────────────────────────────────────────────
         services.AddScoped<IQueryHandler<GetBlockersQuery, IEnumerable<BlockerDto>>, GetBlockersQueryHandler>();
         services.AddScoped<ICommandHandler<CreateBlockerCommand, BlockerDto>, CreateBlockerCommandHandler>();
         services.AddScoped<ICommandHandler<ResolveBlockerCommand, BlockerDto?>, ResolveBlockerCommandHandler>();
+        services.AddScoped<ICommandHandler<UpdateBlockerCommand, BlockerDto?>, UpdateBlockerCommandHandler>();
+        services.AddScoped<ICommandHandler<DeleteBlockerCommand, bool>, DeleteBlockerCommandHandler>();
 
-        // Sagas & Steps
+        // ── Saga Orchestration ───────────────────────────────────────────
         services.AddScoped<ValidateQualityGatesStep>();
         services.AddScoped<TransitionWorkItemStatusStep>();
         services.AddScoped<RecalculateSprintVelocityStep>();

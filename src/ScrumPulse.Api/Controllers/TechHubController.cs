@@ -3,185 +3,180 @@ namespace ScrumPulse.Api.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
+using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Entities;
+using ScrumPulse.Domain.Enums;
 
+/// <summary>Tech hub controller for tech debt and tech talks with typed DTOs.</summary>
 public class TechHubController(IAppDbContext db) : BaseApiController
 {
+    // ── Tech Debt ────────────────────────────────────────────────────────
+
     [HttpGet("debt")]
     [HttpGet("tech-debt")]
-    public async Task<ActionResult<IEnumerable<object>>> GetTechDebt()
+    [ProducesResponseType(typeof(IEnumerable<TechDebtItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TechDebtItemDto>>> GetTechDebt(CancellationToken ct)
     {
         var list = await db.TechDebtItems
             .Include(t => t.Assignee)
-            .OrderByDescending(techDebtItem => techDebtItem.CreatedAtUtc)
-            .ToListAsync();
+            .OrderByDescending(t => t.CreatedAtUtc)
+            .AsNoTracking()
+            .ToListAsync(ct);
 
-        return Ok(list.Select(t => new
-        {
-            t.Id,
-            t.Title,
-            t.Description,
-            t.Severity,
-            t.EstimatedHours,
-            t.Status,
-            t.PayoffSprintId,
-            t.AssigneeId,
-            AssigneeName = t.Assignee?.Name,
-            t.CreatedAtUtc
-        }));
+        return Ok(list.ToDtos());
     }
 
     [HttpPost("debt")]
     [HttpPost("tech-debt")]
-    public async Task<ActionResult<object>> CreateTechDebt([FromBody] TechDebtItem item)
+    [ProducesResponseType(typeof(TechDebtItemDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TechDebtItemDto>> CreateTechDebt([FromBody] CreateTechDebtRequest request, CancellationToken ct)
     {
-        db.TechDebtItems.Add(item);
-        await db.SaveChangesAsync();
-
-        var assignee = item.AssigneeId.HasValue
-            ? await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == item.AssigneeId.Value)
-            : null;
-
-        return Ok(new
+        var item = new TechDebtItem
         {
-            item.Id,
-            item.Title,
-            item.Description,
-            item.Severity,
-            item.EstimatedHours,
-            item.Status,
-            item.PayoffSprintId,
-            item.AssigneeId,
-            AssigneeName = assignee?.Name,
-            item.CreatedAtUtc
-        });
+            Title = request.Title,
+            Description = request.Description,
+            Severity = request.Severity,
+            EstimatedHours = request.EstimatedHours,
+            Status = TechDebtStatus.Identified,
+            PayoffSprintId = request.PayoffSprintId,
+            AssigneeId = request.AssigneeId
+        };
+
+        db.TechDebtItems.Add(item);
+        await db.SaveChangesAsync(ct);
+
+        if (item.AssigneeId.HasValue)
+        {
+            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == item.AssigneeId.Value, ct);
+        }
+
+        return Ok(item.ToDto());
     }
 
     [HttpPost("debt/{id:guid}/resolve")]
     [HttpPost("tech-debt/{id:guid}/resolve")]
-    public async Task<ActionResult<object>> ResolveTechDebt(Guid id, [FromBody] TechDebtItem? update)
+    [ProducesResponseType(typeof(TechDebtItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TechDebtItemDto>> ResolveTechDebt(Guid id, [FromBody] ResolveTechDebtRequest? request, CancellationToken ct)
     {
-        var item = await db.TechDebtItems.Include(t => t.Assignee).FirstOrDefaultAsync(t => t.Id == id);
+        var item = await db.TechDebtItems.Include(t => t.Assignee).FirstOrDefaultAsync(t => t.Id == id, ct);
         if (item == null) return NotFound();
-        item.Status = update?.Status ?? "Resolved";
-        await db.SaveChangesAsync();
+        item.Status = request?.Status ?? TechDebtStatus.Resolved;
+        await db.SaveChangesAsync(ct);
 
-        return Ok(new
-        {
-            item.Id,
-            item.Title,
-            item.Description,
-            item.Severity,
-            item.EstimatedHours,
-            item.Status,
-            item.PayoffSprintId,
-            item.AssigneeId,
-            AssigneeName = item.Assignee?.Name,
-            item.CreatedAtUtc
-        });
+        return Ok(item.ToDto());
     }
 
     [HttpPut("debt/{id:guid}")]
     [HttpPut("tech-debt/{id:guid}")]
-    public async Task<ActionResult<object>> UpdateTechDebt(Guid id, [FromBody] TechDebtItem update)
+    [ProducesResponseType(typeof(TechDebtItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TechDebtItemDto>> UpdateTechDebt(Guid id, [FromBody] UpdateTechDebtRequest request, CancellationToken ct)
     {
-        var item = await db.TechDebtItems.Include(t => t.Assignee).FirstOrDefaultAsync(t => t.Id == id);
+        var item = await db.TechDebtItems.Include(t => t.Assignee).FirstOrDefaultAsync(t => t.Id == id, ct);
         if (item == null) return NotFound();
-        item.Title = update.Title;
-        item.Description = update.Description;
-        item.Severity = update.Severity;
-        item.EstimatedHours = update.EstimatedHours;
-        item.Status = update.Status;
-        item.PayoffSprintId = update.PayoffSprintId;
-        item.AssigneeId = update.AssigneeId;
-        await db.SaveChangesAsync();
 
-        var assignee = item.AssigneeId.HasValue
-            ? await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == item.AssigneeId.Value)
-            : null;
+        item.Title = request.Title;
+        item.Description = request.Description;
+        item.Severity = request.Severity;
+        item.EstimatedHours = request.EstimatedHours;
+        item.Status = request.Status;
+        item.PayoffSprintId = request.PayoffSprintId;
+        item.AssigneeId = request.AssigneeId;
+        await db.SaveChangesAsync(ct);
 
-        return Ok(new
+        if (item.AssigneeId.HasValue && item.Assignee == null)
         {
-            item.Id,
-            item.Title,
-            item.Description,
-            item.Severity,
-            item.EstimatedHours,
-            item.Status,
-            item.PayoffSprintId,
-            item.AssigneeId,
-            AssigneeName = assignee?.Name,
-            item.CreatedAtUtc
-        });
+            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == item.AssigneeId.Value, ct);
+        }
+
+        return Ok(item.ToDto());
     }
 
     [HttpDelete("debt/{id:guid}")]
     [HttpDelete("tech-debt/{id:guid}")]
-    public async Task<IActionResult> DeleteTechDebt(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTechDebt(Guid id, CancellationToken ct)
     {
-        var item = await db.TechDebtItems.FindAsync(id);
+        var item = await db.TechDebtItems.FindAsync([id], ct);
         if (item == null) return NotFound();
         db.TechDebtItems.Remove(item);
-        await db.SaveChangesAsync();
-        return Ok();
+        await db.SaveChangesAsync(ct);
+        return NoContent();
     }
+
+    // ── Tech Talks ───────────────────────────────────────────────────────
 
     [HttpGet("talks")]
     [HttpGet("tech-talks")]
-    public async Task<ActionResult<IEnumerable<object>>> GetTechTalks()
+    [ProducesResponseType(typeof(IEnumerable<TechTalkLogDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TechTalkLogDto>>> GetTechTalks(CancellationToken ct)
     {
-        var list = await db.TechTalkLogs.Include(talk => talk.Presenter).OrderByDescending(talk => talk.TalkDate).ToListAsync();
-        return Ok(list.Select(talk => new
-        {
-            talk.Id, talk.Topic, talk.PresenterId, PresenterName = talk.Presenter?.Name,
-            talk.TalkDate, talk.DurationMinutes, talk.KeyTakeaways, talk.SlidesUrl
-        }));
+        var list = await db.TechTalkLogs
+            .Include(talk => talk.Presenter)
+            .OrderByDescending(talk => talk.TalkDate)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        return Ok(list.ToDtos());
     }
 
     [HttpPost("talks")]
     [HttpPost("tech-talks")]
-    public async Task<ActionResult<object>> CreateTechTalk([FromBody] TechTalkLog log)
+    [ProducesResponseType(typeof(TechTalkLogDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TechTalkLogDto>> CreateTechTalk([FromBody] CreateTechTalkRequest request, CancellationToken ct)
     {
-        db.TechTalkLogs.Add(log);
-        await db.SaveChangesAsync();
-        var presenter = await db.TeamMembers.FindAsync(log.PresenterId);
-        return Ok(new
+        var log = new TechTalkLog
         {
-            log.Id, log.Topic, log.PresenterId, PresenterName = presenter?.Name,
-            log.TalkDate, log.DurationMinutes, log.KeyTakeaways, log.SlidesUrl
-        });
+            Topic = request.Topic,
+            PresenterId = request.PresenterId,
+            TalkDate = request.TalkDate ?? DateTime.UtcNow,
+            DurationMinutes = request.DurationMinutes,
+            KeyTakeaways = request.KeyTakeaways,
+            SlidesUrl = request.SlidesUrl
+        };
+
+        db.TechTalkLogs.Add(log);
+        await db.SaveChangesAsync(ct);
+        var presenter = await db.TeamMembers.FindAsync([log.PresenterId], ct);
+        log.Presenter = presenter;
+
+        return Ok(log.ToDto());
     }
 
     [HttpPut("talks/{id:guid}")]
     [HttpPut("tech-talks/{id:guid}")]
-    public async Task<ActionResult<object>> UpdateTechTalk(Guid id, [FromBody] TechTalkLog update)
+    [ProducesResponseType(typeof(TechTalkLogDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TechTalkLogDto>> UpdateTechTalk(Guid id, [FromBody] UpdateTechTalkRequest request, CancellationToken ct)
     {
-        var talk = await db.TechTalkLogs.FindAsync(id);
+        var talk = await db.TechTalkLogs.FindAsync([id], ct);
         if (talk == null) return NotFound();
-        talk.Topic = update.Topic;
-        talk.PresenterId = update.PresenterId;
-        talk.TalkDate = update.TalkDate;
-        talk.DurationMinutes = update.DurationMinutes;
-        talk.KeyTakeaways = update.KeyTakeaways;
-        talk.SlidesUrl = update.SlidesUrl;
-        await db.SaveChangesAsync();
+        talk.Topic = request.Topic;
+        talk.PresenterId = request.PresenterId;
+        talk.TalkDate = request.TalkDate;
+        talk.DurationMinutes = request.DurationMinutes;
+        talk.KeyTakeaways = request.KeyTakeaways;
+        talk.SlidesUrl = request.SlidesUrl;
+        await db.SaveChangesAsync(ct);
 
-        var presenter = await db.TeamMembers.FindAsync(talk.PresenterId);
-        return Ok(new
-        {
-            talk.Id, talk.Topic, talk.PresenterId, PresenterName = presenter?.Name,
-            talk.TalkDate, talk.DurationMinutes, talk.KeyTakeaways, talk.SlidesUrl
-        });
+        var presenter = await db.TeamMembers.FindAsync([talk.PresenterId], ct);
+        talk.Presenter = presenter;
+        return Ok(talk.ToDto());
     }
 
     [HttpDelete("talks/{id:guid}")]
     [HttpDelete("tech-talks/{id:guid}")]
-    public async Task<IActionResult> DeleteTechTalk(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteTechTalk(Guid id, CancellationToken ct)
     {
-        var talk = await db.TechTalkLogs.FindAsync(id);
+        var talk = await db.TechTalkLogs.FindAsync([id], ct);
         if (talk == null) return NotFound();
         db.TechTalkLogs.Remove(talk);
-        await db.SaveChangesAsync();
-        return Ok();
+        await db.SaveChangesAsync(ct);
+        return NoContent();
     }
 }

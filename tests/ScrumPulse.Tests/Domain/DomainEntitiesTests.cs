@@ -53,7 +53,7 @@ public class DomainEntitiesTests
             StartDate = start,
             EndDate = end,
             Reason = "Festival PTO",
-            LeaveType = "Planned PTO",
+            LeaveType = LeaveCategory.PlannedTimeOff,
             IsApproved = true
         };
 
@@ -98,14 +98,14 @@ public class DomainEntitiesTests
         {
             Title = "Upgrade Npgsql driver",
             Description = "Upgrade to v10",
-            Severity = "Medium",
+            Severity = TechDebtSeverity.Medium,
             EstimatedHours = 4,
-            Status = "Identified"
+            Status = TechDebtStatus.Identified
         };
 
         Assert.Equal("Upgrade Npgsql driver", techDebt.Title);
         Assert.Equal(4, techDebt.EstimatedHours);
-        Assert.Equal("Identified", techDebt.Status);
+        Assert.Equal(TechDebtStatus.Identified, techDebt.Status);
     }
 
     [Fact]
@@ -123,5 +123,27 @@ public class DomainEntitiesTests
         Assert.Equal("Clean Architecture with EF Core", talk.Topic);
         Assert.Equal(presenterId, talk.PresenterId);
         Assert.Equal(45, talk.DurationMinutes);
+    }
+
+    [Fact]
+    public void Blocker_IsSlaBreached_TracksBothOpenAndResolvedState()
+    {
+        var blocker = new Blocker
+        {
+            Title = "Client dependency blocked",
+            SlaHoursLimit = 8,
+            RaisedAtUtc = DateTime.UtcNow.AddHours(-10) // 10 hours ago
+        };
+
+        // Open blocker should detect breach dynamically
+        Assert.True(blocker.IsSlaBreached);
+        Assert.False(blocker.IsResolved);
+
+        // Resolve the blocker (persisting breach state)
+        blocker.WasSlaBreachedOnResolution = blocker.HoursWaiting > blocker.SlaHoursLimit;
+        blocker.ResolvedAtUtc = DateTime.UtcNow;
+
+        Assert.True(blocker.IsResolved);
+        Assert.True(blocker.IsSlaBreached); // Should still report breach via persisted flag
     }
 }

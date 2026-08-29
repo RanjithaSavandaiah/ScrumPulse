@@ -1,10 +1,16 @@
 namespace ScrumPulse.Application.Sagas.WorkItemCompletion;
 
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Application.Specifications;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Domain.Entities;
 
+/// <summary>
+/// Saga orchestrator for the WorkItem completion lifecycle.
+/// Executes quality gates, status transition, velocity recalculation,
+/// and AI coaching in sequence with compensation on failure.
+/// </summary>
 public class WorkItemCompletionSaga(
     ValidateQualityGatesStep step1,
     TransitionWorkItemStatusStep step2,
@@ -38,34 +44,15 @@ public class WorkItemCompletionSaga(
             }
         }
 
-        // Fetch refreshed work item with relations
+        // Fetch refreshed work item with relations for accurate DTO mapping
         var workItemRepo = unitOfWork.Repository<WorkItem>();
         var refreshedItem = await workItemRepo.FirstOrDefaultAsync(new WorkItemWithRelationsByIdSpecification(context.WorkItemId), ct);
-
         var item = refreshedItem ?? context.WorkItem!;
-        var dto = new WorkItemDto(
-            item.Id, item.Key, item.Title, item.Description,
-            item.Type, item.Status, item.Priority, item.StoryPoints,
-            item.AssigneeId, item.Assignee?.Name, item.SprintId,
-            item.PrNumber, item.PrUrl, item.PrBranch, item.TargetBranch,
-            item.PrReviewerId, item.PrReviewer?.Name,
-            item.CreatedAtUtc, item.PickedUpAtUtc, item.PrCreatedAtUtc,
-            item.PrApprovedAtUtc, item.PrMergedAtUtc, item.QaStartedAtUtc,
-            item.CompletedAtUtc,
-            item.DorAcceptanceCriteriaDefined, item.DorDependenciesIdentified,
-            item.DorWireframeAvailable, item.DodUnitTestsPassed,
-            item.DodPeerReviewCompleted, item.DodMergedToMaster,
-            item.DodStagingVerified, item.IsEscapedDefect, item.DefectRootCause,
-            item.PickupLatencyHours, item.DevCycleTimeHours,
-            item.PrReviewLatencyHours, item.PrMergeLatencyHours,
-            item.QaTestingLatencyHours, item.TotalCycleTimeHours,
-            item.EstimatedHours
-        );
 
-        return new SagaExecutionResult<WorkItemDto>(true, dto, null, executedSteps, compensatedSteps);
+        return new SagaExecutionResult<WorkItemDto>(true, item.ToDto(), null, executedSteps, compensatedSteps);
     }
 
-    private async Task CompensateExecutedStepsAsync(
+    private static async Task CompensateExecutedStepsAsync(
         List<ISagaStep<WorkItemCompletionContext>> steps,
         List<string> executedSteps,
         List<string> compensatedSteps,
@@ -84,7 +71,7 @@ public class WorkItemCompletionSaga(
                 }
                 catch
                 {
-                    // Compensation resilience
+                    // Compensation resilience — log but don't throw
                 }
             }
         }

@@ -2,8 +2,10 @@ namespace ScrumPulse.Tests.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using ScrumPulse.AI.Configuration;
 using ScrumPulse.AI.Services;
 using ScrumPulse.Api.Controllers;
 using ScrumPulse.Application.CQRS;
@@ -21,6 +23,8 @@ using Xunit;
 
 public class ControllerTests
 {
+    private static readonly CancellationToken Ct = CancellationToken.None;
+
     private (AppDbContext db, IMediator mediator, IIdempotencyStore store, IUnitOfWork uow) CreateTestServices()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -28,10 +32,13 @@ public class ControllerTests
             .Options;
 
         var db = new AppDbContext(options);
-        var eventDispatcher = new DomainEventDispatcher(NullLogger<DomainEventDispatcher>.Instance);
-        var uow = new EfUnitOfWork(db, eventDispatcher);
+        var eventDispatcher = new DomainEventDispatcher(
+            new ServiceCollection().BuildServiceProvider(),
+            NullLogger<DomainEventDispatcher>.Instance);
+        var uow = new EfUnitOfWork(db, eventDispatcher, NullLogger<EfUnitOfWork>.Instance);
         var store = new MemoryIdempotencyStore();
-        var aiService = new MicrosoftAgentService(db);
+        var agentConfig = new AgentConfiguration();
+        var aiService = new MicrosoftAgentService(db, store, agentConfig, NullLogger<MicrosoftAgentService>.Instance);
 
         var step1 = new ValidateQualityGatesStep(uow);
         var step2 = new TransitionWorkItemStatusStep(uow);
@@ -48,6 +55,8 @@ public class ControllerTests
         services.AddSingleton<IQueryHandler<GetBlockersQuery, IEnumerable<BlockerDto>>>(new GetBlockersQueryHandler(uow));
         services.AddSingleton<ICommandHandler<CreateBlockerCommand, BlockerDto>>(new CreateBlockerCommandHandler(uow));
         services.AddSingleton<ICommandHandler<ResolveBlockerCommand, BlockerDto?>>(new ResolveBlockerCommandHandler(uow));
+        services.AddSingleton<ICommandHandler<UpdateBlockerCommand, BlockerDto?>>(new UpdateBlockerCommandHandler(uow));
+        services.AddSingleton<ICommandHandler<DeleteBlockerCommand, bool>>(new DeleteBlockerCommandHandler(uow));
 
         var provider = services.BuildServiceProvider();
         var mediator = new AppMediator(provider);
@@ -84,13 +93,13 @@ public class ControllerTests
             TargetBranch: "main"
         );
 
-        var createResult = await controller.Create(createRequest, "idemp-key-1");
+        var createResult = await controller.Create(createRequest, "idemp-key-1", Ct);
         var createdDto = ExtractValue(createResult);
         Assert.Equal("Build OAuth Flow", createdDto.Title);
 
         // 2. Advance Stage to InProgress
         var advanceRequest = new AdvanceStageRequest(WorkItemStatus.InProgress);
-        var advanceResult = await controller.AdvanceStage(createdDto.Id, advanceRequest);
+        var advanceResult = await controller.AdvanceStage(createdDto.Id, advanceRequest, Ct);
         var updatedDto = ExtractValue(advanceResult);
         Assert.Equal(WorkItemStatus.InProgress, updatedDto.Status);
 
@@ -104,12 +113,12 @@ public class ControllerTests
             DodMergedToMaster: true,
             DodStagingVerified: true
         );
-        var gatesResult = await controller.UpdateQualityGates(createdDto.Id, gatesRequest);
+        var gatesResult = await controller.UpdateQualityGates(createdDto.Id, gatesRequest, Ct);
         var gatesDto = ExtractValue(gatesResult);
         Assert.True(gatesDto.DodUnitTestsPassed);
 
         // 4. GetAll
-        var getAllResult = await controller.GetAll(null, null);
+        var getAllResult = await controller.GetAll(null, null, Ct);
         var allOk = Assert.IsType<OkObjectResult>(getAllResult.Result);
         var allItems = Assert.IsAssignableFrom<IEnumerable<WorkItemDto>>(allOk.Value);
         Assert.Single(allItems);
@@ -129,7 +138,7 @@ public class ControllerTests
             TargetBranch: "main",
             EstimatedHours: 15.0
         );
-        var zeroPointResult = await controller.Create(zeroPointRequest, "idemp-key-zero-pts");
+        var zeroPointResult = await controller.Create(zeroPointRequest, "idemp-key-zero-pts", Ct);
         var zeroPointDto = ExtractValue(zeroPointResult);
         Assert.Equal(0, zeroPointDto.StoryPoints);
         Assert.Equal(15.0, zeroPointDto.EstimatedHours);
@@ -186,11 +195,11 @@ public class ControllerTests
             SprintId: null
         );
 
-        var submitResult = await controller.Submit(request);
+        var submitResult = await controller.Submit(request, Ct);
         var standupDto = ExtractValue(submitResult);
         Assert.Equal("Aarav Gupta", standupDto.TeamMemberName);
 
-        var allResult = await controller.GetAll(null, null, null);
+        var allResult = await controller.GetAll(null, null, null, Ct);
         var allOk = Assert.IsType<OkObjectResult>(allResult.Result);
         var standups = Assert.IsAssignableFrom<IEnumerable<DailyStandupDto>>(allOk.Value);
         Assert.Single(standups);
@@ -218,11 +227,11 @@ public class ControllerTests
             Location: "Bangalore Offshore"
         );
 
-        var submitResult = await controller.Submit(request);
+        var submitResult = await controller.Submit(request, Ct);
         var leaveDto = ExtractValue(submitResult);
         Assert.Equal("Rohan Verma", leaveDto.TeamMemberName);
 
-        var capacityResult = await controller.GetCapacity(sprint.Id);
+        var capacityResult = await controller.GetCapacity(sprint.Id, Ct);
         var capacityDto = ExtractValue(capacityResult);
         Assert.NotNull(capacityDto);
     }
@@ -249,11 +258,11 @@ public class ControllerTests
             NextMonthGoals: "Deliver microservice refactoring"
         );
 
-        var submitResult = await controller.Submit(request);
+        var submitResult = await controller.Submit(request, Ct);
         var feedbackDto = ExtractValue(submitResult);
         Assert.Equal(9, feedbackDto.SmRating);
 
-        var allResult = await controller.GetAll(null);
+        var allResult = await controller.GetAll(null, Ct);
         var allOk = Assert.IsType<OkObjectResult>(allResult.Result);
         var feedbacks = Assert.IsAssignableFrom<IEnumerable<MonthlyFeedbackDto>>(allOk.Value);
         Assert.Single(feedbacks);
@@ -273,12 +282,12 @@ public class ControllerTests
             AuthorId: null,
             IsAnonymous: true
         );
-        var cardResult = await controller.CreateCard(cardRequest);
+        var cardResult = await controller.CreateCard(cardRequest, Ct);
         var cardDto = ExtractValue(cardResult);
         Assert.Equal("Anonymous", cardDto.AuthorName);
 
         // 2. Vote on Card
-        var voteResult = await controller.VoteCard(cardDto.Id);
+        var voteResult = await controller.VoteCard(cardDto.Id, Ct);
         var voteOk = Assert.IsType<OkObjectResult>(voteResult);
         Assert.NotNull(voteOk.Value);
 
@@ -290,7 +299,7 @@ public class ControllerTests
             AuthorId: null,
             IsAnonymous: true
         );
-        var updateCardResult = await controller.UpdateCard(cardDto.Id, updateCardRequest);
+        var updateCardResult = await controller.UpdateCard(cardDto.Id, updateCardRequest, Ct);
         var updatedCardDto = ExtractValue(updateCardResult);
         Assert.Equal("Updated: Use Playwright and Cypress for test suites", updatedCardDto.Content);
 
@@ -301,7 +310,7 @@ public class ControllerTests
             AssigneeId: null,
             DueDate: DateTime.UtcNow.AddDays(7)
         );
-        var actionResult = await controller.CreateActionItem(actionRequest);
+        var actionResult = await controller.CreateActionItem(actionRequest, Ct);
         var actionDto = ExtractValue(actionResult);
         Assert.False(actionDto.IsCompleted);
 
@@ -313,21 +322,21 @@ public class ControllerTests
             DueDate: DateTime.UtcNow.AddDays(10),
             IsCompleted: true
         );
-        var updateActionResult = await controller.UpdateActionItem(actionDto.Id, updateActionRequest);
+        var updateActionResult = await controller.UpdateActionItem(actionDto.Id, updateActionRequest, Ct);
         var updatedActionDto = ExtractValue(updateActionResult);
         Assert.True(updatedActionDto.IsCompleted);
         Assert.Equal("Setup Playwright scaffold and CI steps", updatedActionDto.Title);
 
         // 6. Toggle Action Item
-        var toggleResult = await controller.ToggleActionItem(actionDto.Id);
+        var toggleResult = await controller.ToggleActionItem(actionDto.Id, Ct);
         var toggleOk = Assert.IsType<OkObjectResult>(toggleResult);
         Assert.NotNull(toggleOk.Value);
 
         // 7. Delete Card and Action Item
-        var delCardResult = await controller.DeleteCard(cardDto.Id);
+        var delCardResult = await controller.DeleteCard(cardDto.Id, Ct);
         Assert.IsType<NoContentResult>(delCardResult);
 
-        var delActionResult = await controller.DeleteActionItem(actionDto.Id);
+        var delActionResult = await controller.DeleteActionItem(actionDto.Id, Ct);
         Assert.IsType<NoContentResult>(delActionResult);
     }
 
@@ -348,12 +357,12 @@ public class ControllerTests
             Message: "Zero escaped defects in sprint!"
         );
 
-        var sendResult = await controller.Send(request);
+        var sendResult = await controller.Send(request, Ct);
         var kudosDto = ExtractValue(sendResult);
         Assert.Equal("Alice Lead", kudosDto.SenderName);
 
         // Reaction
-        var reactionResult = await controller.AddReaction(kudosDto.Id, "🚀");
+        var reactionResult = await controller.AddReaction(kudosDto.Id, "🚀", null, Ct);
         var reactionOk = Assert.IsType<OkObjectResult>(reactionResult);
         var updatedKudos = Assert.IsType<KudosDto>(reactionOk.Value);
         Assert.Equal(1, updatedKudos.ReactionEmojis["🚀"]);
@@ -366,18 +375,18 @@ public class ControllerTests
         var controller = new TechHubController(db);
         var presenter = new TeamMember { Id = Guid.NewGuid(), Name = "Priya" };
         db.TeamMembers.Add(presenter);
-        db.TechDebtItems.Add(new TechDebtItem { Title = "Upgrade packages", Severity = "Low" });
+        db.TechDebtItems.Add(new TechDebtItem { Title = "Upgrade packages", Severity = TechDebtSeverity.Low });
         db.TechTalkLogs.Add(new TechTalkLog { Topic = "Angular Signals", PresenterId = presenter.Id });
         await db.SaveChangesAsync();
 
-        var debtResult = await controller.GetTechDebt();
+        var debtResult = await controller.GetTechDebt(Ct);
         var debtOk = Assert.IsType<OkObjectResult>(debtResult.Result);
-        var debts = Assert.IsAssignableFrom<IEnumerable<object>>(debtOk.Value);
+        var debts = Assert.IsAssignableFrom<IEnumerable<TechDebtItemDto>>(debtOk.Value);
         Assert.Single(debts);
 
-        var talksResult = await controller.GetTechTalks();
+        var talksResult = await controller.GetTechTalks(Ct);
         var talksOk = Assert.IsType<OkObjectResult>(talksResult.Result);
-        var talks = Assert.IsAssignableFrom<IEnumerable<object>>(talksOk.Value);
+        var talks = Assert.IsAssignableFrom<IEnumerable<TechTalkLogDto>>(talksOk.Value);
         Assert.Single(talks);
     }
 
@@ -405,26 +414,27 @@ public class ControllerTests
     [Fact]
     public async Task AiCoachController_ReturnsAiSuggestions()
     {
-        var (db, _, _, _) = CreateTestServices();
-        var aiService = new MicrosoftAgentService(db);
+        var (db, _, store, _) = CreateTestServices();
+        var agentConfig = new AgentConfiguration();
+        var aiService = new MicrosoftAgentService(db, store, agentConfig, NullLogger<MicrosoftAgentService>.Instance);
         var controller = new AiCoachController(aiService);
 
-        var indResult = await controller.GetIndividual(Guid.NewGuid());
+        var indResult = await controller.GetIndividual(Guid.NewGuid(), Ct);
         var indOk = Assert.IsType<OkObjectResult>(indResult.Result);
         var indDto = Assert.IsType<AiSuggestionResponse>(indOk.Value);
         Assert.NotNull(indDto);
 
-        var projResult = await controller.GetProject(Guid.NewGuid());
+        var projResult = await controller.GetProject(Guid.NewGuid(), Ct);
         var projOk = Assert.IsType<OkObjectResult>(projResult.Result);
         var projDto = Assert.IsType<AiSuggestionResponse>(projOk.Value);
         Assert.NotNull(projDto);
 
-        var compResult = await controller.GetCompany();
+        var compResult = await controller.GetCompany(Ct);
         var compOk = Assert.IsType<OkObjectResult>(compResult.Result);
         var compDto = Assert.IsType<AiSuggestionResponse>(compOk.Value);
         Assert.NotNull(compDto);
 
-        var chatResult = await controller.Chat(new CopilotChatRequest("Tell me about velocity", "ScrumMaster"));
+        var chatResult = await controller.Chat(new CopilotChatRequest("Tell me about velocity", "ScrumMaster"), Ct);
         var chatOk = Assert.IsType<OkObjectResult>(chatResult.Result);
         var chatDto = Assert.IsType<CopilotChatResponse>(chatOk.Value);
         Assert.NotEmpty(chatDto.Answer);
@@ -443,12 +453,12 @@ public class ControllerTests
         var sprintsController = new SprintsController(db);
         var membersController = new TeamMembersController(db);
 
-        var allSprintsResult = await sprintsController.GetAll();
+        var allSprintsResult = await sprintsController.GetAll(Ct);
         var allSprintsOk = Assert.IsType<OkObjectResult>(allSprintsResult.Result);
         var allSprintsList = Assert.IsAssignableFrom<IEnumerable<Sprint>>(allSprintsOk.Value);
         Assert.Single(allSprintsList);
 
-        var membersResult = await membersController.GetAll();
+        var membersResult = await membersController.GetAll(Ct);
         var membersOk = Assert.IsType<OkObjectResult>(membersResult.Result);
         var membersList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(membersOk.Value);
         Assert.Single(membersList);
@@ -475,7 +485,7 @@ public class ControllerTests
             Location: "Offshore"
         );
 
-        var submitResult = await controller.Submit(submitRequest);
+        var submitResult = await controller.Submit(submitRequest, Ct);
         var leaveDto = ExtractValue(submitResult);
         Assert.NotNull(leaveDto);
         Assert.Equal(member.Id, leaveDto.TeamMemberId);
@@ -483,7 +493,7 @@ public class ControllerTests
         Assert.True(leaveDto.EndDate >= leaveDto.StartDate);
 
         // 2. Get All Leaves
-        var allResult = await controller.GetAll(null, null, null);
+        var allResult = await controller.GetAll(null, null, null, Ct);
         var allOk = Assert.IsType<OkObjectResult>(allResult.Result);
         var allList = Assert.IsAssignableFrom<IEnumerable<TeamLeaveDto>>(allOk.Value);
         Assert.Single(allList);
@@ -497,16 +507,16 @@ public class ControllerTests
             LeaveType: "Privilege Leave",
             Location: "Bangalore Offshore"
         );
-        var updateResult = await controller.Update(leaveDto.Id, updateRequest);
+        var updateResult = await controller.Update(leaveDto.Id, updateRequest, Ct);
         var updatedDto = ExtractValue(updateResult);
         Assert.Equal("Vacation with family", updatedDto.Reason);
         Assert.Equal(new DateTime(2026, 8, 30), updatedDto.EndDate);
 
         // 4. Delete Leave
-        var deleteResult = await controller.Delete(leaveDto.Id);
+        var deleteResult = await controller.Delete(leaveDto.Id, Ct);
         Assert.IsType<NoContentResult>(deleteResult);
 
-        var afterDelete = await controller.GetAll(null, null, null);
+        var afterDelete = await controller.GetAll(null, null, null, Ct);
         var afterDeleteOk = Assert.IsType<OkObjectResult>(afterDelete.Result);
         var afterDeleteList = Assert.IsAssignableFrom<IEnumerable<TeamLeaveDto>>(afterDeleteOk.Value);
         Assert.Empty(afterDeleteList);

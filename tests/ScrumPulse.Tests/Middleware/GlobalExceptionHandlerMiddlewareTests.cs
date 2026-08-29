@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 using ScrumPulse.Api.Middleware;
 using Xunit;
 
-public class TestHostEnvironment : IHostEnvironment
+public class MiddlewareTestHostEnvironment : IHostEnvironment
 {
     public string EnvironmentName { get; set; } = Environments.Development;
     public string ApplicationName { get; set; } = "ScrumPulse.Api";
@@ -30,7 +30,7 @@ public class GlobalExceptionHandlerMiddlewareTests
         };
 
         var logger = LoggerFactory.Create(builder => {}).CreateLogger<GlobalExceptionHandlerMiddleware>();
-        var env = new TestHostEnvironment { EnvironmentName = Environments.Production };
+        var env = new MiddlewareTestHostEnvironment { EnvironmentName = Environments.Production };
         var middleware = new GlobalExceptionHandlerMiddleware(next, logger, env);
 
         var context = new DefaultHttpContext();
@@ -42,10 +42,11 @@ public class GlobalExceptionHandlerMiddlewareTests
     [Fact]
     public async Task InvokeAsync_WhenExceptionOccursInDevelopment_ReturnsProblemDetailsWithStackTrace()
     {
-        RequestDelegate next = (HttpContext context) => throw new InvalidOperationException("Test dev failure");
+        // Use a generic Exception which maps to 500 (InternalServerError)
+        RequestDelegate next = (HttpContext context) => throw new Exception("Test dev failure");
 
         var logger = LoggerFactory.Create(builder => {}).CreateLogger<GlobalExceptionHandlerMiddleware>();
-        var env = new TestHostEnvironment { EnvironmentName = Environments.Development };
+        var env = new MiddlewareTestHostEnvironment { EnvironmentName = Environments.Development };
         var middleware = new GlobalExceptionHandlerMiddleware(next, logger, env);
 
         var context = new DefaultHttpContext();
@@ -69,10 +70,11 @@ public class GlobalExceptionHandlerMiddlewareTests
     [Fact]
     public async Task InvokeAsync_WhenExceptionOccursInProduction_HidesStackTrace()
     {
-        RequestDelegate next = (HttpContext context) => throw new InvalidOperationException("Sensitive DB Connection String");
+        // Use a generic Exception which maps to 500
+        RequestDelegate next = (HttpContext context) => throw new Exception("Sensitive DB Connection String");
 
         var logger = LoggerFactory.Create(builder => {}).CreateLogger<GlobalExceptionHandlerMiddleware>();
-        var env = new TestHostEnvironment { EnvironmentName = Environments.Production };
+        var env = new MiddlewareTestHostEnvironment { EnvironmentName = Environments.Production };
         var middleware = new GlobalExceptionHandlerMiddleware(next, logger, env);
 
         var context = new DefaultHttpContext();
@@ -90,5 +92,59 @@ public class GlobalExceptionHandlerMiddlewareTests
         Assert.NotNull(problemDetails);
         Assert.Equal("An internal error occurred. Please contact system support.", problemDetails.Detail);
         Assert.DoesNotContain("Sensitive DB Connection String", responseBody);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ClassifiesExceptionTypes_Correctly()
+    {
+        var logger = LoggerFactory.Create(builder => {}).CreateLogger<GlobalExceptionHandlerMiddleware>();
+        var env = new MiddlewareTestHostEnvironment { EnvironmentName = Environments.Development };
+
+        // ArgumentException → 400
+        var argMiddleware = new GlobalExceptionHandlerMiddleware(
+            _ => throw new ArgumentException("Bad arg"), logger, env);
+        var argCtx = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        await argMiddleware.InvokeAsync(argCtx);
+        Assert.Equal(400, argCtx.Response.StatusCode);
+
+        // KeyNotFoundException → 404
+        var notFoundMiddleware = new GlobalExceptionHandlerMiddleware(
+            _ => throw new KeyNotFoundException("Not found"), logger, env);
+        var notFoundCtx = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        await notFoundMiddleware.InvokeAsync(notFoundCtx);
+        Assert.Equal(404, notFoundCtx.Response.StatusCode);
+
+        // InvalidOperationException → 409
+        var conflictMiddleware = new GlobalExceptionHandlerMiddleware(
+            _ => throw new InvalidOperationException("Conflict"), logger, env);
+        var conflictCtx = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        await conflictMiddleware.InvokeAsync(conflictCtx);
+        Assert.Equal(409, conflictCtx.Response.StatusCode);
+
+        // UnauthorizedAccessException → 403
+        var forbidMiddleware = new GlobalExceptionHandlerMiddleware(
+            _ => throw new UnauthorizedAccessException("Forbidden"), logger, env);
+        var forbidCtx = new DefaultHttpContext { Response = { Body = new MemoryStream() } };
+        await forbidMiddleware.InvokeAsync(forbidCtx);
+        Assert.Equal(403, forbidCtx.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_IncludesCorrelationId_InResponse()
+    {
+        RequestDelegate next = _ => throw new Exception("corr test");
+        var logger = LoggerFactory.Create(builder => {}).CreateLogger<GlobalExceptionHandlerMiddleware>();
+        var env = new MiddlewareTestHostEnvironment { EnvironmentName = Environments.Development };
+        var middleware = new GlobalExceptionHandlerMiddleware(next, logger, env);
+
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        context.Items["CorrelationId"] = "test-corr-123";
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
+        Assert.Contains("test-corr-123", body);
     }
 }

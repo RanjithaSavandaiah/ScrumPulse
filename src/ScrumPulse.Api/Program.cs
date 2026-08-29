@@ -1,3 +1,6 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.AI;
 using ScrumPulse.Api.Middleware;
@@ -21,7 +24,7 @@ if (!Directory.Exists(wwwrootPath))
     Directory.CreateDirectory(wwwrootPath);
 }
 
-// Add API controllers with string enum serialization & OpenAPI documentation
+// ── API Controllers & OpenAPI ────────────────────────────────────────────
 builder.Services.AddControllers()
     .AddJsonOptions(jsonOptions =>
     {
@@ -30,32 +33,112 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(swaggerGenOptions =>
 {
-    swaggerGenOptions.SwaggerDoc("v1", new() { Title = "ScrumPulse Enterprise API", Version = "v1", Description = "Engineering Velocity, Lifecycle Latencies, Blocker SLAs, and Microsoft AI Agent Framework Coach" });
+    swaggerGenOptions.SwaggerDoc("v1", new()
+    {
+        Title = "ScrumPulse Enterprise API",
+        Version = "v1",
+        Description = "Engineering Velocity, Lifecycle Latencies, Blocker SLAs, and Microsoft AI Agent Framework Coach"
+    });
 });
 
-// Configure Clean Architecture Layers (Infrastructure & Dedicated AI Agent Framework)
+// ── Clean Architecture Layer Registration ────────────────────────────────
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddAiServices(builder.Configuration);
 
-// Cloud Observability & Health Check Probes
+// ── Health Checks ────────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("database");
 
-// CORS for public web hosting & Render deployment
+// ── Rate Limiting (Critical for public site) ─────────────────────────────
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Global sliding window: 60 requests per minute per IP
+    rateLimiterOptions.AddSlidingWindowLimiter("global", slidingOptions =>
+    {
+        slidingOptions.PermitLimit = 60;
+        slidingOptions.Window = TimeSpan.FromMinutes(1);
+        slidingOptions.SegmentsPerWindow = 6;
+        slidingOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        slidingOptions.QueueLimit = 5;
+    });
+
+    // Strict limiter for auth endpoints: 5 attempts per minute
+    rateLimiterOptions.AddFixedWindowLimiter("auth", authOptions =>
+    {
+        authOptions.PermitLimit = 5;
+        authOptions.Window = TimeSpan.FromMinutes(1);
+        authOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        authOptions.QueueLimit = 0;
+    });
+
+    // AI endpoints: more generous but still bounded
+    rateLimiterOptions.AddTokenBucketLimiter("ai", aiOptions =>
+    {
+        aiOptions.TokenLimit = 20;
+        aiOptions.ReplenishmentPeriod = TimeSpan.FromMinutes(1);
+        aiOptions.TokensPerPeriod = 10;
+        aiOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        aiOptions.QueueLimit = 2;
+    });
+});
+
+// ── Response Compression (Brotli + GZip) ─────────────────────────────────
+builder.Services.AddResponseCompression(compressionOptions =>
+{
+    compressionOptions.EnableForHttps = true;
+    compressionOptions.Providers.Add<BrotliCompressionProvider>();
+    compressionOptions.Providers.Add<GzipCompressionProvider>();
+    compressionOptions.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/json", "application/problem+json"]);
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = System.IO.Compression.CompressionLevel.Fastest);
+
+// ── CORS (Hardened for public hosting) ───────────────────────────────────
 builder.Services.AddCors(corsOptions =>
 {
-    corsOptions.AddPolicy("AllowAll", corsPolicy =>
+    corsOptions.AddPolicy("Production", corsPolicy =>
     {
-        corsPolicy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
+            ?? ["https://scrumpulse.onrender.com", "http://localhost:4200"];
+
+        corsPolicy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .SetPreflightMaxAge(TimeSpan.FromHours(1));
     });
+
+    // Development-only permissive policy
+    if (builder.Environment.IsDevelopment())
+    {
+        corsOptions.AddPolicy("Development", corsPolicy =>
+            corsPolicy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    }
 });
 
 var app = builder.Build();
 
-// Global ProblemDetails (RFC 7807) exception handler middleware
+// ── Middleware Pipeline (order matters!) ──────────────────────────────────
+
+// 1. Security headers (runs on every response)
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+// 2. Request logging with correlation IDs
+app.UseMiddleware<RequestLoggingMiddleware>();
+
+// 3. Global exception handler (ProblemDetails RFC 7807)
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
-// Database migration & seed execution
+// 4. Response compression
+app.UseResponseCompression();
+
+// 5. Rate limiting
+app.UseRateLimiter();
+
+// ── Database Initialization ──────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -63,7 +146,7 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.SeedAsync(db);
 }
 
-// Enable Swagger in all environments for API visibility
+// ── Swagger ──────────────────────────────────────────────────────────────
 app.UseSwagger();
 app.UseSwaggerUI(swaggerUiOptions =>
 {
@@ -71,22 +154,24 @@ app.UseSwaggerUI(swaggerUiOptions =>
     swaggerUiOptions.RoutePrefix = "swagger";
 });
 
-app.UseCors("AllowAll");
+// ── Static Files & Routing ───────────────────────────────────────────────
+var corsPolicy = app.Environment.IsDevelopment() ? "Development" : "Production";
+app.UseCors(corsPolicy);
 
-// Serve Angular static files from wwwroot
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
 app.UseAuthorization();
 
-// Map Health Probes
+// ── Health Probes ────────────────────────────────────────────────────────
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/healthz");
 
-app.MapControllers();
+// ── Map Controllers with global rate limiting ────────────────────────────
+app.MapControllers().RequireRateLimiting("global");
 
-// SPA fallback for Angular client-side routes if index.html is present
+// ── SPA Fallback ─────────────────────────────────────────────────────────
 var indexHtmlPath = Path.Combine(wwwrootPath, "index.html");
 if (File.Exists(indexHtmlPath))
 {

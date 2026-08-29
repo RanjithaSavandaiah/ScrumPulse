@@ -3,56 +3,81 @@ namespace ScrumPulse.Api.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
+using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Entities;
 
+/// <summary>Team member management with request DTOs to prevent mass assignment.</summary>
 public class TeamMembersController(IAppDbContext db) : BaseApiController
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TeamMember>>> GetAll() =>
-        Ok(await db.TeamMembers.Where(teamMember => teamMember.IsActive && !teamMember.IsDeleted).OrderBy(teamMember => teamMember.Name).ToListAsync());
+    [ProducesResponseType(typeof(IEnumerable<TeamMember>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TeamMember>>> GetAll(CancellationToken ct) =>
+        Ok(await db.TeamMembers
+            .Where(teamMember => teamMember.IsActive && !teamMember.IsDeleted)
+            .OrderBy(teamMember => teamMember.Name)
+            .AsNoTracking()
+            .ToListAsync(ct));
 
     [HttpPost]
-    public async Task<ActionResult<TeamMember>> Create([FromBody] TeamMember member)
+    [ProducesResponseType(typeof(TeamMember), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TeamMember>> Create([FromBody] CreateTeamMemberRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(member.Avatar))
+        var avatar = request.Avatar;
+        if (string.IsNullOrWhiteSpace(avatar))
         {
-            var initials = string.Join("", member.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0])).ToUpper();
-            member.Avatar = initials.Length > 2 ? initials.Substring(0, 2) : initials;
+            var initials = string.Join("", request.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0])).ToUpper();
+            avatar = initials.Length > 2 ? initials[..2] : initials;
         }
-        member.IsActive = true;
-        member.IsDeleted = false;
+
+        var member = new TeamMember
+        {
+            Name = request.Name,
+            Email = request.Email,
+            Role = request.Role,
+            Location = request.Location,
+            TimeZone = request.TimeZone,
+            Avatar = avatar,
+            ActiveWipLimit = request.ActiveWipLimit,
+            IsActive = true,
+            IsDeleted = false
+        };
+
         db.TeamMembers.Add(member);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return Ok(member);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<TeamMember>> Update(Guid id, [FromBody] TeamMember updated)
+    [ProducesResponseType(typeof(TeamMember), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamMember>> Update(Guid id, [FromBody] UpdateTeamMemberRequest request, CancellationToken ct)
     {
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id, ct);
         if (member == null) return NotFound();
 
-        member.Name = updated.Name;
-        member.Email = updated.Email;
-        member.Role = updated.Role;
-        member.Location = updated.Location;
-        member.TimeZone = updated.TimeZone;
-        member.ActiveWipLimit = updated.ActiveWipLimit;
-        if (!string.IsNullOrWhiteSpace(updated.Avatar)) member.Avatar = updated.Avatar;
+        member.Name = request.Name;
+        member.Email = request.Email;
+        member.Role = request.Role;
+        member.Location = request.Location;
+        member.TimeZone = request.TimeZone;
+        member.ActiveWipLimit = request.ActiveWipLimit;
+        if (!string.IsNullOrWhiteSpace(request.Avatar)) member.Avatar = request.Avatar;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return Ok(member);
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id, ct);
         if (member == null) return NotFound();
 
         member.IsActive = false;
         member.IsDeleted = true;
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 }

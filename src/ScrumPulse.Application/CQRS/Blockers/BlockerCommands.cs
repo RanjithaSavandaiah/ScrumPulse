@@ -2,6 +2,7 @@ namespace ScrumPulse.Application.CQRS.Blockers;
 
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Application.Specifications;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Domain.Entities;
@@ -15,13 +16,7 @@ public class GetBlockersQueryHandler(IUnitOfWork unitOfWork) : IQueryHandler<Get
     {
         var repo = unitOfWork.Repository<Blocker>();
         var blockers = await repo.ListAsync(new ActiveBlockersSpecification(query.SprintId), ct);
-
-        return blockers.Select(blocker => new BlockerDto(
-            blocker.Id, blocker.Title, blocker.Description, blocker.Category, blocker.SlaHoursLimit,
-            blocker.WorkItemId, blocker.WorkItem?.Key, blocker.RaisedById, blocker.RaisedBy?.Name, blocker.SprintId,
-            blocker.RaisedAtUtc, blocker.ResolvedAtUtc, blocker.ResolutionNotes,
-            blocker.IsResolved, blocker.HoursWaiting, blocker.IsSlaBreached
-        ));
+        return blockers.ToDtos();
     }
 }
 
@@ -50,11 +45,7 @@ public class CreateBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHandl
         await repo.AddAsync(blocker, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return new BlockerDto(
-            blocker.Id, blocker.Title, blocker.Description, blocker.Category, blocker.SlaHoursLimit,
-            blocker.WorkItemId, null, blocker.RaisedById, null, blocker.SprintId,
-            blocker.RaisedAtUtc, null, null, false, 0, false
-        );
+        return blocker.ToDto();
     }
 }
 
@@ -68,21 +59,18 @@ public class ResolveBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHand
         var blocker = await repo.GetByIdAsync(command.BlockerId, ct);
         if (blocker == null) return null;
 
+        // Capture SLA breach state BEFORE resolving (once resolved, dynamic calc changes)
+        blocker.WasSlaBreachedOnResolution = blocker.HoursWaiting > blocker.SlaHoursLimit;
         blocker.ResolvedAtUtc = DateTime.UtcNow;
         blocker.ResolutionNotes = command.Request.ResolutionNotes;
 
         blocker.AddDomainEvent(new BlockerResolvedEvent(
-            blocker.Id, blocker.Title, blocker.ResolutionNotes, blocker.HoursWaiting, blocker.IsSlaBreached
+            blocker.Id, blocker.Title, blocker.ResolutionNotes, blocker.HoursWaiting, blocker.WasSlaBreachedOnResolution
         ));
 
         await unitOfWork.CommitAsync(ct);
 
-        return new BlockerDto(
-            blocker.Id, blocker.Title, blocker.Description, blocker.Category, blocker.SlaHoursLimit,
-            blocker.WorkItemId, blocker.WorkItem?.Key, blocker.RaisedById, blocker.RaisedBy?.Name, blocker.SprintId,
-            blocker.RaisedAtUtc, blocker.ResolvedAtUtc, blocker.ResolutionNotes,
-            blocker.IsResolved, blocker.HoursWaiting, blocker.IsSlaBreached
-        );
+        return blocker.ToDto();
     }
 }
 
@@ -106,12 +94,7 @@ public class UpdateBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHandl
 
         await unitOfWork.CommitAsync(ct);
 
-        return new BlockerDto(
-            blocker.Id, blocker.Title, blocker.Description, blocker.Category, blocker.SlaHoursLimit,
-            blocker.WorkItemId, blocker.WorkItem?.Key, blocker.RaisedById, blocker.RaisedBy?.Name, blocker.SprintId,
-            blocker.RaisedAtUtc, blocker.ResolvedAtUtc, blocker.ResolutionNotes,
-            blocker.IsResolved, blocker.HoursWaiting, blocker.IsSlaBreached
-        );
+        return blocker.ToDto();
     }
 }
 

@@ -1,5 +1,6 @@
 namespace ScrumPulse.Tests.Controllers;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
@@ -25,6 +26,17 @@ public class AuthControllerTests
         _testEnvironment = new TestHostEnvironment { EnvironmentName = Environments.Development };
     }
 
+    private static AuthController CreateController(IConfiguration config, IHostEnvironment env)
+    {
+        var controller = new AuthController(config, env, NullLogger<AuthController>.Instance);
+        // Provide HttpContext so HttpContext.Connection.RemoteIpAddress doesn't throw
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        return controller;
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -32,7 +44,7 @@ public class AuthControllerTests
     public void VerifyPin_WithNullOrWhitespacePin_ReturnsBadRequest(string? pin)
     {
         var config = new ConfigurationBuilder().Build();
-        var controller = new AuthController(config, _testEnvironment, NullLogger<AuthController>.Instance);
+        var controller = CreateController(config, _testEnvironment);
 
         var result = controller.VerifyPin(new VerifyPinRequest(pin));
 
@@ -42,29 +54,18 @@ public class AuthControllerTests
     }
 
     [Fact]
-    public void VerifyPin_InDevelopment_DefaultFallback_Accepts1234()
+    public void VerifyPin_WhenUnconfigured_ReturnsUnauthorized()
     {
+        // With no PIN configured, all PINs should be rejected (security hardening)
         var config = new ConfigurationBuilder().Build();
-        var controller = new AuthController(config, _testEnvironment, NullLogger<AuthController>.Instance);
+        var controller = CreateController(config, _testEnvironment);
 
         var result = controller.VerifyPin(new VerifyPinRequest("1234"));
-
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsType<VerifyPinResponse>(okResult.Value);
-        Assert.True(response.Success);
-    }
-
-    [Fact]
-    public void VerifyPin_InDevelopment_DefaultFallback_RejectsWrongPin()
-    {
-        var config = new ConfigurationBuilder().Build();
-        var controller = new AuthController(config, _testEnvironment, NullLogger<AuthController>.Instance);
-
-        var result = controller.VerifyPin(new VerifyPinRequest("9999"));
 
         var unauthResult = Assert.IsType<UnauthorizedObjectResult>(result);
         var response = Assert.IsType<VerifyPinResponse>(unauthResult.Value);
         Assert.False(response.Success);
+        Assert.Contains("unconfigured", response.Message);
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public class AuthControllerTests
             { "Auth:ScrumMasterPin", "8821" }
         };
         var config = new ConfigurationBuilder().AddInMemoryCollection(inMemorySettings).Build();
-        var controller = new AuthController(config, _testEnvironment, NullLogger<AuthController>.Instance);
+        var controller = CreateController(config, _testEnvironment);
 
         var result = controller.VerifyPin(new VerifyPinRequest("8821"));
 
@@ -92,7 +93,7 @@ public class AuthControllerTests
             { "Auth:ScrumMasterPin", "8821" }
         };
         var config = new ConfigurationBuilder().AddInMemoryCollection(inMemorySettings).Build();
-        var controller = new AuthController(config, _testEnvironment, NullLogger<AuthController>.Instance);
+        var controller = CreateController(config, _testEnvironment);
 
         var result = controller.VerifyPin(new VerifyPinRequest("1234"));
 
@@ -106,12 +107,36 @@ public class AuthControllerTests
     {
         _testEnvironment.EnvironmentName = Environments.Production;
         var config = new ConfigurationBuilder().Build();
-        var controller = new AuthController(config, _testEnvironment, NullLogger<AuthController>.Instance);
+        var controller = CreateController(config, _testEnvironment);
 
         var result = controller.VerifyPin(new VerifyPinRequest("1234"));
 
         var unauthResult = Assert.IsType<UnauthorizedObjectResult>(result);
         var response = Assert.IsType<VerifyPinResponse>(unauthResult.Value);
         Assert.False(response.Success);
+    }
+
+    [Fact]
+    public void VerifyPin_ConstantTimeComparison_PreventsTimingAttacks()
+    {
+        // Verify that wrong PIN of same length and different length are both rejected
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            { "Auth:ScrumMasterPin", "secure123" }
+        };
+        var config = new ConfigurationBuilder().AddInMemoryCollection(inMemorySettings).Build();
+        var controller = CreateController(config, _testEnvironment);
+
+        // Wrong PIN, same length
+        var result1 = controller.VerifyPin(new VerifyPinRequest("wrong1234"));
+        Assert.IsType<UnauthorizedObjectResult>(result1);
+
+        // Wrong PIN, different length
+        var result2 = controller.VerifyPin(new VerifyPinRequest("short"));
+        Assert.IsType<UnauthorizedObjectResult>(result2);
+
+        // Correct PIN
+        var result3 = controller.VerifyPin(new VerifyPinRequest("secure123"));
+        Assert.IsType<OkObjectResult>(result3);
     }
 }

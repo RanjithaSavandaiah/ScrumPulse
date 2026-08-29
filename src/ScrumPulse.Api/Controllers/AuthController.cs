@@ -3,10 +3,13 @@ namespace ScrumPulse.Api.Controllers;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 public record VerifyPinRequest(string? Pin);
 public record VerifyPinResponse(bool Success, string Message);
 
+/// <summary>Authentication controller with strict rate limiting for brute-force protection.</summary>
+[EnableRateLimiting("auth")]
 public class AuthController : BaseApiController
 {
     private readonly IConfiguration _configuration;
@@ -21,6 +24,9 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("verify-pin")]
+    [ProducesResponseType(typeof(VerifyPinResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(VerifyPinResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(VerifyPinResponse), StatusCodes.Status401Unauthorized)]
     public IActionResult VerifyPin([FromBody] VerifyPinRequest request)
     {
         if (string.IsNullOrWhiteSpace(request?.Pin))
@@ -29,21 +35,13 @@ public class AuthController : BaseApiController
         }
 
         // Retrieve configured PIN from environment variable or configuration
-        var configuredPin = _configuration["Auth:ScrumMasterPin"]
-            ?? _configuration["SM_PIN"]
-            ?? Environment.GetEnvironmentVariable("SM_PIN");
+        var configuredPin = Environment.GetEnvironmentVariable("SM_PIN")
+            ?? _configuration["Auth:ScrumMasterPin"];
 
         if (string.IsNullOrWhiteSpace(configuredPin))
         {
-            if (_environment.IsDevelopment())
-            {
-                configuredPin = "1234";
-            }
-            else
-            {
-                _logger.LogWarning("Scrum Master PIN is not configured in production environment.");
-                return Unauthorized(new VerifyPinResponse(false, "Scrum Master PIN authentication is unconfigured on server."));
-            }
+            _logger.LogWarning("Scrum Master PIN is not configured. Set SM_PIN environment variable.");
+            return Unauthorized(new VerifyPinResponse(false, "Scrum Master PIN authentication is unconfigured on server."));
         }
 
         var inputBytes = Encoding.UTF8.GetBytes(request.Pin.Trim());
@@ -55,6 +53,8 @@ public class AuthController : BaseApiController
 
         if (!isValid)
         {
+            _logger.LogWarning("Failed PIN verification attempt from {RemoteIp}",
+                HttpContext.Connection.RemoteIpAddress);
             return Unauthorized(new VerifyPinResponse(false, "Incorrect Security PIN. Scrum Master access denied."));
         }
 

@@ -4,33 +4,30 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Entities;
 
 [Route("api/[controller]")]
 [Route("api/feedback")]
 [Route("api/monthly-feedback")]
 [Route("api/monthlyfeedback")]
+/// <summary>Monthly 1:1 feedback management with AI-synthesized insights.</summary>
 public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<MonthlyFeedbackDto>>> GetAll([FromQuery] Guid? memberId)
+    [ProducesResponseType(typeof(IEnumerable<MonthlyFeedbackDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<MonthlyFeedbackDto>>> GetAll([FromQuery] Guid? memberId, CancellationToken ct)
     {
         var query = db.Monthly1on1Feedbacks.Include(feedback => feedback.TeamMember).AsQueryable();
         if (memberId.HasValue) query = query.Where(feedback => feedback.TeamMemberId == memberId.Value);
 
-        var list = await query.OrderByDescending(feedback => feedback.CreatedAtUtc).ToListAsync();
-        return Ok(list.Select(feedback => new MonthlyFeedbackDto(
-            feedback.Id, feedback.TeamMemberId, feedback.TeamMember?.Name ?? "Member",
-            feedback.MonthYear, feedback.ScrumMasterFeedback, feedback.CdlFeedback,
-            feedback.ClientFeedback, feedback.SelfReflection, feedback.SmRating,
-            feedback.HappinessIndex, feedback.ActionItems, feedback.NextMonthGoals,
-            feedback.AiSynthesizedStrengths, feedback.AiGrowthRecommendations,
-            feedback.AiBurnoutRiskAssessment, feedback.CreatedAtUtc
-        )));
+        var list = await query.OrderByDescending(feedback => feedback.CreatedAtUtc).AsNoTracking().ToListAsync(ct);
+        return Ok(list.ToDtos());
     }
 
     [HttpPost]
-    public async Task<ActionResult<MonthlyFeedbackDto>> Submit([FromBody] SubmitMonthlyFeedbackRequest request)
+    [ProducesResponseType(typeof(MonthlyFeedbackDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<MonthlyFeedbackDto>> Submit([FromBody] SubmitMonthlyFeedbackRequest request, CancellationToken ct)
     {
         var smRating = request.SmRating > 0 ? request.SmRating : 5;
         var happinessIndex = request.HappinessIndex > 0 ? request.HappinessIndex : 5;
@@ -53,24 +50,20 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
         };
 
         db.Monthly1on1Feedbacks.Add(feedback);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var member = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId, ct);
+        feedback.TeamMember = member;
 
-        return Ok(new MonthlyFeedbackDto(
-            feedback.Id, feedback.TeamMemberId, member?.Name ?? "Member",
-            feedback.MonthYear, feedback.ScrumMasterFeedback, feedback.CdlFeedback,
-            feedback.ClientFeedback, feedback.SelfReflection, feedback.SmRating,
-            feedback.HappinessIndex, feedback.ActionItems, feedback.NextMonthGoals,
-            feedback.AiSynthesizedStrengths, feedback.AiGrowthRecommendations,
-            feedback.AiBurnoutRiskAssessment, feedback.CreatedAtUtc
-        ));
+        return Ok(feedback.ToDto());
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<MonthlyFeedbackDto>> Update(Guid id, [FromBody] SubmitMonthlyFeedbackRequest request)
+    [ProducesResponseType(typeof(MonthlyFeedbackDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MonthlyFeedbackDto>> Update(Guid id, [FromBody] SubmitMonthlyFeedbackRequest request, CancellationToken ct)
     {
-        var feedback = await db.Monthly1on1Feedbacks.Include(f => f.TeamMember).FirstOrDefaultAsync(f => f.Id == id);
+        var feedback = await db.Monthly1on1Feedbacks.Include(f => f.TeamMember).FirstOrDefaultAsync(f => f.Id == id, ct);
         if (feedback == null) return NotFound();
 
         var smRating = request.SmRating > 0 ? request.SmRating : 5;
@@ -88,28 +81,25 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
         feedback.NextMonthGoals = string.IsNullOrWhiteSpace(request.NextMonthGoals) ? "Continue feature delivery and test coverage expansion." : request.NextMonthGoals.Trim();
         feedback.AiBurnoutRiskAssessment = happinessIndex < 6 ? "Medium Risk" : "Low Risk";
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
 
-        var member = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId);
+        if (feedback.TeamMember == null)
+        {
+            feedback.TeamMember = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId, ct);
+        }
 
-        return Ok(new MonthlyFeedbackDto(
-            feedback.Id, feedback.TeamMemberId, member?.Name ?? feedback.TeamMember?.Name ?? "Member",
-            feedback.MonthYear, feedback.ScrumMasterFeedback, feedback.CdlFeedback,
-            feedback.ClientFeedback, feedback.SelfReflection, feedback.SmRating,
-            feedback.HappinessIndex, feedback.ActionItems, feedback.NextMonthGoals,
-            feedback.AiSynthesizedStrengths, feedback.AiGrowthRecommendations,
-            feedback.AiBurnoutRiskAssessment, feedback.CreatedAtUtc
-        ));
+        return Ok(feedback.ToDto());
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var feedback = await db.Monthly1on1Feedbacks.FirstOrDefaultAsync(f => f.Id == id);
+        var feedback = await db.Monthly1on1Feedbacks.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (feedback == null) return NotFound();
-
         db.Monthly1on1Feedbacks.Remove(feedback);
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
         return NoContent();
     }
 }

@@ -11,6 +11,8 @@ using Xunit;
 
 public class PullRequestsControllerTests
 {
+    private static readonly CancellationToken Ct = CancellationToken.None;
+
     private static AppDbContext CreateInMemoryDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -63,11 +65,11 @@ public class PullRequestsControllerTests
             ReviewStatus: "Merged"
         );
 
-        await controller.Create(request1);
-        await controller.Create(request2);
+        await controller.Create(request1, Ct);
+        await controller.Create(request2, Ct);
 
         // Fetch Developer Metrics
-        var result = await controller.GetDeveloperMetrics(sprint.Id);
+        var result = await controller.GetDeveloperMetrics(sprint.Id, Ct);
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var metrics = Assert.IsAssignableFrom<IEnumerable<DeveloperPrMetricsDto>>(okResult.Value);
 
