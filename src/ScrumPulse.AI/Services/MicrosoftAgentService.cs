@@ -146,7 +146,7 @@ public class MicrosoftAgentService : IAiAgentService
         else if (prompt.Contains("1:1") || prompt.Contains("feedback") || prompt.Contains("coaching"))
         {
             answer = "For 1:1 sessions, the Microsoft Agent recommends combining the 4-way feedback (SM, CDL, Client, Self) with happiness trends. Focus discussions on personal growth goals and unblocking cross-functional dependencies.";
-            followUps.Add("Generate coaching plan for Rahul");
+            followUps.Add("Generate coaching plan for squad member");
             followUps.Add("View team happiness index trend");
         }
         else

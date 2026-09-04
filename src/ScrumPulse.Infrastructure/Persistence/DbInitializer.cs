@@ -1,133 +1,114 @@
 namespace ScrumPulse.Infrastructure.Persistence;
+
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
+using ScrumPulse.Infrastructure.Persistence.Dialects;
 using System.Text.RegularExpressions;
 
 public static class DbInitializer
 {
     public static async Task EnsureSchemaUpToDateAsync(AppDbContext context)
     {
+        // Only relational databases support raw DDL schema migrations
+        if (!context.Database.IsRelational())
+        {
+            return;
+        }
+
+        var dialect = SchemaDialectFactory.GetDialect(context.Database);
+        if (dialect == null)
+        {
+            return;
+        }
+
+        var connection = context.Database.GetDbConnection();
+        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+        if (!wasOpen) await context.Database.OpenConnectionAsync();
+
         try
         {
-            var connection = context.Database.GetDbConnection();
-            var wasOpen = connection.State == System.Data.ConnectionState.Open;
-            if (!wasOpen) await context.Database.OpenConnectionAsync();
-
             using var command = connection.CreateCommand();
 
-            // 1. Ensure PullRequestReviewLogs table exists
-            command.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ""PullRequestReviewLogs"" (
-                    ""Id"" TEXT NOT NULL CONSTRAINT ""PK_PullRequestReviewLogs"" PRIMARY KEY,
-                    ""WorkItemId"" TEXT NULL,
-                    ""AuthorId"" TEXT NOT NULL,
-                    ""ReviewerId"" TEXT NULL,
-                    ""SprintId"" TEXT NULL,
-                    ""PrNumber"" TEXT NOT NULL,
-                    ""PrTitle"" TEXT NOT NULL,
-                    ""PrUrl"" TEXT NOT NULL,
-                    ""TotalCommentsCount"" INTEGER NOT NULL,
-                    ""ActionableCommentsCount"" INTEGER NOT NULL,
-                    ""ReviewSummary"" TEXT NOT NULL,
-                    ""ReviewStatus"" TEXT NOT NULL,
-                    ""CreatedAtUtc"" TEXT NOT NULL,
-                    ""MergedAtUtc"" TEXT NULL,
-                    ""UpdatedAtUtc"" TEXT NULL,
-                    ""IsDeleted"" INTEGER NOT NULL DEFAULT 0
-                );
-            ";
-            await command.ExecuteNonQueryAsync();
-
-            // 1b. Check if IsDeleted column exists in PullRequestReviewLogs
-            command.CommandText = "PRAGMA table_info(\"PullRequestReviewLogs\");";
-            using var prReader = await command.ExecuteReaderAsync();
-            var hasIsDeleted = false;
-            while (await prReader.ReadAsync())
+            // 1. Ensure required initial tables exist using provider dialect
+            var createTableDdl = dialect.GetInitialTableDdl("PullRequestReviewLogs");
+            if (!string.IsNullOrEmpty(createTableDdl))
             {
-                var colName = prReader["name"]?.ToString();
-                if (string.Equals(colName, "IsDeleted", StringComparison.OrdinalIgnoreCase))
+                command.CommandText = createTableDdl;
+                await command.ExecuteNonQueryAsync();
+            }
+
+            // 2. Dynamically verify and migrate all tables and columns from EF Core model metadata
+            foreach (var entityType in context.Model.GetEntityTypes())
+            {
+                var tableName = entityType.GetTableName();
+                if (string.IsNullOrEmpty(tableName)) continue;
+
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                command.CommandText = dialect.GetExistingColumnsSql(tableName);
+
+                using (var reader = await command.ExecuteReaderAsync())
                 {
-                    hasIsDeleted = true;
-                    break;
+                    while (await reader.ReadAsync())
+                    {
+                        var colName = dialect.ReadColumnName(reader);
+                        if (!string.IsNullOrEmpty(colName))
+                        {
+                            existingColumns.Add(colName);
+                        }
+                    }
+                }
+
+                if (existingColumns.Count == 0)
+                {
+                    continue;
+                }
+
+                // Check each property defined on the entity
+                var storeObject = StoreObjectIdentifier.Create(
+                    entityType, StoreObjectType.Table);
+
+                foreach (var property in entityType.GetProperties())
+                {
+                    var columnName = storeObject.HasValue
+                        ? property.GetColumnName(storeObject.Value)
+                        : property.GetColumnName() ?? property.Name;
+
+                    if (string.IsNullOrEmpty(columnName) || existingColumns.Contains(columnName))
+                    {
+                        continue;
+                    }
+
+                    var clrType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+                    var sqlType = dialect.MapToSqlType(clrType, property.IsNullable);
+
+                    if (sqlType != null)
+                    {
+                        try
+                        {
+                            command.CommandText = dialect.BuildAddColumnSql(tableName, columnName, sqlType);
+                            await command.ExecuteNonQueryAsync();
+                        }
+                        catch
+                        {
+                            // Ignore if column already exists or table cannot be altered
+                        }
+                    }
                 }
             }
-            await prReader.CloseAsync();
-
-            if (!hasIsDeleted)
-            {
-                await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"PullRequestReviewLogs\" ADD COLUMN \"IsDeleted\" INTEGER NOT NULL DEFAULT 0;");
-            }
-
-            // 2. Ensure TeamLeaves has LeaveSlot column
-            command.CommandText = "PRAGMA table_info(\"TeamLeaves\");";
-            using var reader = await command.ExecuteReaderAsync();
-            var hasLeaveSlot = false;
-            while (await reader.ReadAsync())
-            {
-                var colName = reader["name"]?.ToString();
-                if (string.Equals(colName, "LeaveSlot", StringComparison.OrdinalIgnoreCase))
-                {
-                    hasLeaveSlot = true;
-                    break;
-                }
-            }
-            await reader.CloseAsync();
-
-            if (!hasLeaveSlot)
-            {
-                await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"TeamLeaves\" ADD COLUMN \"LeaveSlot\" TEXT NOT NULL DEFAULT 'FullDay';");
-            }
-
-            // 3. Ensure DailyStandups has SprintId column
-            command.CommandText = "PRAGMA table_info(\"DailyStandups\");";
-            using var reader2 = await command.ExecuteReaderAsync();
-            var hasSprintId = false;
-            while (await reader2.ReadAsync())
-            {
-                var colName = reader2["name"]?.ToString();
-                if (string.Equals(colName, "SprintId", StringComparison.OrdinalIgnoreCase))
-                {
-                    hasSprintId = true;
-                    break;
-                }
-            }
-            await reader2.CloseAsync();
-
-            if (!hasSprintId)
-            {
-                await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"DailyStandups\" ADD COLUMN \"SprintId\" TEXT NULL;");
-            }
-
-            // 4. Ensure WorkItems has EstimatedHours column
-            command.CommandText = "PRAGMA table_info(\"WorkItems\");";
-            using var reader3 = await command.ExecuteReaderAsync();
-            var hasEstimatedHours = false;
-            while (await reader3.ReadAsync())
-            {
-                var colName = reader3["name"]?.ToString();
-                if (string.Equals(colName, "EstimatedHours", StringComparison.OrdinalIgnoreCase))
-                {
-                    hasEstimatedHours = true;
-                    break;
-                }
-            }
-            await reader3.CloseAsync();
-
-            if (!hasEstimatedHours)
-            {
-                await context.Database.ExecuteSqlRawAsync("ALTER TABLE \"WorkItems\" ADD COLUMN \"EstimatedHours\" REAL NULL;");
-            }
-
-            if (!wasOpen) await context.Database.CloseConnectionAsync();
         }
         catch
         {
             // Table or database initialization error handled gracefully
         }
+        finally
+        {
+            if (!wasOpen) await context.Database.CloseConnectionAsync();
+        }
     }
 
-    public static async Task SeedAsync(AppDbContext context)
+    public static async Task SeedAsync(AppDbContext context, bool seedDemoData = false)
     {
         await EnsureSchemaUpToDateAsync(context);
 
@@ -142,18 +123,17 @@ public static class DbInitializer
             }
         }
 
-        // Seed Default Team Members if database is newly initialized
-        if (!await context.TeamMembers.AnyAsync())
+        // For public hosting, teams start with a clean squad roster so Scrum Masters
+        // can create and configure their own team members.
+        // Demo squad members are only seeded when explicitly enabled (e.g. SeedDemoData=true).
+        if (seedDemoData && !await context.TeamMembers.AnyAsync())
         {
-            var sm = new TeamMember { Name = "Ranjitha", Email = "ranjitha.sm@scrumpulse.io", Role = RoleType.ScrumMaster, Location = "Offshore", Avatar = "RS", ActiveWipLimit = 5 };
-            var dev1 = new TeamMember { Name = "Kaushik", Email = "kaushik.dev@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "KD", ActiveWipLimit = 3 };
-            var dev2 = new TeamMember { Name = "Athul", Email = "athul.dev@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "AD", ActiveWipLimit = 3 };
-            var dev3 = new TeamMember { Name = "Venkat", Email = "venkat.dev@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "VD", ActiveWipLimit = 3 };
-            var dev4 = new TeamMember { Name = "Suhaim", Email = "suhaim.dev@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "SD", ActiveWipLimit = 3 };
-            var qa1 = new TeamMember { Name = "Angan", Email = "angan.qa@scrumpulse.io", Role = RoleType.QaEngineer, Location = "Offshore", Avatar = "AQ", ActiveWipLimit = 4 };
-            var cdl = new TeamMember { Name = "Rahul", Email = "rahul.cdl@scrumpulse.io", Role = RoleType.Cdl, Location = "Offshore", Avatar = "RC", ActiveWipLimit = 5 };
+            var sm = new TeamMember { Name = "Scrum Master", Email = "sm@scrumpulse.io", Role = RoleType.ScrumMaster, Location = "Offshore", Avatar = "SM", ActiveWipLimit = 5 };
+            var dev1 = new TeamMember { Name = "Developer 1", Email = "dev1@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D1", ActiveWipLimit = 3 };
+            var dev2 = new TeamMember { Name = "Developer 2", Email = "dev2@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D2", ActiveWipLimit = 3 };
+            var qa1 = new TeamMember { Name = "QA Engineer", Email = "qa@scrumpulse.io", Role = RoleType.QaEngineer, Location = "Offshore", Avatar = "QA", ActiveWipLimit = 4 };
 
-            context.TeamMembers.AddRange(sm, dev1, dev2, dev3, dev4, qa1, cdl);
+            context.TeamMembers.AddRange(sm, dev1, dev2, qa1);
         }
 
         await context.SaveChangesAsync();

@@ -143,7 +143,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
-    await DbInitializer.SeedAsync(db);
+    var seedDemoData = app.Configuration.GetValue<bool>("SeedDemoData", false);
+    await DbInitializer.SeedAsync(db, seedDemoData);
 }
 
 // ── Swagger ──────────────────────────────────────────────────────────────
