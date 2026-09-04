@@ -41,6 +41,11 @@ COPY --from=frontend-build /app/frontend/dist/scrum-pulse.ui/browser /app/publis
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS final
 WORKDIR /app
 
+# Install GSSAPI/Kerberos library required by Npgsql PostgreSQL driver on Linux
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 curl \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=backend-build /app/publish .
 
 ENV ASPNETCORE_ENVIRONMENT=Production
