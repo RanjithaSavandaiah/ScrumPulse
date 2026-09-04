@@ -93,6 +93,30 @@ public class LeavesController(
                 }
                 diag["columns"] = cols;
 
+                using var sampleCmd = conn.CreateCommand();
+                sampleCmd.CommandText = @"SELECT ""Id"", ""TeamMemberId"", ""StartDate"", ""EndDate"", ""Reason"", ""LeaveType"", ""LeaveSlot"", ""Location"", ""IsApproved"", ""CreatedBy"", ""UpdatedBy"" FROM ""TeamLeaves"" LIMIT 5;";
+                var samples = new List<object>();
+                using (var sReader = await sampleCmd.ExecuteReaderAsync(ct))
+                {
+                    while (await sReader.ReadAsync(ct))
+                    {
+                        samples.Add(new {
+                            id = sReader["Id"]?.ToString(),
+                            memberId = sReader["TeamMemberId"]?.ToString(),
+                            start = sReader["StartDate"]?.ToString(),
+                            end = sReader["EndDate"]?.ToString(),
+                            reason = sReader["Reason"]?.ToString(),
+                            type = sReader["LeaveType"]?.ToString(),
+                            slot = sReader["LeaveSlot"]?.ToString(),
+                            location = sReader["Location"]?.ToString(),
+                            approved = sReader["IsApproved"]?.ToString(),
+                            createdBy = sReader["CreatedBy"]?.ToString(),
+                            updatedBy = sReader["UpdatedBy"]?.ToString()
+                        });
+                    }
+                }
+                diag["samples"] = samples;
+
                 if (!wasOpen) await conn.CloseAsync();
             }
             catch (Exception ex)
@@ -137,18 +161,18 @@ public class LeavesController(
                 var ddlStatements = new[]
                 {
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
-                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveSlot"" integer NOT NULL DEFAULT 0;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveSlot"" text NOT NULL DEFAULT 'FullDay';",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""CreatedBy"" text NULL;",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""UpdatedBy"" text NULL;",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false;",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""Location"" text NOT NULL DEFAULT 'Offshore';",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""Reason"" text NOT NULL DEFAULT 'Planned Leave';",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""IsApproved"" boolean NOT NULL DEFAULT true;",
-                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveType"" integer NOT NULL DEFAULT 0;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveType"" text NOT NULL DEFAULT 'PrivilegeLeave';",
                     @"UPDATE ""TeamLeaves"" SET ""IsDeleted"" = false WHERE ""IsDeleted"" IS NULL;",
                     @"UPDATE ""TeamLeaves"" SET ""IsApproved"" = true WHERE ""IsApproved"" IS NULL;",
-                    @"UPDATE ""TeamLeaves"" SET ""LeaveSlot"" = 0 WHERE ""LeaveSlot"" IS NULL;",
-                    @"UPDATE ""TeamLeaves"" SET ""LeaveType"" = 0 WHERE ""LeaveType"" IS NULL;",
+                    @"UPDATE ""TeamLeaves"" SET ""LeaveSlot"" = 'FullDay' WHERE ""LeaveSlot"" IS NULL OR ""LeaveSlot"" = '';",
+                    @"UPDATE ""TeamLeaves"" SET ""LeaveType"" = 'PrivilegeLeave' WHERE ""LeaveType"" IS NULL OR ""LeaveType"" = '';",
                     @"UPDATE ""TeamLeaves"" SET ""Location"" = 'Offshore' WHERE ""Location"" IS NULL OR ""Location"" = '';",
                     @"UPDATE ""TeamLeaves"" SET ""Reason"" = 'Planned Leave' WHERE ""Reason"" IS NULL OR ""Reason"" = '';",
                     @"UPDATE ""TeamLeaves"" SET ""CreatedBy"" = 'Scrum Master' WHERE ""CreatedBy"" IS NULL OR ""CreatedBy"" = '';",
@@ -208,8 +232,8 @@ public class LeavesController(
                         ""StartDate"", 
                         ""EndDate"", 
                         COALESCE(""Reason"", 'Planned Leave') AS ""Reason"",
-                        COALESCE(""LeaveType"", 0) AS ""LeaveType"",
-                        COALESCE(""LeaveSlot"", 0) AS ""LeaveSlot"",
+                        COALESCE(""LeaveType"", 'PrivilegeLeave') AS ""LeaveType"",
+                        COALESCE(""LeaveSlot"", 'FullDay') AS ""LeaveSlot"",
                         COALESCE(""Location"", 'Offshore') AS ""Location"",
                         COALESCE(""IsApproved"", true) AS ""IsApproved"",
                         COALESCE(""CreatedBy"", 'Scrum Master') AS ""CreatedBy"",
@@ -240,15 +264,15 @@ public class LeavesController(
 
                         var reason = reader["Reason"]?.ToString() ?? "Planned Leave";
 
-                        var rawType = reader["LeaveType"];
-                        var leaveType = rawType is int typeInt
+                        var rawType = reader["LeaveType"]?.ToString();
+                        var leaveType = int.TryParse(rawType, out var typeInt) && Enum.IsDefined(typeof(LeaveCategory), typeInt)
                             ? ((LeaveCategory)typeInt).ToString()
-                            : rawType?.ToString() ?? "PrivilegeLeave";
+                            : (Enum.TryParse<LeaveCategory>(rawType, true, out var parsedCategory) ? parsedCategory.ToString() : "PrivilegeLeave");
 
-                        var rawSlot = reader["LeaveSlot"];
-                        var leaveSlot = rawSlot is int slotInt
+                        var rawSlot = reader["LeaveSlot"]?.ToString();
+                        var leaveSlot = int.TryParse(rawSlot, out var slotInt) && Enum.IsDefined(typeof(LeaveSlotType), slotInt)
                             ? ((LeaveSlotType)slotInt).ToString()
-                            : rawSlot?.ToString() ?? "FullDay";
+                            : (Enum.TryParse<LeaveSlotType>(rawSlot, true, out var parsedSlot) ? parsedSlot.ToString() : "FullDay");
 
                         var location = reader["Location"]?.ToString() ?? "Offshore";
                         var isApproved = reader["IsApproved"] is bool app ? app : true;
