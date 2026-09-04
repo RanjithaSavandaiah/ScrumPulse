@@ -90,8 +90,21 @@ export class TeamRosterComponent {
 
   getSquadName(teamId?: string | null): string {
     if (!teamId) return 'Unassigned Pool';
-    const squad = this.state.teams().find(t => t.id === teamId);
-    return squad ? squad.name : 'Unassigned Pool';
+    const cleanId = teamId.toLowerCase().trim();
+    const squad = this.state.teams().find(t => t.id.toLowerCase().trim() === cleanId);
+    return squad ? squad.name : (this.state.currentTeam()?.name || 'Unassigned Pool');
+  }
+
+  getMemberSquadId(member: TeamMember): string {
+    if (!member.teamId) return '';
+    const cleanId = member.teamId.toLowerCase().trim();
+    const squad = this.state.teams().find(t => t.id.toLowerCase().trim() === cleanId);
+    return squad ? squad.id : '';
+  }
+
+  isMemberInSquad(member: TeamMember, squadId: string): boolean {
+    if (!member.teamId || !squadId) return false;
+    return member.teamId.toLowerCase().trim() === squadId.toLowerCase().trim();
   }
 
   onLinkMember(memberId: string): void {
@@ -113,6 +126,11 @@ export class TeamRosterComponent {
   onAssignSquad(memberId: string, event: Event): void {
     const selectEl = event.target as HTMLSelectElement;
     const teamId = selectEl.value ? selectEl.value : null;
+    this.state.assignMemberSquad(memberId, teamId).subscribe();
+  }
+
+  onAssignSquadId(memberId: string, targetTeamId: string | null): void {
+    const teamId = targetTeamId && targetTeamId.trim() ? targetTeamId.trim() : null;
     this.state.assignMemberSquad(memberId, teamId).subscribe();
   }
 

@@ -116,21 +116,37 @@
 
         <!-- Squad Assignment Row on Card -->
         <div class="member-squad-row">
-          <span class="squad-mini-label">
+          <div class="squad-mini-label">
             <app-icon name="shield-check" [size]="14" color="var(--accent-primary)"></app-icon>
-            Squad:
-          </span>
-          <select
-            class="squad-quick-select"
-            [value]="member.teamId || ''"
-            (change)="onAssignSquad(member.id, $event)"
-            title="Change squad assignment"
-          >
-            <option value="">(Unassigned Pool)</option>
-            @for (t of state.teams(); track t.id) {
-              <option [value]="t.id">{{ t.name }}</option>
+            <span class="squad-pill" [class.assigned]="!!member.teamId" [class.unassigned]="!member.teamId">
+              {{ getSquadName(member.teamId) }}
+            </span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            @if (!member.teamId && state.currentTeam()) {
+              <button
+                type="button"
+                (click)="onLinkMember(member.id)"
+                class="btn-assign-quick"
+                title="Assign to {{ state.currentTeam()?.name }}"
+              >
+                + Link
+              </button>
             }
-          </select>
+
+            <select
+              class="squad-quick-select"
+              [ngModel]="getMemberSquadId(member)"
+              (ngModelChange)="onAssignSquadId(member.id, $event)"
+              title="Change squad assignment"
+            >
+              <option value="">Unassigned</option>
+              @for (t of state.teams(); track t.id) {
+                <option [value]="t.id" [selected]="isMemberInSquad(member, t.id)">{{ t.name }}</option>
+              }
+            </select>
+          </div>
         </div>
 
         <div class="card-bottom-meta">

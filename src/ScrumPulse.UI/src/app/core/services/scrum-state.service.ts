@@ -78,7 +78,8 @@ export class ScrumStateService {
   readonly squadMembers = computed(() => {
     const team = this.currentTeam();
     if (!team) return this.members();
-    return this.members().filter(m => m.teamId === team.id);
+    const targetId = team.id.toLowerCase().trim();
+    return this.members().filter(m => m.teamId && m.teamId.toLowerCase().trim() === targetId);
   });
   readonly workItems = this.store.selectSignal(selectAllWorkItems);
   readonly blockers = this.store.selectSignal(selectAllBlockers);

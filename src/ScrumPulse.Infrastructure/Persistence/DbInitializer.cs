@@ -176,11 +176,11 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
-        // If only one squad exists in the organization, automatically link legacy unassigned members to it
-        var existingTeams = await context.Teams.ToListAsync();
-        if (existingTeams.Count == 1)
+        // If unassigned members exist, automatically link them to the active squad (e.g. Fikacoders)
+        var existingTeams = await context.Teams.Where(t => t.IsActive).ToListAsync();
+        if (existingTeams.Count > 0)
         {
-            var targetSquadId = existingTeams[0].Id;
+            var targetSquad = existingTeams.FirstOrDefault(t => t.Slug.Contains("fikacoders") || t.Name.Contains("Fikacoders", StringComparison.OrdinalIgnoreCase)) ?? existingTeams[0];
             var unassignedMembers = await context.TeamMembers
                 .Where(m => m.TeamId == null && m.IsActive && !m.IsDeleted)
                 .ToListAsync();
@@ -188,7 +188,7 @@ public static class DbInitializer
             {
                 foreach (var member in unassignedMembers)
                 {
-                    member.TeamId = targetSquadId;
+                    member.TeamId = targetSquad.Id;
                 }
                 await context.SaveChangesAsync();
             }
