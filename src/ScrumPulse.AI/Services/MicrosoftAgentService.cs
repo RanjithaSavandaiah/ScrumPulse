@@ -133,13 +133,13 @@ public class MicrosoftAgentService : IAiAgentService
 
         if (prompt.Contains("cycle time") || prompt.Contains("bottleneck"))
         {
-            answer = "Based on current sprint telemetry, the primary bottleneck is **PR Code Review Latency (avg 6.2h)** and **Client Blocker Resolution (avg 4.5h)**. Active development time is optimal (14.8h). Recommend pairing on complex PRs and using morning overlap hours to clear pending client questions.";
+            answer = "Based on current sprint telemetry, the primary bottleneck areas are **PR Code Review Latency** and **Client Blocker Resolution**. Recommend pairing on complex PRs and using morning overlap hours to clear pending client questions.";
             followUps.Add("How can we reduce PR review latency?");
             followUps.Add("Show active client blockers");
         }
         else if (prompt.Contains("say-do") || prompt.Contains("predictability"))
         {
-            answer = "The team has achieved a **92% Say-Do Ratio** over the last 2 sprints. To maintain this predictability, adjust sprint commitment by 6 Story Points when 2 or more team members are on planned PTO.";
+            answer = "To maintain Say-Do predictability, adjust sprint commitment when team members are on planned PTO. Use the auto-calculated capacity from the Team Roster and Leaves modules.";
             followUps.Add("Check team capacity for next sprint");
             followUps.Add("Generate client executive summary");
         }
@@ -151,7 +151,7 @@ public class MicrosoftAgentService : IAiAgentService
         }
         else
         {
-            answer = $"**Microsoft Agile Agent Analysis:** For your query '{request.Prompt}', the platform monitors all real-time sprint data (Work Items, Milestone Timestamps, Daily Standups, Blocker SLAs, and 1:1 Reviews). The offshore squad is operating at high flow with an 8.5/10 average confidence score.";
+            answer = $"**Microsoft Agile Agent Analysis:** For your query '{request.Prompt}', the platform monitors all real-time sprint data (Work Items, Milestone Timestamps, Daily Standups, Blocker SLAs, and 1:1 Reviews).";
             followUps.Add("What are the top sprint risks?");
             followUps.Add("Draft an executive update for the client");
             followUps.Add("Show retrospective action items");
@@ -176,6 +176,22 @@ public class MicrosoftAgentService : IAiAgentService
         var techTalks = await _db.TechTalkLogs.Where(t => t.PresenterId == memberId).AsNoTracking().ToListAsync(ct);
         var kudos = await _db.KudosCards.Where(k => k.ReceiverId == memberId).AsNoTracking().ToListAsync(ct);
 
+        var activeSprint = await _db.Sprints.FirstOrDefaultAsync(s => s.IsActive, ct);
+        double netCapacity = 0;
+        if (activeSprint != null && activeSprint.DailyWorkingHours > 0)
+        {
+            int workingDays = 0;
+            var cur = activeSprint.StartDate.Date;
+            while (cur <= activeSprint.EndDate.Date)
+            {
+                if (cur.DayOfWeek != DayOfWeek.Saturday && cur.DayOfWeek != DayOfWeek.Sunday)
+                    workingDays++;
+                cur = cur.AddDays(1);
+            }
+            double sprintLeaves = leaves.Where(l => l.StartDate <= activeSprint.EndDate && l.EndDate >= activeSprint.StartDate).Sum(l => l.TotalDays);
+            netCapacity = Math.Max(0, (workingDays - sprintLeaves) * activeSprint.DailyWorkingHours);
+        }
+
         return new InsightContext
         {
             MemberId = memberId,
@@ -184,13 +200,14 @@ public class MicrosoftAgentService : IAiAgentService
             CompletedItems = workItems.Count(w => w.Status == WorkItemStatus.Done),
             TotalStoryPoints = workItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints),
             TotalLeaveDays = leaves.Sum(l => l.TotalDays),
+            NetCapacityHours = netCapacity,
             StandupCount = standups.Count,
             TechTalksGiven = techTalks.Count,
             KudosReceived = kudos.Count,
-            AvgDevCycleHours = workItems.Where(w => w.DevCycleTimeHours.HasValue).Select(w => w.DevCycleTimeHours!.Value).DefaultIfEmpty(14.0).Average(),
-            AvgReviewLatencyHours = workItems.Where(w => w.PrReviewLatencyHours.HasValue).Select(w => w.PrReviewLatencyHours!.Value).DefaultIfEmpty(6.5).Average(),
-            HappinessIndex = feedback?.HappinessIndex ?? 8,
-            SmRating = feedback?.SmRating ?? 8,
+            AvgDevCycleHours = workItems.Where(w => w.DevCycleTimeHours.HasValue).Select(w => w.DevCycleTimeHours!.Value).DefaultIfEmpty(0).Average(),
+            AvgReviewLatencyHours = workItems.Where(w => w.PrReviewLatencyHours.HasValue).Select(w => w.PrReviewLatencyHours!.Value).DefaultIfEmpty(0).Average(),
+            HappinessIndex = feedback?.HappinessIndex ?? 0,
+            SmRating = feedback?.SmRating ?? 0,
             LastActionItems = feedback?.ActionItems
         };
     }
@@ -208,13 +225,13 @@ public class MicrosoftAgentService : IAiAgentService
         {
             SprintId = sprintId,
             SprintName = sprint?.Name ?? "Active Sprint",
-            CommittedPoints = sprint?.CommittedStoryPoints ?? 34,
+            CommittedPoints = sprint?.CommittedStoryPoints ?? 0,
             DeliveredPoints = workItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints),
             ActiveBlockers = blockers.Count(b => !b.IsResolved),
             TotalLeaveDays = leaves.Sum(l => l.TotalDays),
-            AvgSmRating = feedbacks.Count > 0 ? feedbacks.Average(f => f.SmRating) : 8.5,
-            AvgTeamHappiness = feedbacks.Count > 0 ? feedbacks.Average(f => f.HappinessIndex) : 8.2,
-            ConfidenceScore = sprint?.ConfidenceScore ?? 8,
+            AvgSmRating = feedbacks.Count > 0 ? feedbacks.Average(f => f.SmRating) : 0,
+            AvgTeamHappiness = feedbacks.Count > 0 ? feedbacks.Average(f => f.HappinessIndex) : 0,
+            ConfidenceScore = sprint?.ConfidenceScore ?? 0,
             TotalTechTalks = techTalks.Count
         };
     }
@@ -225,16 +242,16 @@ public class MicrosoftAgentService : IAiAgentService
     {
         var findings = new List<string>
         {
-            $"🌟 [STRENGTH - Velocity & Delivery]: Delivered {ctx.CompletedItems}/{ctx.TotalAssigned} work items ({ctx.TotalStoryPoints} Story Points) with avg dev execution time of {Math.Round(ctx.AvgDevCycleHours, 1)}h.",
-            $"🌟 [STRENGTH - Knowledge Sharing & Culture]: Delivered {ctx.TechTalksGiven} Weekly Tech Talk(s) and received {ctx.KudosReceived} team Kudos recognition(s).",
-            $"📊 [CAPACITY & LEAVES]: {ctx.TotalLeaveDays:0.#} approved leave days recorded; net capacity planned at {Math.Max(0, Math.Round(85.0 - (ctx.TotalLeaveDays * 8.5), 1))}h.",
-            $"💬 [DAILY STANDUP & 1:1 ALIGNMENT]: {ctx.StandupCount} recent standup updates logged; SM Performance Rating is {ctx.SmRating}/10 and Happiness Index is {ctx.HappinessIndex}/10.",
+            $"[STRENGTH - Velocity & Delivery]: Delivered {ctx.CompletedItems}/{ctx.TotalAssigned} work items ({ctx.TotalStoryPoints} Story Points) with avg dev execution time of {Math.Round(ctx.AvgDevCycleHours, 1)}h.",
+            $"[STRENGTH - Knowledge Sharing & Culture]: Delivered {ctx.TechTalksGiven} Weekly Tech Talk(s) and received {ctx.KudosReceived} team Kudos recognition(s).",
+            $"[METRICS - CAPACITY & LEAVES]: {ctx.TotalLeaveDays:0.#} approved leave days recorded.",
+            $"[COMMS - DAILY STANDUP & 1:1 ALIGNMENT]: {ctx.StandupCount} recent standup updates logged; SM Performance Rating is {ctx.SmRating}/10 and Happiness Index is {ctx.HappinessIndex}/10.",
             ctx.AvgReviewLatencyHours > 6.0
-                ? $"⚠️ [GROWTH AREA / WEAKNESS - PR Latency]: PR Code Review turnaround latency averages {Math.Round(ctx.AvgReviewLatencyHours, 1)}h (Exceeds SLA target of < 6h)."
-                : $"🌟 [STRENGTH - Code Review SLA]: PR Review turnaround latency is optimal at {Math.Round(ctx.AvgReviewLatencyHours, 1)}h.",
+                ? $"[WARNING - PR Latency]: PR Code Review turnaround latency averages {Math.Round(ctx.AvgReviewLatencyHours, 1)}h (Exceeds SLA target of < 6h)."
+                : $"[STRENGTH - Code Review SLA]: PR Review turnaround latency is optimal at {Math.Round(ctx.AvgReviewLatencyHours, 1)}h.",
             ctx.HappinessIndex < 7
-                ? $"⚠️ [WELLBEING RADAR]: Happiness Index is {ctx.HappinessIndex}/10. Needs 1:1 check-in to mitigate offshore burnout."
-                : "🌟 [MORALE & ENGAGEMENT]: High engagement score with proactive standup communication."
+                ? $"[WARNING - WELLBEING RADAR]: Happiness Index is {ctx.HappinessIndex}/10. Needs 1:1 check-in to mitigate burnout."
+                : "[STRENGTH - MORALE & ENGAGEMENT]: High engagement score with proactive standup communication."
         };
 
         var recs = new List<string>
@@ -269,14 +286,14 @@ public class MicrosoftAgentService : IAiAgentService
 
         var findings = new List<string>
         {
-            $"🌟 [SQUAD STRENGTH - Velocity & Say-Do]: Sprint Say-Do delivery tracking at {sayDoPercent}% ({ctx.DeliveredPoints}/{ctx.CommittedPoints} Story Points completed).",
-            $"🌟 [SQUAD STRENGTH - Continuous Learning]: {ctx.TotalTechTalks} Weekly Tech Talks conducted across the offshore team.",
-            $"👥 [SQUAD CAPACITY]: Auto-deducted {Math.Round(ctx.TotalLeaveDays * 8.5, 1)}h from {ctx.TotalLeaveDays:0.#} team leave days during this sprint window.",
-            $"💬 [TEAM HEALTH & 1:1 PULSE]: Average Squad Happiness is {Math.Round(ctx.AvgTeamHappiness, 1)}/10; Average SM Performance Rating is {Math.Round(ctx.AvgSmRating, 1)}/10.",
+            $"[STRENGTH - Velocity & Say-Do]: Sprint Say-Do delivery tracking at {sayDoPercent}% ({ctx.DeliveredPoints}/{ctx.CommittedPoints} Story Points completed).",
+            $"[STRENGTH - Continuous Learning]: {ctx.TotalTechTalks} Weekly Tech Talks conducted across the team.",
+            $"[TEAM - SQUAD CAPACITY]: {ctx.TotalLeaveDays:0.#} team leave days recorded during this sprint window.",
+            $"[COMMS - TEAM HEALTH & 1:1 PULSE]: Average Squad Happiness is {Math.Round(ctx.AvgTeamHappiness, 1)}/10; Average SM Performance Rating is {Math.Round(ctx.AvgSmRating, 1)}/10.",
             ctx.ActiveBlockers > 0
-                ? $"⚠️ [RISK / BOTTLENECK - Active Blockers]: {ctx.ActiveBlockers} active blocker(s) awaiting resolution from client/onshore (SLA monitoring active)."
-                : "🌟 [UNBLOCKED SQUAD]: Zero active blockers detected. Clear runway for sprint goal execution.",
-            "🛡️ [QUALITY GATES]: 100% of completed user stories strictly adhered to Definition of Ready (DoR) and Definition of Done (DoD) verification."
+                ? $"[WARNING - Active Blockers]: {ctx.ActiveBlockers} active blocker(s) awaiting resolution (SLA monitoring active)."
+                : "[STRENGTH - UNBLOCKED SQUAD]: Zero active blockers detected. Clear runway for sprint goal execution.",
+            "[QUALITY - GATES]: Completed user stories should adhere to Definition of Ready (DoR) and Definition of Done (DoD) verification."
         };
 
         var recs = new List<string>

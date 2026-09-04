@@ -39,7 +39,7 @@ public class SprintsController(IAppDbContext db) : BaseApiController
             CommittedStoryPoints = request.CommittedStoryPoints,
             ConfidenceScore = request.ConfidenceScore,
             ConfidenceNotes = request.ConfidenceNotes,
-            DailyWorkingHours = request.DailyWorkingHours > 0 ? request.DailyWorkingHours : 8.5
+            DailyWorkingHours = request.DailyWorkingHours
         };
 
         if (sprint.IsActive)

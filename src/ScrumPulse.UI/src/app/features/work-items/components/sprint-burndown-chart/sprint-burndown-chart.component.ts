@@ -4,6 +4,7 @@ import { IconComponent } from '../../../../core/components/icon/icon.component';
 import { Sprint, WorkItem, TeamLeave, TeamMember } from '../../../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
 import { cleanName } from '../../../../core/utils/format-utils';
+import { DEFAULT_DAILY_WORKING_HOURS, HOURS_PER_STORY_POINT_BENCHMARK } from '../../../../core/constants/scrum.constants';
 
 export interface BurndownDayPoint {
   dayIndex: number;
@@ -44,15 +45,15 @@ export class SprintBurndownChartComponent {
 
     if (!this.sprint) {
       return {
-        workingDays: 10,
+        workingDays: 0,
         memberCount,
-        grossHours: Math.round(10 * memberCount * 8.5 * 10) / 10,
+        grossHours: 0,
         totalLeaveDays: 0,
         leaveHoursDeducted: 0,
-        netAvailableHours: Math.round(10 * memberCount * 8.5 * 10) / 10,
-        committedPoints: 30,
+        netAvailableHours: 0,
+        committedPoints: 0,
         deliveredPoints: 0,
-        remainingPoints: 30,
+        remainingPoints: 0,
         utilizationRate: 0,
         leaveBreakdown: []
       };
@@ -61,7 +62,9 @@ export class SprintBurndownChartComponent {
     const start = new Date(this.sprint.startDate || Date.now());
     const end = new Date(this.sprint.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
     const workingDays = calculateWorkingDays(start, end);
-    const hoursPerDay: number = this.sprint?.dailyWorkingHours || 8.5;
+    const hoursPerDay: number = this.sprint?.dailyWorkingHours && this.sprint.dailyWorkingHours > 0
+      ? this.sprint.dailyWorkingHours
+      : DEFAULT_DAILY_WORKING_HOURS;
 
     // Filter leaves that intersect this sprint window
     const relevantLeaves = this.leaves.filter(l => {
@@ -100,13 +103,13 @@ export class SprintBurndownChartComponent {
     // Sprint Items Story Points
     const sprintItems = this.workItems.filter(w => w.sprintId === this.sprint.id || (!w.sprintId && this.sprint.isActive));
     const totalScope = sprintItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0);
-    const committedPoints = this.sprint.committedStoryPoints || (totalScope > 0 ? totalScope : 30);
+    const committedPoints = this.sprint.committedStoryPoints || totalScope;
     const deliveredPoints = sprintItems
       .filter(w => String(w.status).toLowerCase().includes('done'))
       .reduce((acc, w) => acc + (w.storyPoints || 0), 0);
     const remainingPoints = Math.max(0, committedPoints - deliveredPoints);
 
-    const requiredHours = committedPoints * 6.5; // ~6.5 hrs per Story Point benchmark
+    const requiredHours = committedPoints * HOURS_PER_STORY_POINT_BENCHMARK;
     const utilizationRate = netAvailableHours > 0 ? Math.round((requiredHours / netAvailableHours) * 100) : 0;
 
     return {

@@ -6,6 +6,7 @@ import { TeamLeave, TeamMember } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
 
 import { CORE_PIPES } from '../../../../core/pipes';
+import { DEFAULT_DAILY_WORKING_HOURS } from '../../../../core/constants/scrum.constants';
 
 @Component({
   selector: 'app-book-leave-modal',
@@ -66,7 +67,7 @@ export class BookLeaveModalComponent implements OnInit {
 
   Math = Math;
   get sprintDailyHours(): number {
-    return this.state.activeSprint()?.dailyWorkingHours || 8.5;
+    return this.state.activeSprint()?.dailyWorkingHours || DEFAULT_DAILY_WORKING_HOURS;
   }
 
   get canSubmit(): boolean {

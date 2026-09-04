@@ -98,33 +98,49 @@ export class ScrumStateService {
     const active = this.activeSprint();
     const items = this.workItems();
     const delivered = items.filter(i => i.status === 'Done').reduce((acc, i) => acc + i.storyPoints, 0);
-    const committed = active?.committedStoryPoints || 30;
+    const committed = active?.committedStoryPoints ?? 0;
     const inFlight = items.filter(i => i.status !== 'Done' && i.status !== 'Backlog').reduce((acc, i) => acc + i.storyPoints, 0);
     const activeBlockers = this.activeBlockersCount();
+
+    const calcAvg = (vals: (number | undefined)[]) => {
+      const valid = vals.filter((v): v is number => typeof v === 'number' && !isNaN(v) && v > 0);
+      return valid.length > 0 ? Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10 : 0;
+    };
+
+    const avgPickup = calcAvg(items.map(i => i.pickupLatencyHours));
+    const avgDev = calcAvg(items.map(i => i.devCycleTimeHours));
+    const avgPrReview = calcAvg(items.map(i => i.prReviewLatencyHours));
+    const avgPrMerge = calcAvg(items.map(i => i.prMergeLatencyHours));
+    const avgQa = calcAvg(items.map(i => i.qaTestingLatencyHours));
+    const avgTotalCycle = calcAvg(items.map(i => i.totalCycleTimeHours));
+
+    const blockers = this.blockers();
+    const resolvedBlockers = blockers.filter(b => b.isResolved);
+    const avgBlockerResolution = calcAvg(resolvedBlockers.map(b => b.hoursWaiting));
 
     return {
       sprintId: active?.id || 'all',
       sprintName: active?.name || 'Sprint Board',
       sprintGoal: active?.goal || 'Sprint Objectives & Velocity Deliverables',
-      sayDoRatioPercentage: committed > 0 ? Math.min(100, Math.round((delivered / committed) * 100)) : 100,
+      sayDoRatioPercentage: committed > 0 ? Math.min(100, Math.round((delivered / committed) * 100)) : 0,
       committedPoints: committed,
       deliveredPoints: delivered,
       inFlightPoints: inFlight,
-      avgPickupLatencyHours: 4.2,
-      avgDevTimeHours: 18.5,
-      avgPrReviewHours: 6.1,
-      avgPrMergeHours: 2.3,
-      avgQaTestingHours: 8.4,
-      avgTotalCycleTimeHours: 39.5,
+      avgPickupLatencyHours: avgPickup,
+      avgDevTimeHours: avgDev,
+      avgPrReviewHours: avgPrReview,
+      avgPrMergeHours: avgPrMerge,
+      avgQaTestingHours: avgQa,
+      avgTotalCycleTimeHours: avgTotalCycle,
       activeBlockersCount: activeBlockers,
-      avgBlockerResolutionHours: 3.5,
-      escapedDefectsCount: 0,
+      avgBlockerResolutionHours: avgBlockerResolution,
+      escapedDefectsCount: items.filter(i => i.isEscapedDefect).length,
       inSprintBugsCount: items.filter(i => i.type === 'Bug').length,
       executiveSummaryMarkdown: `### Executive Sprint Governance Summary\n- **Delivered Velocity:** ${delivered} Story Points completed.\n- **Active In-Flight:** ${inFlight} Story Points.\n- **Blocker Resolution:** ${activeBlockers} active blockers currently under SLA monitoring.`
     };
   });
 
-  readonly sayDoRatio = computed(() => this.executiveReport()?.sayDoRatioPercentage || 92);
+  readonly sayDoRatio = computed(() => this.executiveReport()?.sayDoRatioPercentage ?? 0);
 
   constructor() {
     this.refreshAllData();

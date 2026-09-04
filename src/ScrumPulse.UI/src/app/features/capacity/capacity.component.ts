@@ -9,6 +9,7 @@ import { BookLeaveModalComponent } from './components/book-leave-modal/book-leav
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
 import { generateDynamicMonths } from '../../core/utils/date-utils';
 import { CORE_PIPES } from '../../core/pipes';
+import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constants';
 
 @Component({
   selector: 'app-capacity',
@@ -26,7 +27,7 @@ export class CapacityComponent {
 
   Math = Math;
   get sprintDailyHours(): number {
-    return this.state.activeSprint()?.dailyWorkingHours || 8.5;
+    return this.state.activeSprint()?.dailyWorkingHours || DEFAULT_DAILY_WORKING_HOURS;
   }
 
   // Filters per Month & per Individual

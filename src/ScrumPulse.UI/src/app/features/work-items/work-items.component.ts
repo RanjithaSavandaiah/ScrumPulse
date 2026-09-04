@@ -12,6 +12,7 @@ import { EstimationMatrixModalComponent } from './components/estimation-matrix-m
 import { Sprint, WorkItem } from '../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../core/utils/date-utils';
 import { CORE_PIPES } from '../../core/pipes';
+import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constants';
 
 @Component({
   selector: 'app-work-items',
@@ -85,13 +86,13 @@ export class WorkItemsComponent {
     const start = sp ? new Date(sp.startDate || Date.now()) : new Date();
     const end = sp ? new Date(sp.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000)) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const workingDays = calculateWorkingDays(start, end);
-    const hoursPerDay = sp?.dailyWorkingHours && sp.dailyWorkingHours > 0 ? sp.dailyWorkingHours : 8.5;
+    const hoursPerDay = sp?.dailyWorkingHours && sp.dailyWorkingHours > 0 ? sp.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS;
     const grossHours = Math.round(workingDays * mCount * hoursPerDay * 10) / 10;
     const leaveHours = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
     const netHours = Math.max(0, Math.round((grossHours - leaveHours) * 100) / 100);
 
     const sprintItems = sp ? this.state.workItems().filter(w => w.sprintId === sp.id) : this.state.workItems();
-    const committed = sp?.committedStoryPoints || sprintItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0) || 30;
+    const committed = sp?.committedStoryPoints || sprintItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0) || 0;
     const delivered = sprintItems.filter(w => String(w.status).toLowerCase().includes('done')).reduce((acc, w) => acc + (w.storyPoints || 0), 0);
 
     return {

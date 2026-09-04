@@ -8,15 +8,20 @@ using ScrumPulse.Domain.Enums;
 
 public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorService
 {
+    // Named constants for capacity calculations
+    private const double ScrumMasterCapacityFactor = 0.75;
+    private const double CdlCapacityFactor = 0.5;
+    private const double HoursPerStoryPoint = 6.5;
+
     public async Task<SprintCapacityDto> CalculateSprintCapacityAsync(Guid sprintId, CancellationToken ct = default)
     {
         var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
         var members = await db.TeamMembers.Where(teamMember => teamMember.IsActive && teamMember.Role != RoleType.ClientStakeholder).ToListAsync(ct);
-        
-        int workingDays = sprint != null 
-            ? CalculateWorkingDays(sprint.StartDate, sprint.EndDate) 
-            : 10;
-        double baseDailyHours = sprint?.DailyWorkingHours > 0 ? sprint.DailyWorkingHours : 8.5;
+
+        int workingDays = sprint != null
+            ? CalculateWorkingDays(sprint.StartDate, sprint.EndDate)
+            : 0;
+        double baseDailyHours = sprint?.DailyWorkingHours ?? 0;
 
         var leavesQuery = db.TeamLeaves.Where(leave => leave.IsApproved);
         if (sprint != null)
@@ -41,16 +46,15 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
             {
                 RoleType.Developer => baseDailyHours,
                 RoleType.QaEngineer => baseDailyHours,
-                RoleType.ScrumMaster => Math.Round(baseDailyHours * 0.75, 1),
-                RoleType.Cdl => Math.Round(baseDailyHours * 0.5, 1),
+                RoleType.ScrumMaster => Math.Round(baseDailyHours * ScrumMasterCapacityFactor, 1),
+                RoleType.Cdl => Math.Round(baseDailyHours * CdlCapacityFactor, 1),
                 _ => baseDailyHours
             };
 
             double availableHours = Math.Round(netDays * dailyProductiveHours, 1);
             totalAvailableHoursAll += availableHours;
 
-            // Velocity factor: ~6.5 hours of focus per Story Point
-            int suggestedPoints = (int)Math.Round(availableHours / 6.5);
+            int suggestedPoints = (int)Math.Round(availableHours / HoursPerStoryPoint);
             totalSuggestedPointsAll += suggestedPoints;
 
             memberBreakdown.Add(new MemberCapacityDto(
@@ -85,21 +89,21 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
         int committedPoints = sprint?.CommittedStoryPoints ?? workItems.Sum(workItem => workItem.StoryPoints);
         int deliveredPoints = workItems.Where(workItem => workItem.Status == WorkItemStatus.Done).Sum(workItem => workItem.StoryPoints);
         int inFlightPoints = workItems.Where(workItem => workItem.Status != WorkItemStatus.Done && workItem.Status != WorkItemStatus.Backlog).Sum(workItem => workItem.StoryPoints);
-        
-        int sayDoRatio = committedPoints > 0 ? (int)Math.Round((deliveredPoints / (double)committedPoints) * 100) : 100;
+
+        int sayDoRatio = committedPoints > 0 ? (int)Math.Round((deliveredPoints / (double)committedPoints) * 100) : 0;
         int activeBlockers = blockers.Count(blocker => !blocker.IsResolved);
         int escapedDefects = workItems.Count(workItem => workItem.IsEscapedDefect);
         int inSprintBugs = workItems.Count(workItem => workItem.Type == WorkItemType.Bug);
 
         var completedItems = workItems.Where(workItem => workItem.Status == WorkItemStatus.Done).ToList();
 
-        double avgPickup = completedItems.Where(item => item.PickupLatencyHours.HasValue).Select(item => item.PickupLatencyHours!.Value).DefaultIfEmpty(2.4).Average();
-        double avgDev = completedItems.Where(item => item.DevCycleTimeHours.HasValue).Select(item => item.DevCycleTimeHours!.Value).DefaultIfEmpty(14.8).Average();
-        double avgReview = completedItems.Where(item => item.PrReviewLatencyHours.HasValue).Select(item => item.PrReviewLatencyHours!.Value).DefaultIfEmpty(6.2).Average();
-        double avgMerge = completedItems.Where(item => item.PrMergeLatencyHours.HasValue).Select(item => item.PrMergeLatencyHours!.Value).DefaultIfEmpty(1.8).Average();
-        double avgQa = completedItems.Where(item => item.QaTestingLatencyHours.HasValue).Select(item => item.QaTestingLatencyHours!.Value).DefaultIfEmpty(5.4).Average();
+        double avgPickup = completedItems.Where(item => item.PickupLatencyHours.HasValue).Select(item => item.PickupLatencyHours!.Value).DefaultIfEmpty(0).Average();
+        double avgDev = completedItems.Where(item => item.DevCycleTimeHours.HasValue).Select(item => item.DevCycleTimeHours!.Value).DefaultIfEmpty(0).Average();
+        double avgReview = completedItems.Where(item => item.PrReviewLatencyHours.HasValue).Select(item => item.PrReviewLatencyHours!.Value).DefaultIfEmpty(0).Average();
+        double avgMerge = completedItems.Where(item => item.PrMergeLatencyHours.HasValue).Select(item => item.PrMergeLatencyHours!.Value).DefaultIfEmpty(0).Average();
+        double avgQa = completedItems.Where(item => item.QaTestingLatencyHours.HasValue).Select(item => item.QaTestingLatencyHours!.Value).DefaultIfEmpty(0).Average();
         double avgTotal = avgPickup + avgDev + avgReview + avgMerge + avgQa;
-        double avgBlockerRes = blockers.Where(blocker => blocker.IsResolved).Select(blocker => blocker.HoursWaiting).DefaultIfEmpty(4.0).Average();
+        double avgBlockerRes = blockers.Where(blocker => blocker.IsResolved).Select(blocker => blocker.HoursWaiting).DefaultIfEmpty(0).Average();
 
         string markdownSummary = $"""
         # Sprint Executive Progress & Value Summary

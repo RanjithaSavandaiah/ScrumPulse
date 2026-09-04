@@ -9,6 +9,7 @@ import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estim
 import { computed, signal } from '@angular/core';
 import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
+import { DEFAULT_DAILY_WORKING_HOURS, HOURS_PER_POINT_RATIO, DEFAULT_FOCUS_FACTOR } from '../../../../core/constants/scrum.constants';
 
 @Component({
   selector: 'app-edit-sprint-modal',
@@ -33,13 +34,13 @@ export class EditSprintModalComponent implements OnInit {
   endDate: string = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
   // Daily Working Hours Configuration (SM Configurable)
-  dailyWorkingHours: number = 8.5;
+  dailyWorkingHours: number = DEFAULT_DAILY_WORKING_HOURS;
 
   // Dual Target Commitment System
   targetMode: 'storyPoints' | 'hours' = 'storyPoints';
-  committedStoryPoints: number = 30;
-  committedHours: number = 240;
-  hoursPerPointRatio: number = 8.0; // Standard team conversion ratio
+  committedStoryPoints: number = 0;
+  committedHours: number = 0;
+  hoursPerPointRatio: number = HOURS_PER_POINT_RATIO; // Standard team conversion ratio
   
   // Helpers & Guide Modals
   showMatrixModal: boolean = false;
@@ -89,12 +90,12 @@ export class EditSprintModalComponent implements OnInit {
       this.goal = this.sprint.goal || '';
       this.startDate = this.sprint.startDate ? new Date(this.sprint.startDate).toISOString().split('T')[0] : this.startDate;
       this.endDate = this.sprint.endDate ? new Date(this.sprint.endDate).toISOString().split('T')[0] : this.endDate;
-      this.dailyWorkingHours = this.sprint.dailyWorkingHours || 8.5;
-      this.committedStoryPoints = this.sprint.committedStoryPoints || 30;
+      this.dailyWorkingHours = this.sprint.dailyWorkingHours || DEFAULT_DAILY_WORKING_HOURS;
+      this.committedStoryPoints = this.sprint.committedStoryPoints || 0;
       this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
       this.isActive = this.sprint.isActive ?? true;
     } else {
-      this.dailyWorkingHours = 8.5;
+      this.dailyWorkingHours = DEFAULT_DAILY_WORKING_HOURS;
       this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
     }
   }
@@ -143,7 +144,7 @@ export class EditSprintModalComponent implements OnInit {
     const start = new Date(this.startDate || Date.now());
     const end = new Date(this.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
     const workingDays = this.calculatedWorkingDays;
-    const hoursPerDay = this.dailyWorkingHours > 0 ? this.dailyWorkingHours : 8.5;
+    const hoursPerDay = this.dailyWorkingHours > 0 ? this.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS;
 
     // Read developer count dynamically from Team Roster
     const allMembers = this.state.members().filter(m => (m.isActive ?? true));
@@ -182,7 +183,7 @@ export class EditSprintModalComponent implements OnInit {
     const grossHours = Math.round(workingDays * memberCount * hoursPerDay * 10) / 10;
     const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
     const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted) * 100) / 100);
-    const productiveFocusHours = Math.round(netAvailableHours * 0.70); // 70% focus factor
+    const productiveFocusHours = Math.round(netAvailableHours * DEFAULT_FOCUS_FACTOR); // focus factor
     const suggestedPoints = Math.max(1, Math.round(productiveFocusHours / this.hoursPerPointRatio));
 
     this.committedHours = productiveFocusHours;
@@ -200,10 +201,10 @@ export class EditSprintModalComponent implements OnInit {
   onSubmit(): void {
     if (!this.canSubmit) return;
 
-    // Ensure story points is non-zero
+    // Ensure story points is non-zero if hours entered
     const finalPoints = this.committedStoryPoints > 0 
       ? this.committedStoryPoints 
-      : Math.max(1, Math.round((this.committedHours || 240) / this.hoursPerPointRatio));
+      : (this.committedHours > 0 ? Math.max(1, Math.round(this.committedHours / this.hoursPerPointRatio)) : 0);
 
     const payload: Partial<Sprint> = {
       name: this.name.trim(),
@@ -212,7 +213,7 @@ export class EditSprintModalComponent implements OnInit {
       endDate: new Date(this.endDate).toISOString(),
       committedStoryPoints: finalPoints,
       isActive: this.isActive,
-      dailyWorkingHours: this.dailyWorkingHours > 0 ? this.dailyWorkingHours : 8.5
+      dailyWorkingHours: this.dailyWorkingHours > 0 ? this.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS
     };
 
     if (this.sprint?.id) {

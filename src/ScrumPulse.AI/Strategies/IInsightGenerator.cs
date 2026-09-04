@@ -32,6 +32,7 @@ public class InsightContext
     public int CompletedItems { get; set; }
     public int TotalStoryPoints { get; set; }
     public double TotalLeaveDays { get; set; }
+    public double NetCapacityHours { get; set; }
     public int StandupCount { get; set; }
     public int TechTalksGiven { get; set; }
     public int KudosReceived { get; set; }
