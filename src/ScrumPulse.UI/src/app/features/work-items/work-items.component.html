@@ -41,7 +41,7 @@
         >
           <option value="ALL">All Assignees ({{ getItemCount('ALL') }})</option>
           <option value="UNASSIGNED">Unassigned ({{ getItemCount('UNASSIGNED') }})</option>
-          @for (member of state.members(); track member.id) {
+          @for (member of state.squadMembers(); track member.id) {
             <option [value]="member.id">{{ member.name }} ({{ getItemCount(member.id) }})</option>
           }
         </select>
@@ -160,7 +160,7 @@
         [sprint]="activeSp"
         [workItems]="state.workItems()"
         [leaves]="state.leaves()"
-        [members]="state.members()"
+        [members]="state.squadMembers()"
       ></app-sprint-burndown-chart>
     }
   }
@@ -237,7 +237,7 @@
   @if (showNewItemModal()) {
     <app-add-work-item-modal
       [editItem]="selectedItemForEdit()"
-      [members]="state.members()"
+      [members]="state.squadMembers()"
       [sprints]="state.sprints()"
       [defaultSprintId]="selectedSprintId() !== 'ALL' ? selectedSprintId() : ''"
       (close)="onCloseItemModal()"

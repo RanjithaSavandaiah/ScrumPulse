@@ -19,8 +19,8 @@
           <app-icon name="users" [size]="14"></app-icon> Select Target Scope
         </label>
         <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="interactive-input">
-          <option value="ALL">Entire Squad (All 7 Members Combined)</option>
-          @for (member of state.members(); track member.id) {
+          <option value="ALL">Entire Squad (All {{ state.squadMembers().length }} Members Combined)</option>
+          @for (member of state.squadMembers(); track member.id) {
             <option [value]="member.id">
               {{ member.name | cleanName }} ({{ member.role | roleLabel }})
             </option>

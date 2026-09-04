@@ -199,7 +199,7 @@
   <!-- Add / Edit Retro Card Modal -->
   @if (showRetroModal()) {
     <app-add-retro-card-modal
-      [members]="state.members()"
+      [members]="state.squadMembers()"
       [editingCard]="editingCard()"
       (close)="showRetroModal.set(false)"
       (save)="onSaveRetroCard($event)"
@@ -237,7 +237,7 @@
               <label class="input-label">Assigned Owner</label>
               <select [(ngModel)]="actionForm.assigneeId" class="interactive-input">
                 <option value="">Unassigned (Squad)</option>
-                @for (member of state.members(); track member.id) {
+                @for (member of state.squadMembers(); track member.id) {
                   <option [value]="member.id">{{ member.name }} ({{ member.role }})</option>
                 }
               </select>

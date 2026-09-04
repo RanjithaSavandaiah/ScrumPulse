@@ -149,7 +149,7 @@ export class AddWorkItemModalComponent implements OnInit {
   }
 
   get teamMembers(): TeamMember[] {
-    const list = this.members.length > 0 ? this.members : this.state.members();
+    const list = this.members.length > 0 ? this.members : this.state.squadMembers();
     return list.filter(m => {
       const role = (m.role || '').toLowerCase();
       return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';

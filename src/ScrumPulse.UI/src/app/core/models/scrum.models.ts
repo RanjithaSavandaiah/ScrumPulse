@@ -45,6 +45,7 @@ export interface WorkItem {
   assigneeId?: string;
   assigneeName?: string;
   sprintId?: string;
+  teamId?: string;
   prNumber?: string;
   prUrl?: string;
   prBranch?: string;

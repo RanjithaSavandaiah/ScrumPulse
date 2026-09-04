@@ -46,6 +46,11 @@ export class CapacityComponent {
 
   filteredLeaves = computed(() => {
     let list = this.state.leaves();
+    const current = this.state.currentTeam();
+    if (current) {
+      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      list = list.filter(l => l.teamMemberId && squadMemberIds.has(l.teamMemberId.toLowerCase().trim()));
+    }
 
     if (this.selectedMemberId() !== 'ALL') {
       list = list.filter(l => l.teamMemberId === this.selectedMemberId());

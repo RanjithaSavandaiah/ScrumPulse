@@ -38,7 +38,7 @@ export class PrMetricsComponent {
 
   // Contributing squad developers / engineers (excludes ScrumMaster and CDL)
   developerMembers = computed(() => {
-    return this.state.members().filter(m => {
+    return this.state.squadMembers().filter(m => {
       const role = (m.role || '').toLowerCase();
       return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
     });
@@ -47,6 +47,12 @@ export class PrMetricsComponent {
   // Filtered PR list
   filteredPrLogs = computed(() => {
     let list = this.state.prLogs();
+    const current = this.state.currentTeam();
+    if (current) {
+      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      list = list.filter(p => p.authorId && squadMemberIds.has(p.authorId.toLowerCase().trim()));
+    }
+
     const sprintFilter = this.selectedSprintId();
     const devFilter = this.selectedDeveloperId();
 
@@ -103,7 +109,7 @@ export class PrMetricsComponent {
   openLogPrModal(): void {
     const active = this.state.activeSprint();
     const devs = this.developerMembers();
-    const defaultDev = devs[0] || this.state.members()[0];
+    const defaultDev = devs[0] || this.state.squadMembers()[0];
 
     this.newPr = {
       workItemId: '',

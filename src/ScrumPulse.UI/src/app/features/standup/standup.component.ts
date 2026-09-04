@@ -25,7 +25,7 @@ export class StandupComponent implements OnDestroy {
   private timerInterval: any = null;
 
   contributingMembers = computed(() => {
-    return this.state.members().filter(m => {
+    return this.state.squadMembers().filter(m => {
       const role = (m.role || '').toLowerCase();
       return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
     });

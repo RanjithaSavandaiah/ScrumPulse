@@ -13,7 +13,7 @@
   </div>
 
   <div class="kudos-grid">
-    @for (kudosCard of state.kudos(); track kudosCard.id) {
+    @for (kudosCard of filteredKudos(); track kudosCard.id) {
       <div class="glass-panel kudos-card">
         <div class="kudos-top">
           <span class="glass-badge kudos-badge">
@@ -77,7 +77,7 @@
   <!-- Give Kudos Modal -->
   @if (showKudosModal()) {
     <app-give-kudos-modal
-      [members]="state.members()"
+      [members]="state.squadMembers()"
       (close)="showKudosModal.set(false)"
       (save)="onSaveKudos($event)"
     ></app-give-kudos-modal>

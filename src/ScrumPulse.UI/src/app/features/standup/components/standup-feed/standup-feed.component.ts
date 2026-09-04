@@ -37,6 +37,11 @@ export class StandupFeedComponent {
   // Reactive filtered list directly bound to state signals
   filteredStandups = computed(() => {
     let list = this.state.standups();
+    const current = this.state.currentTeam();
+    if (current) {
+      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      list = list.filter(s => s.teamMemberId && squadMemberIds.has(s.teamMemberId.toLowerCase().trim()));
+    }
 
     if (this.selectedSprintId() !== 'ALL') {
       list = list.filter(s => s.sprintId === this.selectedSprintId());
@@ -63,7 +68,7 @@ export class StandupFeedComponent {
 
   // Contributing members for filter
   contributingMembers = computed(() => {
-    return this.state.members().filter(m => {
+    return this.state.squadMembers().filter(m => {
       const role = (m.role || '').toLowerCase();
       return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
     });

@@ -66,7 +66,7 @@
           <label class="form-label">Assigned Developer / Owner</label>
           <select [(ngModel)]="assigneeId" name="assigneeId" class="interactive-input">
             <option value="">Unassigned (Squad Backlog)</option>
-            @for (m of state.members(); track m.id) {
+            @for (m of state.squadMembers(); track m.id) {
               <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
             }
           </select>

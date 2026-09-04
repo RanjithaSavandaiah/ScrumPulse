@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
@@ -16,6 +16,17 @@ import { CORE_PIPES } from '../../core/pipes';
 export class KudosComponent {
   state = inject(ScrumStateService);
   showKudosModal = signal(false);
+
+  filteredKudos = computed(() => {
+    const list = this.state.kudos();
+    const current = this.state.currentTeam();
+    if (!current) return list;
+    const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+    return list.filter(k =>
+      (k.senderId && squadMemberIds.has(k.senderId.toLowerCase().trim())) ||
+      (k.receiverId && squadMemberIds.has(k.receiverId.toLowerCase().trim()))
+    );
+  });
 
   onSaveKudos(kudosData: { senderId: string; receiverId: string; badge: number; message: string }) {
     if (kudosData.senderId && kudosData.receiverId) {

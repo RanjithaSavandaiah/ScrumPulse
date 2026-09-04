@@ -45,7 +45,7 @@
         </label>
         <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="control-select">
           <option value="ALL">Entire Squad / All Developers</option>
-          @for (member of state.members(); track member.id) {
+          @for (member of state.squadMembers(); track member.id) {
             <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
           }
         </select>

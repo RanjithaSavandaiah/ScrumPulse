@@ -50,13 +50,13 @@ export class BlockersComponent {
       this.state.updateBlocker(editItem.id, {
         ...blockerData,
         sprintId: editItem.sprintId || this.state.activeSprint()?.id,
-        raisedById: editItem.raisedById || this.state.members()[0]?.id
+        raisedById: editItem.raisedById || this.state.squadMembers()[0]?.id
       });
     } else {
       this.state.createBlocker({
         ...blockerData,
         sprintId: this.state.activeSprint()?.id,
-        raisedById: this.state.members()[3]?.id || this.state.members()[0]?.id
+        raisedById: this.state.squadMembers()[0]?.id
       });
     }
 

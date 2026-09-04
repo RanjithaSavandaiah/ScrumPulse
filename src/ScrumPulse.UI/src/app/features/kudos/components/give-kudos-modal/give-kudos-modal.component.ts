@@ -29,7 +29,7 @@ export class GiveKudosModalComponent implements OnInit {
   };
 
   get teamMembers(): TeamMember[] {
-    return this.members.length > 0 ? this.members : this.state.members();
+    return this.members.length > 0 ? this.members : this.state.squadMembers();
   }
 
   ngOnInit(): void {

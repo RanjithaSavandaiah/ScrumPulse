@@ -26,7 +26,7 @@ export class AiCoachComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const members = this.state.members();
+      const members = this.state.squadMembers();
       if (members.length > 0 && !this.selectedMemberId && this.aiTier === 'individual') {
         this.selectedMemberId = members[0].id;
         this.state.getIndividualAi(members[0].id).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
@@ -41,7 +41,7 @@ export class AiCoachComponent implements OnInit {
   loadAiSuggestion(tier: string) {
     this.aiTier = tier;
     if (tier === 'individual') {
-      const targetId = this.selectedMemberId || this.state.members()[0]?.id;
+      const targetId = this.selectedMemberId || this.state.squadMembers()[0]?.id;
       if (targetId) {
         this.selectedMemberId = targetId;
         this.state.getIndividualAi(targetId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);

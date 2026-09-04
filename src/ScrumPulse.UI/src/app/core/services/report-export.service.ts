@@ -71,7 +71,7 @@ export class ReportExportService {
   }
 
   public filterData(options: ExportFilterOptions) {
-    const members = this.state.members();
+    const members = this.state.squadMembers();
     const sprints = this.state.sprints();
     let selectedMember: TeamMember | null = null;
 

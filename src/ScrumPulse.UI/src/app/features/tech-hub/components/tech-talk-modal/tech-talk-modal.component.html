@@ -32,7 +32,7 @@
         <div class="form-group">
           <label class="form-label">Presenter / Speaker <span class="required-star">*</span></label>
           <select [(ngModel)]="presenterId" name="presenterId" required class="interactive-input">
-            @for (m of state.members(); track m.id) {
+            @for (m of state.squadMembers(); track m.id) {
               <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
             }
           </select>

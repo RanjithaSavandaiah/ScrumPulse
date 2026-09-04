@@ -13,7 +13,7 @@
   </div>
 
   <div class="feedback-list">
-    @for (feedback of state.monthlyFeedbacks(); track feedback.id) {
+    @for (feedback of squadFeedbacks(); track feedback.id) {
       <div class="glass-panel feedback-card">
         <div class="feedback-header">
           <div>
@@ -83,7 +83,7 @@
   <!-- Record / Edit Feedback Modal -->
   @if (showFeedbackModal()) {
     <app-record-feedback-modal
-      [members]="state.members()"
+      [members]="state.squadMembers()"
       [editFeedback]="selectedFeedbackForEdit()"
       (close)="onCloseFeedbackModal()"
       (save)="onSaveFeedback($event)"

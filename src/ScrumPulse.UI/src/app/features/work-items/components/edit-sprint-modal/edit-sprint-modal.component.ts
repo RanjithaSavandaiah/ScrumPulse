@@ -48,7 +48,7 @@ export class EditSprintModalComponent implements OnInit {
   isActive: boolean = true;
 
   rosterDeveloperCount = computed(() => {
-    const all = this.state.members().filter(m => (m.isActive ?? true));
+    const all = this.state.squadMembers().filter(m => (m.isActive ?? true));
     const devs = all.filter(m => (m.role || '').toLowerCase() === 'developer');
     if (devs.length > 0) return devs.length;
     return all.filter(m => {
@@ -147,7 +147,7 @@ export class EditSprintModalComponent implements OnInit {
     const hoursPerDay = this.dailyWorkingHours > 0 ? this.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS;
 
     // Read developer count dynamically from Team Roster
-    const allMembers = this.state.members().filter(m => (m.isActive ?? true));
+    const allMembers = this.state.squadMembers().filter(m => (m.isActive ?? true));
     const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
     const deliveryMembers = allMembers.filter(m => {
       const r = (m.role || '').toLowerCase();

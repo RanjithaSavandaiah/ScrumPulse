@@ -68,7 +68,7 @@ export class WorkItemsComponent {
 
   sprintCapacitySummary = computed(() => {
     const sp = this.currentEffectiveSprint();
-    const allMembers = this.state.members().filter(m => (m.isActive ?? true));
+    const allMembers = this.state.squadMembers().filter(m => (m.isActive ?? true));
     const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
     const deliveryMembers = allMembers.filter(m => {
       const r = (m.role || '').toLowerCase();
@@ -109,7 +109,7 @@ export class WorkItemsComponent {
   });
 
   contributingMembers = computed(() => {
-    return this.state.members().filter(m => {
+    return this.state.squadMembers().filter(m => {
       const role = (m.role || '').toLowerCase();
       return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
     });
@@ -119,6 +119,15 @@ export class WorkItemsComponent {
     const assigneeFilter = this.selectedAssigneeId();
     const sprintFilter = this.selectedSprintId();
     let items = this.state.workItems();
+
+    const current = this.state.currentTeam();
+    if (current) {
+      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      items = items.filter(item =>
+        (item.teamId && item.teamId.toLowerCase().trim() === current.id.toLowerCase().trim()) ||
+        (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim()))
+      );
+    }
 
     // Sprint Filter
     if (sprintFilter !== 'ALL') {
@@ -138,6 +147,16 @@ export class WorkItemsComponent {
   getItemCount(memberId: string): number {
     const sprintFilter = this.selectedSprintId();
     let items = this.state.workItems();
+
+    const current = this.state.currentTeam();
+    if (current) {
+      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      items = items.filter(item =>
+        (item.teamId && item.teamId.toLowerCase().trim() === current.id.toLowerCase().trim()) ||
+        (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim()))
+      );
+    }
+
     if (sprintFilter !== 'ALL') {
       items = items.filter(item => item.sprintId === sprintFilter);
     }

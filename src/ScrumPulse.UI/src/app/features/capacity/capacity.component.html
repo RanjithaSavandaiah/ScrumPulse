@@ -75,7 +75,7 @@
           <label class="filter-label">Member</label>
           <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="schedule-select">
             <option value="ALL">All Squad Members</option>
-            @for (member of state.members(); track member.id) {
+            @for (member of state.squadMembers(); track member.id) {
               <option [value]="member.id">{{ member.name | cleanName }}</option>
             }
           </select>
@@ -165,7 +165,7 @@
   <!-- Book / Edit Leave Modal -->
   @if (showLeaveModal()) {
     <app-book-leave-modal
-      [members]="state.members()"
+      [members]="state.squadMembers()"
       [editLeave]="selectedEditLeave()"
       (close)="showLeaveModal.set(false); selectedEditLeave.set(null)"
       (save)="onSaveLeave($event)"

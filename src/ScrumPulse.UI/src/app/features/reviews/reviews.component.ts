@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
@@ -19,6 +19,14 @@ export class ReviewsComponent {
   showFeedbackModal = signal(false);
   selectedFeedbackForEdit = signal<MonthlyFeedback | null>(null);
   feedbackToDelete = signal<MonthlyFeedback | null>(null);
+
+  squadFeedbacks = computed(() => {
+    const list = this.state.monthlyFeedbacks();
+    const current = this.state.currentTeam();
+    if (!current) return list;
+    const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+    return list.filter(f => f.teamMemberId && squadMemberIds.has(f.teamMemberId.toLowerCase().trim()));
+  });
 
   onOpenCreateModal(): void {
     this.selectedFeedbackForEdit.set(null);
