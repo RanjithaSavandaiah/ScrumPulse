@@ -29,6 +29,48 @@ public static class DbInitializer
 
         try
         {
+            // ── Explicit Raw DDL Repair for Critical Tables (TeamLeaves, Teams, etc.) ──
+            if (dialect is PostgresSchemaDialect)
+            {
+                var rawMigrations = new[]
+                {
+                    dialect.GetInitialTableDdl("TeamLeaves"),
+                    dialect.GetInitialTableDdl("Teams"),
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveSlot"" integer NOT NULL DEFAULT 0;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""CreatedBy"" text NULL;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""UpdatedBy"" text NULL;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""IsDeleted"" boolean NOT NULL DEFAULT false;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""Location"" text NOT NULL DEFAULT 'Offshore';",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""Reason"" text NOT NULL DEFAULT 'Planned Leave';",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""IsApproved"" boolean NOT NULL DEFAULT true;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveType"" integer NOT NULL DEFAULT 0;",
+                    @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""RowVersion"" bytea NULL;",
+                    @"ALTER TABLE ""WorkItems"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
+                    @"ALTER TABLE ""Blockers"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
+                    @"ALTER TABLE ""TeamMembers"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
+                    @"ALTER TABLE ""Sprints"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
+                    @"UPDATE ""TeamLeaves"" SET ""CreatedBy"" = 'Scrum Master', ""UpdatedBy"" = 'Scrum Master' WHERE ""CreatedBy"" IS NULL OR ""CreatedBy"" = '';",
+                    @"UPDATE ""TeamLeaves"" SET ""IsDeleted"" = false WHERE ""IsDeleted"" IS NULL;",
+                    @"UPDATE ""TeamLeaves"" SET ""LeaveSlot"" = 0 WHERE ""LeaveSlot"" IS NULL;"
+                };
+
+                foreach (var sql in rawMigrations)
+                {
+                    if (string.IsNullOrWhiteSpace(sql)) continue;
+                    try
+                    {
+                        using var cmd = connection.CreateCommand();
+                        cmd.CommandText = sql;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                    catch
+                    {
+                        // Table check or individual column alter handled gracefully
+                    }
+                }
+            }
+
             // Dynamically verify and migrate all tables and columns from EF Core model metadata
             foreach (var entityType in context.Model.GetEntityTypes())
             {

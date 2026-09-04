@@ -49,7 +49,11 @@ export class CapacityComponent {
     const current = this.state.currentTeam();
     if (current) {
       const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
-      list = list.filter(l => l.teamMemberId && squadMemberIds.has(l.teamMemberId.toLowerCase().trim()));
+      const squadMemberNames = new Set(this.state.squadMembers().map(m => m.name.toLowerCase().trim()));
+      list = list.filter(l =>
+        (l.teamMemberId && squadMemberIds.has(l.teamMemberId.toLowerCase().trim())) ||
+        (l.teamMemberName && squadMemberNames.has(l.teamMemberName.toLowerCase().trim()))
+      );
     }
 
     if (this.selectedMemberId() !== 'ALL') {

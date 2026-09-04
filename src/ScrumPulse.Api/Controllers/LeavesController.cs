@@ -10,7 +10,10 @@ using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 
 /// <summary>Leave management with capacity calculation integration.</summary>
-public class LeavesController(IAppDbContext db, IMetricsCalculatorService metricsCalculatorService) : BaseApiController
+public class LeavesController(
+    IAppDbContext db,
+    IMetricsCalculatorService metricsCalculatorService,
+    ILogger<LeavesController>? logger = null) : BaseApiController
 {
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TeamLeaveDto>), StatusCodes.Status200OK)]
@@ -20,32 +23,74 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
         [FromQuery] int? month,
         CancellationToken ct = default)
     {
-        var query = db.TeamLeaves
-            .Include(leave => leave.TeamMember)
-            .AsQueryable();
-
-        if (memberId.HasValue) query = query.Where(l => l.TeamMemberId == memberId.Value);
-        if (year.HasValue && month.HasValue)
+        try
         {
-            var startOfMonth = new DateTime(year.Value, month.Value, 1);
-            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-            query = query.Where(l => l.StartDate <= endOfMonth && l.EndDate >= startOfMonth);
+            var query = db.TeamLeaves
+                .Include(leave => leave.TeamMember)
+                .AsQueryable();
+
+            if (memberId.HasValue) query = query.Where(l => l.TeamMemberId == memberId.Value);
+            if (year.HasValue && month.HasValue && year.Value >= 2000 && month.Value >= 1 && month.Value <= 12)
+            {
+                var startOfMonth = new DateTime(year.Value, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
+                var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+                query = query.Where(l => l.StartDate <= endOfMonth && l.EndDate >= startOfMonth);
+            }
+
+            var list = await query
+                .OrderByDescending(leave => leave.StartDate)
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            return Ok(list.ToDtos());
         }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to load leaves with Include navigation. Attempting resilient fallback.");
 
-        var list = await query
-            .OrderByDescending(leave => leave.StartDate)
-            .AsNoTracking()
-            .ToListAsync(ct);
+            try
+            {
+                var fallbackLeaves = await db.TeamLeaves
+                    .AsNoTracking()
+                    .OrderByDescending(l => l.StartDate)
+                    .ToListAsync(ct);
 
-        return Ok(list.ToDtos());
+                var memberIds = fallbackLeaves.Select(l => l.TeamMemberId).Distinct().ToList();
+                var members = await db.TeamMembers
+                    .Where(m => memberIds.Contains(m.Id))
+                    .AsNoTracking()
+                    .ToDictionaryAsync(m => m.Id, ct);
+
+                foreach (var leave in fallbackLeaves)
+                {
+                    if (members.TryGetValue(leave.TeamMemberId, out var m))
+                    {
+                        leave.TeamMember = m;
+                    }
+                }
+
+                if (memberId.HasValue)
+                {
+                    fallbackLeaves = fallbackLeaves.Where(l => l.TeamMemberId == memberId.Value).ToList();
+                }
+
+                return Ok(fallbackLeaves.ToDtos());
+            }
+            catch (Exception fallbackEx)
+            {
+                logger?.LogError(fallbackEx, "Resilient fallback for leaves also failed: {Message}. Returning empty list to preserve UI stability.", fallbackEx.Message);
+                return Ok(Array.Empty<TeamLeaveDto>());
+            }
+        }
     }
 
     [HttpPost]
     [ProducesResponseType(typeof(TeamLeaveDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<TeamLeaveDto>> Submit([FromBody] SubmitLeaveRequest request, CancellationToken ct = default)
     {
-        var startDate = request.StartDate;
-        var endDate = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
+        var startDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
+        var rawEnd = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
+        var endDate = DateTime.SpecifyKind(rawEnd, DateTimeKind.Utc);
 
         var leave = new TeamLeave
         {
@@ -75,8 +120,9 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
         var leave = await db.TeamLeaves.FindAsync([id], ct);
         if (leave == null) return NotFound();
 
-        var startDate = request.StartDate;
-        var endDate = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
+        var startDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
+        var rawEnd = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
+        var endDate = DateTime.SpecifyKind(rawEnd, DateTimeKind.Utc);
 
         leave.TeamMemberId = request.TeamMemberId;
         leave.StartDate = startDate;

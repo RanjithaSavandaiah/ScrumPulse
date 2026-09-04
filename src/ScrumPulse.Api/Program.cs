@@ -11,6 +11,9 @@ using ScrumPulse.Infrastructure.Persistence;
 Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
 Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
 
+// Enable legacy timestamp behavior in Npgsql to allow flexible DateTime mappings across PostgreSQL versions
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
