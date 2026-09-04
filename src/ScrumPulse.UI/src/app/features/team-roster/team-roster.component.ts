@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
@@ -98,6 +99,15 @@ export class TeamRosterComponent {
     const current = this.state.currentTeam();
     if (!current) return;
     this.state.assignMemberSquad(memberId, current.id).subscribe();
+  }
+
+  onLinkAllUnassigned(): void {
+    const current = this.state.currentTeam();
+    if (!current) return;
+    const toLink = this.unassignedOrOtherMembers();
+    if (toLink.length === 0) return;
+
+    forkJoin(toLink.map(m => this.state.assignMemberSquad(m.id, current.id))).subscribe();
   }
 
   onAssignSquad(memberId: string, event: Event): void {

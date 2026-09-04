@@ -176,6 +176,24 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
+        // If only one squad exists in the organization, automatically link legacy unassigned members to it
+        var existingTeams = await context.Teams.ToListAsync();
+        if (existingTeams.Count == 1)
+        {
+            var targetSquadId = existingTeams[0].Id;
+            var unassignedMembers = await context.TeamMembers
+                .Where(m => m.TeamId == null && m.IsActive && !m.IsDeleted)
+                .ToListAsync();
+            if (unassignedMembers.Count > 0)
+            {
+                foreach (var member in unassignedMembers)
+                {
+                    member.TeamId = targetSquadId;
+                }
+                await context.SaveChangesAsync();
+            }
+        }
+
         // Clean existing team members' names to prevent duplicate role suffix in brackets
         var existingMembers = await context.TeamMembers.ToListAsync();
         foreach (var member in existingMembers)

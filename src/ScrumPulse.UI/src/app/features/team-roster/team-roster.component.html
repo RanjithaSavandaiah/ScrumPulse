@@ -41,9 +41,9 @@
       </div>
     </div>
 
-    @if (state.currentTeam() && state.canEditOrDelete() && unassignedOrOtherMembers().length > 0) {
+    @if (state.currentTeam() && unassignedOrOtherMembers().length > 0) {
       <div class="link-member-action">
-        <label class="link-label">Link Talent to This Squad:</label>
+        <label class="link-label">Link Talent:</label>
         <select
           #linkSelect
           class="interactive-input link-select"
@@ -54,6 +54,9 @@
             <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }} &bull; {{ getSquadName(m.teamId) }})</option>
           }
         </select>
+        <button (click)="onLinkAllUnassigned()" class="btn-primary" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; white-space: nowrap;">
+          <app-icon name="check" [size]="14"></app-icon> Link All ({{ unassignedOrOtherMembers().length }})
+        </button>
       </div>
     }
   </div>
@@ -117,21 +120,17 @@
             <app-icon name="shield-check" [size]="14" color="var(--accent-primary)"></app-icon>
             Squad:
           </span>
-          @if (state.canEditOrDelete()) {
-            <select
-              class="squad-quick-select"
-              [value]="member.teamId || ''"
-              (change)="onAssignSquad(member.id, $event)"
-              title="Change squad assignment"
-            >
-              <option value="">(Unassigned Pool)</option>
-              @for (t of state.teams(); track t.id) {
-                <option [value]="t.id">{{ t.name }}</option>
-              }
-            </select>
-          } @else {
-            <span class="squad-badge-text">{{ getSquadName(member.teamId) }}</span>
-          }
+          <select
+            class="squad-quick-select"
+            [value]="member.teamId || ''"
+            (change)="onAssignSquad(member.id, $event)"
+            title="Change squad assignment"
+          >
+            <option value="">(Unassigned Pool)</option>
+            @for (t of state.teams(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
         </div>
 
         <div class="card-bottom-meta">
@@ -143,10 +142,24 @@
       </div>
     } @empty {
       <div class="glass-panel empty-roster">
-        <app-icon name="users" [size]="36" color="var(--text-secondary)"></app-icon>
+        <app-icon name="users" [size]="40" color="var(--accent-primary)"></app-icon>
         @if (state.currentTeam(); as cur) {
-          <h4>No members in {{ cur.name }} yet</h4>
-          <p>Click "+ Add Team Member" to create new members, or use the "Link Talent" dropdown above to assign existing people to this squad.</p>
+          <h4>No members linked to {{ cur.name }} yet</h4>
+          @if (unassignedOrOtherMembers().length > 0) {
+            <p style="max-width: 520px; margin: 0 auto 1.25rem; color: var(--text-secondary); line-height: 1.5;">
+              Found <strong>{{ unassignedOrOtherMembers().length }}</strong> unassigned team members in your organization directory. Click below to instantly link them to <strong>{{ cur.name }}</strong>.
+            </p>
+            <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+              <button (click)="onLinkAllUnassigned()" class="btn-primary" style="font-weight: 600;">
+                <app-icon name="check" [size]="16"></app-icon> Link All {{ unassignedOrOtherMembers().length }} Members to {{ cur.name }}
+              </button>
+              <button (click)="openAddModal()" class="btn-secondary">
+                <app-icon name="plus" [size]="16"></app-icon> Add New Member
+              </button>
+            </div>
+          } @else {
+            <p>Click "+ Add Team Member" to create new members for this squad.</p>
+          }
         } @else {
           <h4>No squad members found</h4>
           <p>Click "+ Add Team Member" to build your squad roster.</p>

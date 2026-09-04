@@ -35,7 +35,7 @@
       <!-- 6. Team Roster -->
       <button (click)="activeTab.set('roster')" [class.active-tab]="activeTab() === 'roster'" class="tab-btn">
         <app-icon name="users" [size]="16"></app-icon> Team Roster
-        <span class="badge-count" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;">{{ state.members().length }}</span>
+        <span class="badge-count" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;">{{ state.squadMembers().length }}</span>
       </button>
 
       <!-- 7. Monthly 1:1 Reviews -->
