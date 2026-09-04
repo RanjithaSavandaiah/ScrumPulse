@@ -16,7 +16,7 @@ export class TeamMembersEffects {
     this.actions$.pipe(
       ofType(TeamMemberActions.loadTeamMembers),
       switchMap(() =>
-        this.http.get<TeamMember[]>(`${this.apiUrl}/teammembers`).pipe(
+        this.http.get<TeamMember[]>(`${this.apiUrl}/teammembers?all=true`).pipe(
           map(members => TeamMemberActions.loadTeamMembersSuccess({ members })),
           catchError(err => of(TeamMemberActions.loadTeamMembersFailure({ error: err.message })))
         )

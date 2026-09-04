@@ -158,18 +158,21 @@ public static class DbInitializer
     {
         await EnsureSchemaUpToDateAsync(context);
 
-        // Ensure default tenant team exists so existing data and users have an active squad context
-        if (!await context.Teams.AnyAsync())
+        // Remove any legacy auto-seeded "Core Engineering Squad"
+        var legacyCoreSquads = await context.Teams
+            .Where(t => t.Slug == "core-engineering" || t.Name == "Core Engineering Squad")
+            .ToListAsync();
+        if (legacyCoreSquads.Count > 0)
         {
-            var defaultTeam = new Team
+            var legacyIds = legacyCoreSquads.Select(s => s.Id).ToList();
+            var membersLinked = await context.TeamMembers
+                .Where(m => m.TeamId.HasValue && legacyIds.Contains(m.TeamId.Value))
+                .ToListAsync();
+            foreach (var m in membersLinked)
             {
-                Name = "Core Engineering Squad",
-                Slug = "core-engineering",
-                Description = "Primary cross-functional product development squad",
-                JoinCode = "PULSE1",
-                IsActive = true
-            };
-            context.Teams.Add(defaultTeam);
+                m.TeamId = null;
+            }
+            context.Teams.RemoveRange(legacyCoreSquads);
             await context.SaveChangesAsync();
         }
 

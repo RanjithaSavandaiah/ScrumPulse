@@ -15,6 +15,7 @@ export interface TeamMember {
   timeZone: string;
   avatar: string;
   activeWipLimit: number;
+  teamId?: string | null;
   isActive?: boolean;
 }
 

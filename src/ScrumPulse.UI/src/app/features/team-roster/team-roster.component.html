@@ -5,28 +5,72 @@
         <app-icon name="users" [size]="24" color="var(--accent-primary)"></app-icon>
         <h3>Squad Roster & Capacity Administration</h3>
       </div>
-      <p class="section-subtitle">Scrum Master Management &bull; Add, assign, and manage team members and roles</p>
+      <p class="section-subtitle">Scrum Master Management &bull; Add, assign, and manage team members and squad affiliations</p>
     </div>
     <div>
-      <button (click)="showAddModal.set(true)" class="btn-primary">
+      <button (click)="openAddModal()" class="btn-primary">
         <app-icon name="plus" [size]="16"></app-icon> Add Team Member
       </button>
     </div>
+  </div>
+
+  <!-- Squad Context & Quick Link Banner -->
+  <div class="glass-panel squad-context-banner">
+    <div class="squad-info">
+      <div class="squad-icon-badge">
+        <app-icon name="users" [size]="22" color="var(--accent-primary)"></app-icon>
+      </div>
+      <div>
+        @if (state.currentTeam(); as currentSquad) {
+          <div class="squad-name-row">
+            <span class="active-squad-title">{{ currentSquad.name }}</span>
+            <span class="squad-tag">Active Squad Roster</span>
+          </div>
+          <p class="squad-desc">
+            Showing team members exclusively assigned to <strong>{{ currentSquad.name }}</strong>.
+          </p>
+        } @else {
+          <div class="squad-name-row">
+            <span class="active-squad-title">Organization Directory</span>
+            <span class="squad-tag">All Squads & Talent Pool</span>
+          </div>
+          <p class="squad-desc">
+            Viewing all talent across all squads and unassigned resources.
+          </p>
+        }
+      </div>
+    </div>
+
+    @if (state.currentTeam() && state.canEditOrDelete() && unassignedOrOtherMembers().length > 0) {
+      <div class="link-member-action">
+        <label class="link-label">Link Talent to This Squad:</label>
+        <select
+          #linkSelect
+          class="interactive-input link-select"
+          (change)="onLinkMember(linkSelect.value); linkSelect.value = ''"
+        >
+          <option value="">+ Link member to {{ state.currentTeam()?.name }}</option>
+          @for (m of unassignedOrOtherMembers(); track m.id) {
+            <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }} &bull; {{ getSquadName(m.teamId) }})</option>
+          }
+        </select>
+      </div>
+    }
   </div>
 
   <!-- Squad Stats Overview -->
   <div class="stats-overview-grid">
     <div class="glass-panel stat-box">
       <span class="stat-label">Total Squad Members</span>
-      <span class="stat-number">{{ state.members().length }}</span>
-      <span class="stat-sub">Active Squad Capacity</span>
+      <span class="stat-number">{{ state.squadMembers().length }}</span>
+      <span class="stat-sub">Active in this Squad</span>
     </div>
     <div class="glass-panel stat-box">
       <span class="stat-label">Engineering Capacity</span>
       <span class="stat-number" style="color: var(--accent-primary);">
         {{ developerCount() }}
       </span>
-      <span class="stat-sub">Developers in Sprint</span>
+      <span class="stat-sub">Developers in Squad</span>
     </div>
     <div class="glass-panel stat-box">
       <span class="stat-label">Quality Assurance</span>
@@ -46,7 +90,7 @@
 
   <!-- Team Members Grid -->
   <div class="roster-grid">
-    @for (member of state.members(); track member.id) {
+    @for (member of state.squadMembers(); track member.id) {
       <div class="glass-panel member-card">
         <div class="card-top-row">
           <div class="member-avatar-box">
@@ -67,6 +111,29 @@
           }
         </div>
 
+        <!-- Squad Assignment Row on Card -->
+        <div class="member-squad-row">
+          <span class="squad-mini-label">
+            <app-icon name="shield-check" [size]="14" color="var(--accent-primary)"></app-icon>
+            Squad:
+          </span>
+          @if (state.canEditOrDelete()) {
+            <select
+              class="squad-quick-select"
+              [value]="member.teamId || ''"
+              (change)="onAssignSquad(member.id, $event)"
+              title="Change squad assignment"
+            >
+              <option value="">(Unassigned Pool)</option>
+              @for (t of state.teams(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          } @else {
+            <span class="squad-badge-text">{{ getSquadName(member.teamId) }}</span>
+          }
+        </div>
+
         <div class="card-bottom-meta">
           <span class="assigned-badge">
             <app-icon name="book-open" [size]="14"></app-icon>
@@ -76,8 +143,14 @@
       </div>
     } @empty {
       <div class="glass-panel empty-roster">
-        <app-icon name="users" [size]="32" color="var(--text-secondary)"></app-icon>
-        <p>No squad members found. Click "+ Add Team Member" to build your squad roster.</p>
+        <app-icon name="users" [size]="36" color="var(--text-secondary)"></app-icon>
+        @if (state.currentTeam(); as cur) {
+          <h4>No members in {{ cur.name }} yet</h4>
+          <p>Click "+ Add Team Member" to create new members, or use the "Link Talent" dropdown above to assign existing people to this squad.</p>
+        } @else {
+          <h4>No squad members found</h4>
+          <p>Click "+ Add Team Member" to build your squad roster.</p>
+        }
       </div>
     }
   </div>
@@ -92,7 +165,7 @@
               <app-icon name="user-check" [size]="22" color="var(--accent-primary)"></app-icon>
               Add Squad Team Member
             </h3>
-            <p class="modal-subtitle">Register a new squad member to the team</p>
+            <p class="modal-subtitle">Register a new team member and assign them to a squad</p>
           </div>
           <button (click)="showAddModal.set(false)" class="close-btn">&times;</button>
         </div>
@@ -122,10 +195,21 @@
             <label class="input-label">Full Name & Title</label>
             <input
               [(ngModel)]="newMember.name"
-              placeholder="e.g. Alex Morgan (Developer) or Sarah Jenkins (QA)"
+              placeholder="e.g. Alex Morgan or Sarah Jenkins"
               class="interactive-input"
               autofocus
             />
+          </div>
+
+          <!-- Target Squad Assignment -->
+          <div class="form-group">
+            <label class="input-label">Squad Assignment</label>
+            <select [(ngModel)]="newMember.teamId" class="interactive-input">
+              <option value="">(Unassigned Pool)</option>
+              @for (t of state.teams(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
           </div>
         </div>
 

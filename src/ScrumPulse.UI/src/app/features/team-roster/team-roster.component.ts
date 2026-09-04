@@ -20,9 +20,15 @@ export class TeamRosterComponent {
   showAddModal = signal(false);
   memberToDelete = signal<TeamMember | null>(null);
 
-  developerCount = computed(() => this.state.members().filter(m => m.role === 'Developer').length);
-  qaCount = computed(() => this.state.members().filter(m => m.role === 'QaEngineer').length);
-  leadershipCount = computed(() => this.state.members().filter(m => m.role === 'ScrumMaster' || m.role === 'Cdl').length);
+  developerCount = computed(() => this.state.squadMembers().filter(m => m.role === 'Developer').length);
+  qaCount = computed(() => this.state.squadMembers().filter(m => m.role === 'QaEngineer').length);
+  leadershipCount = computed(() => this.state.squadMembers().filter(m => m.role === 'ScrumMaster' || m.role === 'Cdl').length);
+
+  unassignedOrOtherMembers = computed(() => {
+    const current = this.state.currentTeam();
+    if (!current) return [];
+    return this.state.members().filter(m => m.teamId !== current.id);
+  });
 
   newMember: {
     name: string;
@@ -32,6 +38,7 @@ export class TeamRosterComponent {
     timeZone: string;
     activeWipLimit: number;
     avatar: string;
+    teamId: string;
   } = {
     name: '',
     email: '',
@@ -39,7 +46,8 @@ export class TeamRosterComponent {
     location: 'Offshore',
     timeZone: 'Asia/Kolkata (IST)',
     activeWipLimit: 3,
-    avatar: ''
+    avatar: '',
+    teamId: ''
   };
 
   roles: { value: RoleType; label: string; icon: IconName; desc: string }[] = [
@@ -49,6 +57,20 @@ export class TeamRosterComponent {
     { value: 'Cdl', label: 'CDL Lead', icon: 'award', desc: 'Career development leader & mentoring' },
     { value: 'ClientStakeholder', label: 'Client / PO', icon: 'building', desc: 'Product ownership & business requirements' }
   ];
+
+  openAddModal(): void {
+    this.newMember = {
+      name: '',
+      email: '',
+      role: 'Developer',
+      location: 'Offshore',
+      timeZone: 'Asia/Kolkata (IST)',
+      activeWipLimit: 3,
+      avatar: '',
+      teamId: this.state.currentTeam()?.id || ''
+    };
+    this.showAddModal.set(true);
+  }
 
   getAssignedCount(memberId: string): number {
     return this.state.workItems().filter(item => item.assigneeId === memberId).length;
@@ -65,6 +87,25 @@ export class TeamRosterComponent {
     }
   }
 
+  getSquadName(teamId?: string | null): string {
+    if (!teamId) return 'Unassigned Pool';
+    const squad = this.state.teams().find(t => t.id === teamId);
+    return squad ? squad.name : 'Unassigned Pool';
+  }
+
+  onLinkMember(memberId: string): void {
+    if (!memberId) return;
+    const current = this.state.currentTeam();
+    if (!current) return;
+    this.state.assignMemberSquad(memberId, current.id).subscribe();
+  }
+
+  onAssignSquad(memberId: string, event: Event): void {
+    const selectEl = event.target as HTMLSelectElement;
+    const teamId = selectEl.value ? selectEl.value : null;
+    this.state.assignMemberSquad(memberId, teamId).subscribe();
+  }
+
   onSaveMember(): void {
     if (!this.newMember.name.trim()) return;
 
@@ -75,6 +116,8 @@ export class TeamRosterComponent {
       .join('')
       .toUpperCase();
 
+    const squadId = this.newMember.teamId || this.state.currentTeam()?.id || undefined;
+
     this.state.createTeamMember({
       name: this.newMember.name.trim(),
       email: this.newMember.email.trim() || `${this.newMember.name.toLowerCase().replace(/\s+/g, '.')}@scrumpulse.io`,
@@ -82,7 +125,8 @@ export class TeamRosterComponent {
       location: this.newMember.location,
       timeZone: this.newMember.timeZone,
       activeWipLimit: this.newMember.activeWipLimit || 3,
-      avatar: initials.slice(0, 2)
+      avatar: initials.slice(0, 2),
+      teamId: squadId
     });
 
     this.newMember = {
@@ -92,7 +136,8 @@ export class TeamRosterComponent {
       location: 'Offshore',
       timeZone: 'Asia/Kolkata (IST)',
       activeWipLimit: 3,
-      avatar: ''
+      avatar: '',
+      teamId: ''
     };
 
     this.showAddModal.set(false);

@@ -458,7 +458,7 @@ public class ControllerTests
         var allSprintsList = Assert.IsAssignableFrom<IEnumerable<Sprint>>(allSprintsOk.Value);
         Assert.Single(allSprintsList);
 
-        var membersResult = await membersController.GetAll(Ct);
+        var membersResult = await membersController.GetAll(ct: Ct);
         var membersOk = Assert.IsType<OkObjectResult>(membersResult.Result);
         var membersList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(membersOk.Value);
         Assert.Single(membersList);
@@ -520,5 +520,52 @@ public class ControllerTests
         var afterDeleteOk = Assert.IsType<OkObjectResult>(afterDelete.Result);
         var afterDeleteList = Assert.IsAssignableFrom<IEnumerable<TeamLeaveDto>>(afterDeleteOk.Value);
         Assert.Empty(afterDeleteList);
+    }
+
+    [Fact]
+    public async Task TeamMembersController_SquadFiltering_And_AssignSquad_WorkCorrectly()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var squadA = Guid.NewGuid();
+        var squadB = Guid.NewGuid();
+
+        var member1 = new TeamMember { Id = Guid.NewGuid(), Name = "Member A", Role = RoleType.Developer, TeamId = squadA, IsActive = true };
+        var member2 = new TeamMember { Id = Guid.NewGuid(), Name = "Member B", Role = RoleType.QaEngineer, TeamId = squadB, IsActive = true };
+        var member3 = new TeamMember { Id = Guid.NewGuid(), Name = "Member C", Role = RoleType.Developer, TeamId = null, IsActive = true };
+        db.TeamMembers.AddRange(member1, member2, member3);
+        await db.SaveChangesAsync();
+
+        var controller = new TeamMembersController(db);
+
+        // 1. Filter by squadA -> only member1
+        var squadAResult = await controller.GetAll(teamId: squadA, ct: Ct);
+        var squadAOk = Assert.IsType<OkObjectResult>(squadAResult.Result);
+        var squadAList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(squadAOk.Value).ToList();
+        Assert.Single(squadAList);
+        Assert.Equal("Member A", squadAList[0].Name);
+
+        // 2. Filter by squadB -> only member2
+        var squadBResult = await controller.GetAll(teamId: squadB, ct: Ct);
+        var squadBOk = Assert.IsType<OkObjectResult>(squadBResult.Result);
+        var squadBList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(squadBOk.Value).ToList();
+        Assert.Single(squadBList);
+        Assert.Equal("Member B", squadBList[0].Name);
+
+        // 3. all: true -> all 3 members
+        var allResult = await controller.GetAll(all: true, ct: Ct);
+        var allOk = Assert.IsType<OkObjectResult>(allResult.Result);
+        var allList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(allOk.Value).ToList();
+        Assert.Equal(3, allList.Count);
+
+        // 4. Assign member3 to squadA
+        var assignResult = await controller.AssignSquad(member3.Id, new AssignMemberSquadRequest(squadA), Ct);
+        var assignOk = Assert.IsType<OkObjectResult>(assignResult.Result);
+        var assignedMember = Assert.IsType<TeamMember>(assignOk.Value);
+        Assert.Equal(squadA, assignedMember.TeamId);
+
+        // Now squadA has 2 members
+        var squadAAfterResult = await controller.GetAll(teamId: squadA, ct: Ct);
+        var squadAAfterList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(((OkObjectResult)squadAAfterResult.Result!).Value).ToList();
+        Assert.Equal(2, squadAAfterList.Count);
     }
 }

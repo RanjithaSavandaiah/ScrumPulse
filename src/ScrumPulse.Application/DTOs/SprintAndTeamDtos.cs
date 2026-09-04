@@ -37,7 +37,8 @@ public record CreateTeamMemberRequest(
     [StringLength(50)] string Location = "Offshore",
     [StringLength(50)] string TimeZone = "Asia/Kolkata",
     [StringLength(5)] string? Avatar = null,
-    [Range(1, 10)] int ActiveWipLimit = 3
+    [Range(1, 10)] int ActiveWipLimit = 3,
+    Guid? TeamId = null
 );
 
 /// <summary>Request DTO for updating team members.</summary>
@@ -48,5 +49,9 @@ public record UpdateTeamMemberRequest(
     [StringLength(50)] string Location = "Offshore",
     [StringLength(50)] string TimeZone = "Asia/Kolkata",
     [StringLength(5)] string? Avatar = null,
-    [Range(1, 10)] int ActiveWipLimit = 3
+    [Range(1, 10)] int ActiveWipLimit = 3,
+    Guid? TeamId = null
 );
+
+/// <summary>Request DTO for assigning/reassigning a member to a squad.</summary>
+public record AssignMemberSquadRequest(Guid? TeamId);

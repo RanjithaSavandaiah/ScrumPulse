@@ -16,7 +16,17 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
     public async Task<SprintCapacityDto> CalculateSprintCapacityAsync(Guid sprintId, CancellationToken ct = default)
     {
         var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
-        var members = await db.TeamMembers.Where(teamMember => teamMember.IsActive && teamMember.Role != RoleType.ClientStakeholder).ToListAsync(ct);
+        var membersQuery = db.TeamMembers.Where(teamMember => teamMember.IsActive && teamMember.Role != RoleType.ClientStakeholder);
+        List<Domain.Entities.TeamMember> members;
+        if (sprint?.TeamId.HasValue == true)
+        {
+            var squadMembers = await membersQuery.Where(m => m.TeamId == sprint.TeamId.Value).ToListAsync(ct);
+            members = squadMembers.Count > 0 ? squadMembers : await membersQuery.ToListAsync(ct);
+        }
+        else
+        {
+            members = await membersQuery.ToListAsync(ct);
+        }
 
         int workingDays = sprint != null
             ? CalculateWorkingDays(sprint.StartDate, sprint.EndDate)

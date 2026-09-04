@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Store } from '@ngrx/store';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import {
   AppState,
   SprintActions,
@@ -75,6 +75,11 @@ export class ScrumStateService {
   readonly teams = signal<Team[]>([]);
   readonly currentTeam = signal<Team | null>(null);
   readonly members = this.store.selectSignal(selectAllMembers);
+  readonly squadMembers = computed(() => {
+    const team = this.currentTeam();
+    if (!team) return this.members();
+    return this.members().filter(m => m.teamId === team.id);
+  });
   readonly workItems = this.store.selectSignal(selectAllWorkItems);
   readonly blockers = this.store.selectSignal(selectAllBlockers);
   readonly standups = this.store.selectSignal(selectDailyStandups);
@@ -218,7 +223,16 @@ export class ScrumStateService {
 
   // Team Members
   createTeamMember(member: Partial<TeamMember>): void {
+    if (!member.teamId && this.currentTeam()?.id) {
+      member.teamId = this.currentTeam()!.id;
+    }
     this.store.dispatch(TeamMemberActions.createTeamMember({ member }));
+  }
+
+  assignMemberSquad(memberId: string, teamId: string | null): Observable<TeamMember> {
+    return this.http.put<TeamMember>(`${this.apiUrl}/teammembers/${memberId}/squad`, { teamId }).pipe(
+      tap(() => this.store.dispatch(TeamMemberActions.loadTeamMembers()))
+    );
   }
 
   deleteTeamMember(id: string): void {
