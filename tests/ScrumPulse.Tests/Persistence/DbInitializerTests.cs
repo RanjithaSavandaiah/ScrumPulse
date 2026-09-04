@@ -25,6 +25,32 @@ public class DbInitializerTests
     }
 
     [Fact]
+    public async Task SeedAsync_InDefaultPublicMode_CleansUpLegacyDemoMembers()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(databaseName: $"ScrumPulse_LegacyDb_{Guid.NewGuid()}")
+            .Options;
+
+        using var db = new AppDbContext(options);
+
+        // Pre-populate with legacy demo members
+        db.TeamMembers.AddRange(
+            new ScrumPulse.Domain.Entities.TeamMember { Name = "Kaushik", Email = "kaushik.dev@scrumpulse.io", Role = ScrumPulse.Domain.Enums.RoleType.Developer },
+            new ScrumPulse.Domain.Entities.TeamMember { Name = "Angan", Email = "angan.qa@scrumpulse.io", Role = ScrumPulse.Domain.Enums.RoleType.QaEngineer },
+            new ScrumPulse.Domain.Entities.TeamMember { Name = "Alice (Real User)", Email = "alice@company.com", Role = ScrumPulse.Domain.Enums.RoleType.Developer }
+        );
+        await db.SaveChangesAsync();
+
+        // Run default public mode seeding
+        await DbInitializer.SeedAsync(db, seedDemoData: false);
+
+        // Legacy demo members should be soft-deleted and filtered out, while real team members remain
+        var remainingMembers = await db.TeamMembers.ToListAsync();
+        Assert.Single(remainingMembers);
+        Assert.Equal("alice@company.com", remainingMembers[0].Email);
+    }
+
+    [Fact]
     public async Task SeedAsync_WithDemoDataFlag_PopulatesDemoSquadIdempotently()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

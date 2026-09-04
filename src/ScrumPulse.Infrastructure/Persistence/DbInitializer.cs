@@ -125,8 +125,39 @@ public static class DbInitializer
 
         // For public hosting, teams start with a clean squad roster so Scrum Masters
         // can create and configure their own team members.
-        // Demo squad members are only seeded when explicitly enabled (e.g. SeedDemoData=true).
-        if (seedDemoData && !await context.TeamMembers.AnyAsync())
+        // If demo data is disabled (default in production), soft-delete any previously seeded demo members
+        // so legacy demo members from earlier deployments do not appear on production.
+        if (!seedDemoData)
+        {
+            var demoEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ranjitha.sm@scrumpulse.io",
+                "kaushik.dev@scrumpulse.io",
+                "athul.dev@scrumpulse.io",
+                "venkat.dev@scrumpulse.io",
+                "suhaim.dev@scrumpulse.io",
+                "angan.qa@scrumpulse.io",
+                "rahul.cdl@scrumpulse.io",
+                "sm@scrumpulse.io",
+                "dev1@scrumpulse.io",
+                "dev2@scrumpulse.io",
+                "qa@scrumpulse.io"
+            };
+
+            var legacyDemoMembers = await context.TeamMembers
+                .Where(m => demoEmails.Contains(m.Email))
+                .ToListAsync();
+
+            if (legacyDemoMembers.Count > 0)
+            {
+                foreach (var member in legacyDemoMembers)
+                {
+                    member.IsDeleted = true;
+                    member.IsActive = false;
+                }
+            }
+        }
+        else if (!await context.TeamMembers.AnyAsync())
         {
             var sm = new TeamMember { Name = "Scrum Master", Email = "sm@scrumpulse.io", Role = RoleType.ScrumMaster, Location = "Offshore", Avatar = "SM", ActiveWipLimit = 5 };
             var dev1 = new TeamMember { Name = "Developer 1", Email = "dev1@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D1", ActiveWipLimit = 3 };
