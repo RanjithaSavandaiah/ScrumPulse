@@ -26,10 +26,13 @@ public class TeamLeave : BaseEntity
             if (LeaveSlot == LeaveSlotType.FirstHalf || LeaveSlot == LeaveSlotType.SecondHalf)
                 return 0.5;
 
+            if (StartDate > EndDate) return 1.0;
+            if (EndDate.Year - StartDate.Year > 2) return 1.0;
+
             int businessDays = 0;
             var cur = StartDate.Date;
             var end = EndDate.Date;
-            while (cur <= end)
+            while (cur <= end && businessDays < 365)
             {
                 if (cur.DayOfWeek != DayOfWeek.Saturday && cur.DayOfWeek != DayOfWeek.Sunday)
                 {

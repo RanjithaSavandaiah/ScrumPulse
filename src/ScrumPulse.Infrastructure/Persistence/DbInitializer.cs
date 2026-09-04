@@ -34,8 +34,8 @@ public static class DbInitializer
             {
                 var rawMigrations = new[]
                 {
-                    dialect.GetInitialTableDdl("TeamLeaves"),
-                    dialect.GetInitialTableDdl("Teams"),
+                    @"CREATE TABLE IF NOT EXISTS ""Teams"" (""Id"" uuid NOT NULL CONSTRAINT ""PK_Teams"" PRIMARY KEY, ""Name"" character varying(150) NOT NULL, ""Slug"" character varying(80) NOT NULL, ""Description"" text NOT NULL DEFAULT '', ""JoinCode"" character varying(20) NOT NULL, ""IsActive"" boolean NOT NULL DEFAULT true, ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW());",
+                    @"CREATE TABLE IF NOT EXISTS ""TeamLeaves"" (""Id"" uuid NOT NULL CONSTRAINT ""PK_TeamLeaves"" PRIMARY KEY, ""TeamMemberId"" uuid NOT NULL, ""StartDate"" timestamp with time zone NOT NULL, ""EndDate"" timestamp with time zone NOT NULL, ""Reason"" text NOT NULL DEFAULT '', ""LeaveType"" integer NOT NULL DEFAULT 0, ""CreatedAtUtc"" timestamp with time zone NOT NULL DEFAULT NOW());",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""LeaveSlot"" integer NOT NULL DEFAULT 0;",
                     @"ALTER TABLE ""TeamLeaves"" ADD COLUMN IF NOT EXISTS ""CreatedBy"" text NULL;",
@@ -50,9 +50,19 @@ public static class DbInitializer
                     @"ALTER TABLE ""Blockers"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
                     @"ALTER TABLE ""TeamMembers"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
                     @"ALTER TABLE ""Sprints"" ADD COLUMN IF NOT EXISTS ""TeamId"" uuid NULL;",
-                    @"UPDATE ""TeamLeaves"" SET ""CreatedBy"" = 'Scrum Master', ""UpdatedBy"" = 'Scrum Master' WHERE ""CreatedBy"" IS NULL OR ""CreatedBy"" = '';",
                     @"UPDATE ""TeamLeaves"" SET ""IsDeleted"" = false WHERE ""IsDeleted"" IS NULL;",
-                    @"UPDATE ""TeamLeaves"" SET ""LeaveSlot"" = 0 WHERE ""LeaveSlot"" IS NULL;"
+                    @"UPDATE ""TeamLeaves"" SET ""IsApproved"" = true WHERE ""IsApproved"" IS NULL;",
+                    @"UPDATE ""TeamLeaves"" SET ""LeaveSlot"" = 0 WHERE ""LeaveSlot"" IS NULL;",
+                    @"UPDATE ""TeamLeaves"" SET ""LeaveType"" = 0 WHERE ""LeaveType"" IS NULL;",
+                    @"UPDATE ""TeamLeaves"" SET ""Location"" = 'Offshore' WHERE ""Location"" IS NULL OR ""Location"" = '';",
+                    @"UPDATE ""TeamLeaves"" SET ""Reason"" = 'Planned Leave' WHERE ""Reason"" IS NULL OR ""Reason"" = '';",
+                    @"UPDATE ""TeamLeaves"" SET ""CreatedBy"" = 'Scrum Master' WHERE ""CreatedBy"" IS NULL OR ""CreatedBy"" = '';",
+                    @"UPDATE ""TeamLeaves"" SET ""UpdatedBy"" = 'Scrum Master' WHERE ""UpdatedBy"" IS NULL OR ""UpdatedBy"" = '';",
+                    @"CREATE INDEX IF NOT EXISTS ""IX_TeamLeaves_TeamMemberId"" ON ""TeamLeaves"" (""TeamMemberId"");",
+                    @"CREATE INDEX IF NOT EXISTS ""IX_TeamLeaves_IsApproved"" ON ""TeamLeaves"" (""IsApproved"");",
+                    @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Teams_Slug"" ON ""Teams"" (""Slug"");",
+                    @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Teams_JoinCode"" ON ""Teams"" (""JoinCode"");",
+                    @"CREATE INDEX IF NOT EXISTS ""IX_Teams_IsActive"" ON ""Teams"" (""IsActive"");"
                 };
 
                 foreach (var sql in rawMigrations)
@@ -66,7 +76,13 @@ public static class DbInitializer
                     }
                     catch
                     {
-                        // Table check or individual column alter handled gracefully
+                        try
+                        {
+                            using var rbCmd = connection.CreateCommand();
+                            rbCmd.CommandText = "ROLLBACK;";
+                            await rbCmd.ExecuteNonQueryAsync();
+                        }
+                        catch { }
                     }
                 }
             }
@@ -113,6 +129,16 @@ public static class DbInitializer
                         catch
                         {
                             // Table might have been created concurrently
+                            if (dialect is PostgresSchemaDialect)
+                            {
+                                try
+                                {
+                                    using var rb = connection.CreateCommand();
+                                    rb.CommandText = "ROLLBACK;";
+                                    await rb.ExecuteNonQueryAsync();
+                                }
+                                catch { }
+                            }
                         }
 
                         // Re-query existing columns now that the table was created
@@ -132,6 +158,16 @@ public static class DbInitializer
                         }
                         catch
                         {
+                            if (dialect is PostgresSchemaDialect)
+                            {
+                                try
+                                {
+                                    using var rb = connection.CreateCommand();
+                                    rb.CommandText = "ROLLBACK;";
+                                    await rb.ExecuteNonQueryAsync();
+                                }
+                                catch { }
+                            }
                         }
                     }
                 }
@@ -165,6 +201,16 @@ public static class DbInitializer
                         catch
                         {
                             // Ignore if column already exists or table cannot be altered
+                            if (dialect is PostgresSchemaDialect)
+                            {
+                                try
+                                {
+                                    using var rb = connection.CreateCommand();
+                                    rb.CommandText = "ROLLBACK;";
+                                    await rb.ExecuteNonQueryAsync();
+                                }
+                                catch { }
+                            }
                         }
                     }
                 }
@@ -182,6 +228,16 @@ public static class DbInitializer
                     catch
                     {
                         // Ignore backfill error if table is empty or cannot be updated
+                        if (dialect is PostgresSchemaDialect)
+                        {
+                            try
+                            {
+                                using var rb = connection.CreateCommand();
+                                rb.CommandText = "ROLLBACK;";
+                                await rb.ExecuteNonQueryAsync();
+                            }
+                            catch { }
+                        }
                     }
                 }
             }

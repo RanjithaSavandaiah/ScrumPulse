@@ -47,7 +47,7 @@ export class CapacityComponent {
   filteredLeaves = computed(() => {
     let list = this.state.leaves();
     const current = this.state.currentTeam();
-    if (current) {
+    if (current && this.state.squadMembers().length > 0) {
       const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
       const squadMemberNames = new Set(this.state.squadMembers().map(m => m.name.toLowerCase().trim()));
       list = list.filter(l =>
