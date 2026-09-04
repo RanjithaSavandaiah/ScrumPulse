@@ -23,7 +23,7 @@ public class PromptBuilder(AgentConfiguration config)
         [RAG_CONTEXT - Individual Analysis: {ctx.MemberName}]
         Velocity: {ctx.CompletedItems}/{ctx.TotalAssigned} items completed ({ctx.TotalStoryPoints} story points)
         Dev Cycle Time: {ctx.AvgDevCycleHours:F1}h avg | PR Review Latency: {ctx.AvgReviewLatencyHours:F1}h avg
-        Capacity: {ctx.TotalLeaveDays:F1} leave days recorded | Net hours: {Math.Max(0, 80 - (int)(ctx.TotalLeaveDays * 8))}h
+        Capacity: {ctx.TotalLeaveDays:F1} leave days recorded | Net hours: {Math.Max(0, 85.0 - (ctx.TotalLeaveDays * 8.5)):F1}h
         Engagement: {ctx.StandupCount} standups | {ctx.TechTalksGiven} tech talks | {ctx.KudosReceived} kudos received
         Wellbeing: Happiness {ctx.HappinessIndex}/10 | SM Rating {ctx.SmRating}/10
         Last 1:1 Actions: {ctx.LastActionItems ?? "No prior action items recorded"}

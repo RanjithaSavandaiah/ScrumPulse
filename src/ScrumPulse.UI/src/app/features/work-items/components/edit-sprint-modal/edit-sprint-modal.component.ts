@@ -158,9 +158,9 @@ export class EditSprintModalComponent implements OnInit {
       }
     }
 
-    const grossHours = Math.round(workingDays * memberCount * hoursPerDay);
-    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay);
-    const netAvailableHours = Math.max(0, grossHours - leaveHoursDeducted);
+    const grossHours = Math.round(workingDays * memberCount * hoursPerDay * 10) / 10;
+    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
+    const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted) * 100) / 100);
     const productiveFocusHours = Math.round(netAvailableHours * 0.70); // 70% focus factor
     const suggestedPoints = Math.max(1, Math.round(productiveFocusHours / this.hoursPerPointRatio));
 

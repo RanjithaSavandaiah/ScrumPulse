@@ -227,7 +227,7 @@ public class MicrosoftAgentService : IAiAgentService
         {
             $"🌟 [STRENGTH - Velocity & Delivery]: Delivered {ctx.CompletedItems}/{ctx.TotalAssigned} work items ({ctx.TotalStoryPoints} Story Points) with avg dev execution time of {Math.Round(ctx.AvgDevCycleHours, 1)}h.",
             $"🌟 [STRENGTH - Knowledge Sharing & Culture]: Delivered {ctx.TechTalksGiven} Weekly Tech Talk(s) and received {ctx.KudosReceived} team Kudos recognition(s).",
-            $"📊 [CAPACITY & LEAVES]: {ctx.TotalLeaveDays} approved leave days recorded; net capacity planned at {Math.Max(0, 80 - (int)(ctx.TotalLeaveDays * 8))}h.",
+            $"📊 [CAPACITY & LEAVES]: {ctx.TotalLeaveDays:0.#} approved leave days recorded; net capacity planned at {Math.Max(0, Math.Round(85.0 - (ctx.TotalLeaveDays * 8.5), 1))}h.",
             $"💬 [DAILY STANDUP & 1:1 ALIGNMENT]: {ctx.StandupCount} recent standup updates logged; SM Performance Rating is {ctx.SmRating}/10 and Happiness Index is {ctx.HappinessIndex}/10.",
             ctx.AvgReviewLatencyHours > 6.0
                 ? $"⚠️ [GROWTH AREA / WEAKNESS - PR Latency]: PR Code Review turnaround latency averages {Math.Round(ctx.AvgReviewLatencyHours, 1)}h (Exceeds SLA target of < 6h)."
@@ -271,7 +271,7 @@ public class MicrosoftAgentService : IAiAgentService
         {
             $"🌟 [SQUAD STRENGTH - Velocity & Say-Do]: Sprint Say-Do delivery tracking at {sayDoPercent}% ({ctx.DeliveredPoints}/{ctx.CommittedPoints} Story Points completed).",
             $"🌟 [SQUAD STRENGTH - Continuous Learning]: {ctx.TotalTechTalks} Weekly Tech Talks conducted across the offshore team.",
-            $"👥 [SQUAD CAPACITY]: Auto-deducted {Math.Round(ctx.TotalLeaveDays * 8, 0)}h from {ctx.TotalLeaveDays} team leave days during this sprint window.",
+            $"👥 [SQUAD CAPACITY]: Auto-deducted {Math.Round(ctx.TotalLeaveDays * 8.5, 1)}h from {ctx.TotalLeaveDays:0.#} team leave days during this sprint window.",
             $"💬 [TEAM HEALTH & 1:1 PULSE]: Average Squad Happiness is {Math.Round(ctx.AvgTeamHappiness, 1)}/10; Average SM Performance Rating is {Math.Round(ctx.AvgSmRating, 1)}/10.",
             ctx.ActiveBlockers > 0
                 ? $"⚠️ [RISK / BOTTLENECK - Active Blockers]: {ctx.ActiveBlockers} active blocker(s) awaiting resolution from client/onshore (SLA monitoring active)."

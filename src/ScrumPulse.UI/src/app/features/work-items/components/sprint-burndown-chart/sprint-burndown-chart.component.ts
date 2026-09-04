@@ -86,9 +86,9 @@ export class SprintBurndownChartComponent {
     }
 
     // Configurable productive hours per day (default 8.5h)
-    const grossHours = Math.round(workingDays * memberCount * hoursPerDay);
-    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay);
-    const netAvailableHours = Math.max(0, grossHours - leaveHoursDeducted);
+    const grossHours = Math.round(workingDays * memberCount * hoursPerDay * 10) / 10;
+    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
+    const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted) * 100) / 100);
 
     // Sprint Items Story Points
     const sprintItems = this.workItems.filter(w => w.sprintId === this.sprint.id || (!w.sprintId && this.sprint.isActive));

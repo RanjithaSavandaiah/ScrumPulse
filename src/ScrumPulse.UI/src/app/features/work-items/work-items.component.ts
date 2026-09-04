@@ -80,9 +80,9 @@ export class WorkItemsComponent {
     const end = sp ? new Date(sp.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000)) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
     const workingDays = calculateWorkingDays(start, end);
     const hoursPerDay = sp?.dailyWorkingHours && sp.dailyWorkingHours > 0 ? sp.dailyWorkingHours : 8.5;
-    const grossHours = Math.round(workingDays * mCount * hoursPerDay);
-    const leaveHours = Math.round(totalLeaveDays * hoursPerDay);
-    const netHours = Math.max(0, grossHours - leaveHours);
+    const grossHours = Math.round(workingDays * mCount * hoursPerDay * 10) / 10;
+    const leaveHours = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
+    const netHours = Math.max(0, Math.round((grossHours - leaveHours) * 100) / 100);
 
     const sprintItems = sp ? this.state.workItems().filter(w => w.sprintId === sp.id) : this.state.workItems();
     const committed = sp?.committedStoryPoints || sprintItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0) || 30;

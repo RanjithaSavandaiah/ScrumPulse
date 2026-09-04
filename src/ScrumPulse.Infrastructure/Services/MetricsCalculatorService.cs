@@ -18,7 +18,12 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
             : 10;
         double baseDailyHours = sprint?.DailyWorkingHours > 0 ? sprint.DailyWorkingHours : 8.5;
 
-        var leaves = await db.TeamLeaves.Where(leave => leave.IsApproved).ToListAsync(ct);
+        var leavesQuery = db.TeamLeaves.Where(leave => leave.IsApproved);
+        if (sprint != null)
+        {
+            leavesQuery = leavesQuery.Where(leave => leave.StartDate <= sprint.EndDate && leave.EndDate >= sprint.StartDate);
+        }
+        var leaves = await leavesQuery.ToListAsync(ct);
 
         var memberBreakdown = new List<MemberCapacityDto>();
         double totalLeaveDaysAll = 0;
