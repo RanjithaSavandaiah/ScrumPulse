@@ -228,5 +228,93 @@ public class DbInitializerTests
         Assert.Equal("text NULL", dialect.MapToSqlType(typeof(string), true));
         Assert.Equal("ALTER TABLE \"WorkItems\" ADD COLUMN IF NOT EXISTS \"Points\" integer NOT NULL DEFAULT 0;",
             dialect.BuildAddColumnSql("WorkItems", "Points", "integer NOT NULL DEFAULT 0"));
+
+        Assert.NotNull(dialect.GetInitialTableDdl("Teams"));
+        Assert.NotNull(dialect.GetInitialTableDdl("TeamLeaves"));
+        Assert.NotNull(dialect.GetInitialTableDdl("PullRequestReviewLogs"));
+    }
+
+    [Fact]
+    public async Task EnsureSchemaUpToDateAsync_CreatesTeamsTableAndAllowsQuery()
+    {
+        var connection = new Microsoft.Data.Sqlite.SqliteConnection("DataSource=:memory:");
+        await connection.OpenAsync();
+
+        try
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(connection)
+                .Options;
+
+            using var db = new AppDbContext(options);
+
+            // Execute schema migration on blank DB (should create Teams table)
+            await DbInitializer.EnsureSchemaUpToDateAsync(db);
+
+            var team = new ScrumPulse.Domain.Entities.Team
+            {
+                Name = "Sweden FikaCoders",
+                Slug = "sweden-fikacoders",
+                JoinCode = "SWED99",
+                Description = "Working on Sweden specific HR application"
+            };
+            db.Teams.Add(team);
+            await db.SaveChangesAsync();
+
+            var loaded = await db.Teams.FirstOrDefaultAsync(t => t.Slug == "sweden-fikacoders");
+            Assert.NotNull(loaded);
+            Assert.Equal("Sweden FikaCoders", loaded.Name);
+            Assert.Equal("SWED99", loaded.JoinCode);
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public async Task EnsureSchemaUpToDateAsync_CreatesTeamLeavesTableAndBackfillsAuditFields()
+    {
+        var connection = new Microsoft.Data.Sqlite.SqliteConnection("DataSource=:memory:");
+        await connection.OpenAsync();
+
+        try
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(connection)
+                .Options;
+
+            using var db = new AppDbContext(options);
+
+            // Execute schema migration
+            await DbInitializer.EnsureSchemaUpToDateAsync(db);
+
+            var member = new ScrumPulse.Domain.Entities.TeamMember
+            {
+                Name = "Test Member",
+                Email = "test@company.com"
+            };
+            db.TeamMembers.Add(member);
+            await db.SaveChangesAsync();
+
+            var leave = new ScrumPulse.Domain.Entities.TeamLeave
+            {
+                TeamMemberId = member.Id,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddDays(2),
+                Reason = "Vacation"
+            };
+            db.TeamLeaves.Add(leave);
+            await db.SaveChangesAsync();
+
+            var loaded = await db.TeamLeaves.Include(l => l.TeamMember).FirstOrDefaultAsync();
+            Assert.NotNull(loaded);
+            Assert.Equal("Vacation", loaded.Reason);
+            Assert.NotNull(loaded.CreatedBy);
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
     }
 }

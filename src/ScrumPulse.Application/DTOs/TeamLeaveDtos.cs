@@ -13,7 +13,9 @@ public record TeamLeaveDto(
     string Location,
     bool IsApproved,
     double TotalDays,
-    string LeaveSlot = "FullDay"
+    string LeaveSlot = "FullDay",
+    string? CreatedBy = null,
+    string? UpdatedBy = null
 );
 
 public record SubmitLeaveRequest(

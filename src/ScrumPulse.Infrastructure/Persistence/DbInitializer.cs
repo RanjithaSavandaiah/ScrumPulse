@@ -29,27 +29,19 @@ public static class DbInitializer
 
         try
         {
-            using var command = connection.CreateCommand();
-
-            // 1. Ensure required initial tables exist using provider dialect
-            var createTableDdl = dialect.GetInitialTableDdl("PullRequestReviewLogs");
-            if (!string.IsNullOrEmpty(createTableDdl))
-            {
-                command.CommandText = createTableDdl;
-                await command.ExecuteNonQueryAsync();
-            }
-
-            // 2. Dynamically verify and migrate all tables and columns from EF Core model metadata
+            // Dynamically verify and migrate all tables and columns from EF Core model metadata
             foreach (var entityType in context.Model.GetEntityTypes())
             {
                 var tableName = entityType.GetTableName();
                 if (string.IsNullOrEmpty(tableName)) continue;
 
                 var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                command.CommandText = dialect.GetExistingColumnsSql(tableName);
 
-                using (var reader = await command.ExecuteReaderAsync())
+                try
                 {
+                    using var checkCmd = connection.CreateCommand();
+                    checkCmd.CommandText = dialect.GetExistingColumnsSql(tableName);
+                    using var reader = await checkCmd.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
                         var colName = dialect.ReadColumnName(reader);
@@ -59,15 +51,51 @@ public static class DbInitializer
                         }
                     }
                 }
-
-                if (existingColumns.Count == 0)
+                catch
                 {
-                    continue;
+                    // Table check query failed; likely does not exist
                 }
 
-                // Check each property defined on the entity
-                var storeObject = StoreObjectIdentifier.Create(
-                    entityType, StoreObjectType.Table);
+                // If table does not exist, create it using dialect initial DDL
+                if (existingColumns.Count == 0)
+                {
+                    var initialDdl = dialect.GetInitialTableDdl(tableName);
+                    if (!string.IsNullOrEmpty(initialDdl))
+                    {
+                        try
+                        {
+                            using var createCmd = connection.CreateCommand();
+                            createCmd.CommandText = initialDdl;
+                            await createCmd.ExecuteNonQueryAsync();
+                        }
+                        catch
+                        {
+                            // Table might have been created concurrently
+                        }
+
+                        // Re-query existing columns now that the table was created
+                        try
+                        {
+                            using var verifyCmd = connection.CreateCommand();
+                            verifyCmd.CommandText = dialect.GetExistingColumnsSql(tableName);
+                            using var reader = await verifyCmd.ExecuteReaderAsync();
+                            while (await reader.ReadAsync())
+                            {
+                                var colName = dialect.ReadColumnName(reader);
+                                if (!string.IsNullOrEmpty(colName))
+                                {
+                                    existingColumns.Add(colName);
+                                }
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+
+                // Check each scalar property defined on the entity
+                var storeObject = StoreObjectIdentifier.Create(entityType, StoreObjectType.Table);
 
                 foreach (var property in entityType.GetProperties())
                 {
@@ -87,13 +115,31 @@ public static class DbInitializer
                     {
                         try
                         {
-                            command.CommandText = dialect.BuildAddColumnSql(tableName, columnName, sqlType);
-                            await command.ExecuteNonQueryAsync();
+                            using var alterCmd = connection.CreateCommand();
+                            alterCmd.CommandText = dialect.BuildAddColumnSql(tableName, columnName, sqlType);
+                            await alterCmd.ExecuteNonQueryAsync();
+                            existingColumns.Add(columnName);
                         }
                         catch
                         {
                             // Ignore if column already exists or table cannot be altered
                         }
+                    }
+                }
+
+                // Backfill CreatedBy and UpdatedBy where NULL to repair existing legacy records
+                if (existingColumns.Contains("CreatedBy") && existingColumns.Contains("UpdatedBy"))
+                {
+                    try
+                    {
+                        using var backfillCmd = connection.CreateCommand();
+                        var fallbackUser = tableName == "TeamLeaves" ? "Scrum Master" : "System";
+                        backfillCmd.CommandText = $"UPDATE \"{tableName}\" SET \"CreatedBy\" = '{fallbackUser}', \"UpdatedBy\" = '{fallbackUser}' WHERE \"CreatedBy\" IS NULL OR \"CreatedBy\" = '';";
+                        await backfillCmd.ExecuteNonQueryAsync();
+                    }
+                    catch
+                    {
+                        // Ignore backfill error if table is empty or cannot be updated
                     }
                 }
             }
@@ -111,6 +157,21 @@ public static class DbInitializer
     public static async Task SeedAsync(AppDbContext context, bool seedDemoData = false)
     {
         await EnsureSchemaUpToDateAsync(context);
+
+        // Ensure default tenant team exists so existing data and users have an active squad context
+        if (!await context.Teams.AnyAsync())
+        {
+            var defaultTeam = new Team
+            {
+                Name = "Core Engineering Squad",
+                Slug = "core-engineering",
+                Description = "Primary cross-functional product development squad",
+                JoinCode = "PULSE1",
+                IsActive = true
+            };
+            context.Teams.Add(defaultTeam);
+            await context.SaveChangesAsync();
+        }
 
         // Clean existing team members' names to prevent duplicate role suffix in brackets
         var existingMembers = await context.TeamMembers.ToListAsync();

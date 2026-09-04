@@ -38,6 +38,27 @@ public class TenantMiddleware(RequestDelegate next)
             tenantContext.CurrentTeamId = cookieGuid;
         }
 
+        // Resolve Operator / User Identity for Audit Stamping (CreatedBy / UpdatedBy)
+        if (context.Request.Headers.TryGetValue("X-User-Name", out var userHeader) &&
+            !string.IsNullOrWhiteSpace(userHeader.FirstOrDefault()))
+        {
+            tenantContext.CurrentUser = userHeader.FirstOrDefault()!.Trim();
+        }
+        else if (context.Request.Headers.TryGetValue("X-User-Role", out var roleHeader) &&
+                 !string.IsNullOrWhiteSpace(roleHeader.FirstOrDefault()))
+        {
+            tenantContext.CurrentUser = roleHeader.FirstOrDefault()!.Trim();
+        }
+        else if (context.Request.Cookies.TryGetValue("ScrumPulse_User", out var cookieUser) &&
+                 !string.IsNullOrWhiteSpace(cookieUser))
+        {
+            tenantContext.CurrentUser = cookieUser.Trim();
+        }
+        else
+        {
+            tenantContext.CurrentUser = "Scrum Master";
+        }
+
         await next(context);
     }
 }

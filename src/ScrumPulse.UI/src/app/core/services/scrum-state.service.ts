@@ -383,6 +383,9 @@ export class ScrumStateService {
 
   // UI Preferences
   setCurrentRole(role: RoleType): void {
+    try {
+      localStorage.setItem('scrumpulse_current_role', role);
+    } catch {}
     this.store.dispatch(TeamMemberActions.setCurrentRole({ role }));
   }
 

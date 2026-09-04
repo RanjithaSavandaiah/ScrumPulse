@@ -130,7 +130,14 @@
                   </span>
                 </div>
               </td>
-              <td class="cell-reason">{{ leave.reason || 'Planned Timeoff' }}</td>
+              <td class="cell-reason">
+                <div>{{ leave.reason || 'Planned Timeoff' }}</div>
+                @if (leave.createdBy) {
+                  <small style="font-size: 0.72rem; opacity: 0.75; display: block; margin-top: 2px;">
+                    Logged by: {{ leave.createdBy }}
+                  </small>
+                }
+              </td>
 
               @if (state.canEditOrDelete()) {
                 <td class="td-actions">

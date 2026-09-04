@@ -69,7 +69,8 @@ public static class MappingExtensions
         leave.TeamMember?.Name ?? "Member",
         leave.StartDate, leave.EndDate, leave.Reason,
         leave.LeaveType.ToString(), leave.Location, leave.IsApproved,
-        leave.TotalDays, leave.LeaveSlot.ToString()
+        leave.TotalDays, leave.LeaveSlot.ToString(),
+        leave.CreatedBy, leave.UpdatedBy
     );
 
     public static IEnumerable<TeamLeaveDto> ToDtos(this IEnumerable<TeamLeave> leaves) =>

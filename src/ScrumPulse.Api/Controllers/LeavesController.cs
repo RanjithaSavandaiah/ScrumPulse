@@ -18,7 +18,7 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
         [FromQuery] Guid? memberId,
         [FromQuery] int? year,
         [FromQuery] int? month,
-        CancellationToken ct)
+        CancellationToken ct = default)
     {
         var query = db.TeamLeaves
             .Include(leave => leave.TeamMember)
@@ -42,7 +42,7 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
 
     [HttpPost]
     [ProducesResponseType(typeof(TeamLeaveDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<TeamLeaveDto>> Submit([FromBody] SubmitLeaveRequest request, CancellationToken ct)
+    public async Task<ActionResult<TeamLeaveDto>> Submit([FromBody] SubmitLeaveRequest request, CancellationToken ct = default)
     {
         var startDate = request.StartDate;
         var endDate = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
@@ -70,7 +70,7 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TeamLeaveDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TeamLeaveDto>> Update(Guid id, [FromBody] SubmitLeaveRequest request, CancellationToken ct)
+    public async Task<ActionResult<TeamLeaveDto>> Update(Guid id, [FromBody] SubmitLeaveRequest request, CancellationToken ct = default)
     {
         var leave = await db.TeamLeaves.FindAsync([id], ct);
         if (leave == null) return NotFound();
@@ -97,7 +97,7 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {
         var leave = await db.TeamLeaves.FindAsync([id], ct);
         if (leave == null) return NotFound();
@@ -109,6 +109,6 @@ public class LeavesController(IAppDbContext db, IMetricsCalculatorService metric
     [HttpGet("capacity/{sprintId:guid}")]
     [HttpGet("sprint/{sprintId:guid}/capacity")]
     [ProducesResponseType(typeof(SprintCapacityDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<SprintCapacityDto>> GetCapacity(Guid sprintId, CancellationToken ct) =>
+    public async Task<ActionResult<SprintCapacityDto>> GetCapacity(Guid sprintId, CancellationToken ct = default) =>
         Ok(await metricsCalculatorService.CalculateSprintCapacityAsync(sprintId, ct));
 }

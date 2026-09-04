@@ -120,6 +120,8 @@ export interface TeamLeave {
   isApproved: boolean;
   totalDays: number;
   leaveSlot?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface SprintCapacity {

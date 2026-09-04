@@ -82,6 +82,9 @@ public class AppDbContext : DbContext, IAppDbContext
     private void StampAuditFields()
     {
         var now = DateTime.UtcNow;
+        var currentUser = !string.IsNullOrWhiteSpace(_tenantContext?.CurrentUser)
+            ? _tenantContext.CurrentUser
+            : "Scrum Master";
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
@@ -95,6 +98,14 @@ public class AppDbContext : DbContext, IAppDbContext
                         entry.Entity.CreatedAtUtc = now;
                     }
                     entry.Entity.IsDeleted = false;
+                    if (string.IsNullOrWhiteSpace(entry.Entity.CreatedBy))
+                    {
+                        entry.Entity.CreatedBy = currentUser;
+                    }
+                    if (string.IsNullOrWhiteSpace(entry.Entity.UpdatedBy))
+                    {
+                        entry.Entity.UpdatedBy = currentUser;
+                    }
                     if (entry.Entity.TeamId == null && _tenantContext?.CurrentTeamId != null)
                     {
                         entry.Entity.TeamId = _tenantContext.CurrentTeamId;
@@ -103,8 +114,10 @@ public class AppDbContext : DbContext, IAppDbContext
 
                 case EntityState.Modified:
                     entry.Entity.UpdatedAtUtc = now;
-                    // Prevent changing CreatedAtUtc on update
+                    entry.Entity.UpdatedBy = currentUser;
+                    // Prevent changing CreatedAtUtc and CreatedBy on update
                     entry.Property(nameof(BaseEntity.CreatedAtUtc)).IsModified = false;
+                    entry.Property(nameof(BaseEntity.CreatedBy)).IsModified = false;
                     break;
             }
         }
