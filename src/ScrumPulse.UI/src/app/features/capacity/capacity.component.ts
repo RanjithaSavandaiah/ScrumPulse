@@ -24,6 +24,11 @@ export class CapacityComponent {
   selectedEditLeave = signal<TeamLeave | null>(null);
   leaveToDelete = signal<TeamLeave | null>(null);
 
+  Math = Math;
+  get sprintDailyHours(): number {
+    return this.state.activeSprint()?.dailyWorkingHours || 8.5;
+  }
+
   // Filters per Month & per Individual
   selectedMonth = signal<string>('ALL');
   selectedMemberId = signal<string>('ALL');

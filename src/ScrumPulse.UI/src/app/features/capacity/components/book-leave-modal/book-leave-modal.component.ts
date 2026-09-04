@@ -64,6 +64,11 @@ export class BookLeaveModalComponent implements OnInit {
     return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   }
 
+  Math = Math;
+  get sprintDailyHours(): number {
+    return this.state.activeSprint()?.dailyWorkingHours || 8.5;
+  }
+
   get canSubmit(): boolean {
     return !!this.leave.teamMemberId &&
            !!this.leave.startDate &&

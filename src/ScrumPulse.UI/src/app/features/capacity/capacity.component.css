@@ -304,6 +304,23 @@
   font-style: italic;
 }
 
+.days-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hours-deducted-badge {
+  font-size: 0.72rem;
+  color: var(--accent-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 @media (max-width: 1024px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);

@@ -148,8 +148,8 @@
           Sprint Leaves:
         </span>
         @for (item of capacityAnalysis().leaveBreakdown; track $index) {
-          <span class="leave-chip-tag" title="{{ item.leaveType }} ({{ item.slot }})">
-            {{ item.memberName }} <strong>-{{ item.leaveDays }}d</strong>
+          <span class="leave-chip-tag" title="{{ item.leaveType }} ({{ item.slot }}) &bull; -{{ item.leaveHours }}h capacity">
+            {{ item.memberName }} <strong>-{{ item.leaveDays }}d (-{{ item.leaveHours }}h)</strong>
           </span>
         }
       </div>

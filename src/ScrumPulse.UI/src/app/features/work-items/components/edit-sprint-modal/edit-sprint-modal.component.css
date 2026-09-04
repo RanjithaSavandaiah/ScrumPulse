@@ -489,3 +489,11 @@ input:checked + .slider:before {
   color: var(--text-muted);
   pointer-events: none;
 }
+
+.hours-helper-text {
+  font-size: 0.72rem;
+  color: var(--accent-secondary, #38bdf8);
+  margin-top: 0.35rem;
+  display: block;
+  line-height: 1.35;
+}

@@ -122,7 +122,14 @@
                   }
                 </span>
               </td>
-              <td><strong>{{ leave.totalDays }}d</strong></td>
+              <td>
+                <div class="days-cell">
+                  <strong>{{ leave.totalDays }}d</strong>
+                  <span class="hours-deducted-badge" title="Deducts {{ Math.round(leave.totalDays * sprintDailyHours * 100) / 100 }}h from sprint capacity (@ {{ sprintDailyHours }}h/day)">
+                    -{{ Math.round(leave.totalDays * sprintDailyHours * 100) / 100 }}h
+                  </span>
+                </div>
+              </td>
               <td class="cell-reason">{{ leave.reason || 'Planned Timeoff' }}</td>
 
               @if (state.canEditOrDelete()) {

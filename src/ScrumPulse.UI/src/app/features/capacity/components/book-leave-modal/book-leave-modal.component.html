@@ -129,6 +129,11 @@
             1 Week (5d)
           </button>
         </div>
+
+        <div class="capacity-impact-preview">
+          <app-icon name="calendar" [size]="14" color="var(--accent-secondary)"></app-icon>
+          <span>Capacity Impact: <strong>{{ selectedDurationDays }} day(s)</strong> = <strong>-{{ Math.round(selectedDurationDays * sprintDailyHours * 100) / 100 }}h</strong> deducted from sprint capacity (@ {{ sprintDailyHours }}h/day)</span>
+        </div>
       </div>
 
       <!-- Reason Presets & Description -->

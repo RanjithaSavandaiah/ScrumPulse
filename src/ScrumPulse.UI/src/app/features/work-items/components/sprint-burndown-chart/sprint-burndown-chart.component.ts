@@ -66,7 +66,7 @@ export class SprintBurndownChartComponent {
       return lStart <= end && lEnd >= start;
     });
 
-    const leaveBreakdown: { memberName: string; leaveDays: number; leaveType: string; slot: string }[] = [];
+    const leaveBreakdown: { memberName: string; leaveDays: number; leaveHours: number; leaveType: string; slot: string }[] = [];
     let totalLeaveDays = 0;
 
     for (const member of deliveryMembers) {
@@ -75,9 +75,11 @@ export class SprintBurndownChartComponent {
       for (const ml of memberLeaves) {
         const d = ml.totalDays || (ml.leaveSlot && ml.leaveSlot !== 'FullDay' ? 0.5 : 1.0);
         mDays += d;
+        const leaveHours = Math.round(d * hoursPerDay * 100) / 100;
         leaveBreakdown.push({
           memberName: cleanName(ml.teamMemberName || member.name),
           leaveDays: d,
+          leaveHours,
           leaveType: ml.leaveType || 'Planned Leave',
           slot: ml.leaveSlot === 'FirstHalf' ? '1st Half' : (ml.leaveSlot === 'SecondHalf' ? '2nd Half' : 'Full Day')
         });

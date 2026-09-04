@@ -103,7 +103,7 @@
 
         <div class="form-group">
           <div class="label-with-presets">
-            <label class="form-label">Work Hours / Dev / Day</label>
+            <label class="form-label">Working & Leave Hours / Day</label>
             <div class="hours-presets-pill-group">
               <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 8.0" (click)="setDailyHours(8.0)">8.0h</button>
               <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 8.5" (click)="setDailyHours(8.5)">8.5h</button>
@@ -123,6 +123,9 @@
             />
             <span class="hours-suffix">hrs / day</span>
           </div>
+          <span class="hours-helper-text">
+            Standard working day: {{ dailyWorkingHours }}h/dev. Approved leaves deduct -{{ dailyWorkingHours }}h/day.
+          </span>
         </div>
       </div>
 
