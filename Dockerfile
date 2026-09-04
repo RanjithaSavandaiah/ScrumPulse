@@ -9,9 +9,9 @@ ENV NPM_CONFIG_AUDIT=false
 ENV NPM_CONFIG_FUND=false
 
 COPY src/ScrumPulse.UI/package*.json ./
-RUN npm install --legacy-peer-deps --no-audit --no-fund --loglevel=error
+RUN npm install --legacy-peer-deps --no-audit --no-fund --silent 2>&1
 COPY src/ScrumPulse.UI/ ./
-RUN npm run build
+RUN npm run build 2>&1
 
 # ----------------------------------------------------
 # Stage 2: Build Backend (.NET 10 Web API)

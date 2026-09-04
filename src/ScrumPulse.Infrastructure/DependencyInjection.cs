@@ -89,6 +89,8 @@ public static class DependencyInjection
     {
         if (string.IsNullOrWhiteSpace(connStr)) return connStr;
 
+        string normalized;
+
         if (connStr.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
             connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
         {
@@ -102,13 +104,23 @@ public static class DependencyInjection
                 var port = uri.Port > 0 ? uri.Port : 5432;
                 var database = uri.AbsolutePath.TrimStart('/');
 
-                return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+                normalized = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
             }
             catch
             {
-                return connStr;
+                normalized = connStr;
             }
         }
-        return connStr;
+        else
+        {
+            normalized = connStr;
+        }
+
+        if (!normalized.Contains("GSS Encryption Mode", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized.TrimEnd(';') + ";GSS Encryption Mode=Disable;";
+        }
+
+        return normalized;
     }
 }
