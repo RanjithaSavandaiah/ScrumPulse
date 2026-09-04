@@ -119,6 +119,13 @@ builder.Services.AddCors(corsOptions =>
     }
 });
 
+// ── Output Caching (Sub-second response for read-heavy executive & metrics endpoints) ──
+builder.Services.AddOutputCache(options =>
+{
+    options.AddBasePolicy(builder => builder.Expire(TimeSpan.FromSeconds(15)));
+    options.AddPolicy("ExecutiveReports", builder => builder.Expire(TimeSpan.FromSeconds(30)));
+});
+
 var app = builder.Build();
 
 // ── Middleware Pipeline (order matters!) ──────────────────────────────────
@@ -129,13 +136,19 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 // 2. Request logging with correlation IDs
 app.UseMiddleware<RequestLoggingMiddleware>();
 
-// 3. Global exception handler (ProblemDetails RFC 7807)
+// 3. Multi-team Tenant Resolution
+app.UseMiddleware<TenantMiddleware>();
+
+// 4. Global exception handler (ProblemDetails RFC 7807)
 app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
-// 4. Response compression
+// 5. Response compression
 app.UseResponseCompression();
 
-// 5. Rate limiting
+// 6. Response caching
+app.UseOutputCache();
+
+// 7. Rate limiting
 app.UseRateLimiter();
 
 // ── Database Initialization ──────────────────────────────────────────────

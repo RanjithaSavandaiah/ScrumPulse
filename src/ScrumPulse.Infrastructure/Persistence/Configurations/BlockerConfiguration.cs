@@ -28,5 +28,12 @@ public class BlockerConfiguration : IEntityTypeConfiguration<Blocker>
             .WithMany()
             .HasForeignKey(b => b.RaisedById)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Performance & Query Optimization Indexes
+        builder.HasIndex(b => new { b.SprintId, b.ResolvedAtUtc });
+        builder.HasIndex(b => b.RaisedAtUtc);
+        builder.Ignore(b => b.IsResolved);
+        builder.Ignore(b => b.HoursWaiting);
+        builder.Ignore(b => b.IsSlaBreached);
     }
 }

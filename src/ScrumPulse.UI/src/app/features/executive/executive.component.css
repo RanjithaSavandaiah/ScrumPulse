@@ -551,7 +551,500 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .preview-tables-grid,
-  .ai-split-grid {
+  .ai-split-grid,
+  .executive-analytics-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Executive Analytics Grid: Health Radar & Velocity Trend */
+.executive-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.health-radar-card,
+.velocity-trend-card {
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.health-card-header,
+.trend-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.health-title-wrap,
+.trend-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.health-title,
+.trend-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.health-subtitle,
+.trend-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.health-score-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.85rem;
+  min-width: 90px;
+}
+
+.health-score-badge.grade-optimal {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.health-score-badge.grade-good {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+.health-score-badge.grade-attention {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.health-score-badge.grade-risk {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.health-score-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.health-score-grade {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.2rem;
+}
+
+.health-summary-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.75rem 1rem;
+  border-radius: 0.65rem;
+  border-left: 3px solid var(--accent-primary);
+}
+
+.health-factors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.factor-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.factor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.factor-name {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.factor-weight {
+  color: var(--text-muted);
+}
+
+.factor-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.35rem;
+}
+
+.factor-badge.optimal {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+}
+
+.factor-badge.moderate {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+}
+
+.factor-badge.critical {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.factor-bar-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.factor-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.factor-bar-fill.optimal {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.factor-bar-fill.moderate {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.factor-bar-fill.critical {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.factor-details {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Velocity Trend Card */
+.trend-kpis {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.mini-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.65rem;
+}
+
+.mini-kpi-val {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.mini-kpi-lbl {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.trend-bars-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  min-height: 160px;
+  padding-top: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0.75rem;
+}
+
+.sprint-trend-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.sprint-bar-pair {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 130px;
+}
+
+.bar-committed,
+.bar-delivered {
+  width: 14px;
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 3px;
+  transition: height 0.3s ease;
+}
+
+.bar-committed {
+  background: rgba(148, 163, 184, 0.3);
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+.bar-delivered {
+  background: linear-gradient(180deg, #38bdf8, #0284c7);
+  border: 1px solid #38bdf8;
+}
+
+.bar-num {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sprint-col-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  max-width: 60px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.sprint-saydo-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #34d399;
+}
+
+.trend-legend {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.committed-dot {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+.delivered-dot {
+  background: #38bdf8;
+}
+
+/* CSV Export Button */
+.btn-csv {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.btn-csv:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #ffffff;
+}
+
+/* Comparison Studio Card */
+.comparison-studio-card {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  background: var(--bg-surface, #1e2230);
+}
+
+.comparison-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.comparison-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.comparison-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.comparison-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0.2rem 0 0 0;
+}
+
+.comparison-selectors {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: var(--bg-glass);
+  border-radius: var(--radius-sm);
+}
+
+.compare-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.compare-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.compare-vs-badge {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--accent-secondary);
+  padding: 0.35rem 0.65rem;
+  background: rgba(6, 182, 212, 0.15);
+  border-radius: 9999px;
+  align-self: flex-end;
+  margin-bottom: 0.35rem;
+}
+
+.btn-compare-action {
+  align-self: flex-end;
+  margin-bottom: 0.35rem;
+}
+
+.comparison-summary-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  color: #34d399;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.comparison-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.compare-metric-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.compare-metric-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.compare-values-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.compare-val-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.compare-val-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.compare-val-num {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.compare-arrow {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+}
+
+.compare-delta-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delta-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+}
+
+.delta-badge.improvement {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.delta-badge.regression {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
 }

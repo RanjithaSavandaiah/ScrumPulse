@@ -19,10 +19,25 @@ public class TeamLeave : BaseEntity
     public string Location { get; set; } = "Offshore";
     public bool IsApproved { get; set; } = true;
 
-    public double TotalDays => LeaveSlot switch
+    public double TotalDays
     {
-        LeaveSlotType.FirstHalf => 0.5,
-        LeaveSlotType.SecondHalf => 0.5,
-        _ => Math.Max(1, (int)(EndDate.Date - StartDate.Date).TotalDays + 1)
-    };
+        get
+        {
+            if (LeaveSlot == LeaveSlotType.FirstHalf || LeaveSlot == LeaveSlotType.SecondHalf)
+                return 0.5;
+
+            int businessDays = 0;
+            var cur = StartDate.Date;
+            var end = EndDate.Date;
+            while (cur <= end)
+            {
+                if (cur.DayOfWeek != DayOfWeek.Saturday && cur.DayOfWeek != DayOfWeek.Sunday)
+                {
+                    businessDays++;
+                }
+                cur = cur.AddDays(1);
+            }
+            return Math.Max(1, businessDays);
+        }
+    }
 }

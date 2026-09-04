@@ -51,4 +51,20 @@ public class WorkItem : BaseEntity
     public double? PrMergeLatencyHours => (PrMergedAtUtc.HasValue && PrApprovedAtUtc.HasValue) ? Math.Round((PrMergedAtUtc.Value - PrApprovedAtUtc.Value).TotalHours, 1) : null;
     public double? QaTestingLatencyHours => (CompletedAtUtc.HasValue && QaStartedAtUtc.HasValue) ? Math.Round((CompletedAtUtc.Value - QaStartedAtUtc.Value).TotalHours, 1) : null;
     public double? TotalCycleTimeHours => (CompletedAtUtc.HasValue && PickedUpAtUtc.HasValue) ? Math.Round((CompletedAtUtc.Value - PickedUpAtUtc.Value).TotalHours, 1) : null;
+
+    // Status Aging & Bottleneck Tracking
+    public DateTime StatusEnteredAtUtc => Status switch
+    {
+        WorkItemStatus.Done => CompletedAtUtc ?? UpdatedAtUtc ?? CreatedAtUtc,
+        WorkItemStatus.InQa => QaStartedAtUtc ?? PrMergedAtUtc ?? UpdatedAtUtc ?? CreatedAtUtc,
+        WorkItemStatus.Merged => PrMergedAtUtc ?? PrApprovedAtUtc ?? UpdatedAtUtc ?? CreatedAtUtc,
+        WorkItemStatus.PrApproved => PrApprovedAtUtc ?? PrCreatedAtUtc ?? UpdatedAtUtc ?? CreatedAtUtc,
+        WorkItemStatus.PrCreated => PrCreatedAtUtc ?? PickedUpAtUtc ?? UpdatedAtUtc ?? CreatedAtUtc,
+        WorkItemStatus.InProgress => PickedUpAtUtc ?? UpdatedAtUtc ?? CreatedAtUtc,
+        _ => CreatedAtUtc
+    };
+
+    public double DaysInCurrentStatus => Status == WorkItemStatus.Done
+        ? 0
+        : Math.Round(Math.Max(0, (DateTime.UtcNow - StatusEnteredAtUtc).TotalDays), 1);
 }

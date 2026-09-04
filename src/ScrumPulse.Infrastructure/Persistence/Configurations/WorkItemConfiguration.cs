@@ -28,5 +28,20 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
             .WithMany()
             .HasForeignKey(w => w.PrReviewerId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Performance & Query Optimization Indexes
+        builder.HasIndex(w => new { w.SprintId, w.Status });
+        builder.HasIndex(w => w.AssigneeId);
+        builder.HasIndex(w => w.CreatedAtUtc);
+
+        // Explicitly ignore non-persisted computed properties
+        builder.Ignore(w => w.StatusEnteredAtUtc);
+        builder.Ignore(w => w.DaysInCurrentStatus);
+        builder.Ignore(w => w.PickupLatencyHours);
+        builder.Ignore(w => w.DevCycleTimeHours);
+        builder.Ignore(w => w.PrReviewLatencyHours);
+        builder.Ignore(w => w.PrMergeLatencyHours);
+        builder.Ignore(w => w.QaTestingLatencyHours);
+        builder.Ignore(w => w.TotalCycleTimeHours);
     }
 }

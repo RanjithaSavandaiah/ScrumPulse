@@ -17,8 +17,14 @@
         <button (click)="exportExcel()" class="btn-export btn-excel" title="Download formatted multi-sheet Excel spreadsheet">
           <app-icon name="download" [size]="16"></app-icon> Export Excel (.xlsx)
         </button>
+        <button (click)="exportSprintCsv()" class="btn-export btn-csv" title="Download sprint data and cycle times in CSV">
+          <app-icon name="download" [size]="16"></app-icon> Export CSV (.csv)
+        </button>
         <button (click)="exportPdf()" class="btn-export btn-pdf" title="Download vector print-ready PDF executive report">
           <app-icon name="file-text" [size]="16"></app-icon> Export PDF (.pdf)
+        </button>
+        <button (click)="openComparison()" class="btn-secondary" title="Compare two sprints side-by-side">
+          <app-icon name="bar-chart" [size]="15"></app-icon> Compare Sprints
         </button>
         <button (click)="copySummary()" class="btn-secondary" [class.btn-copied]="copiedSummary()">
           <app-icon [name]="copiedSummary() ? 'check' : 'copy'" [size]="15" [color]="copiedSummary() ? 'var(--accent-success)' : undefined"></app-icon>
@@ -288,6 +294,175 @@
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- Sprint Comparison Studio -->
+  @if (showComparison()) {
+    <div class="glass-panel comparison-studio-card animate-slide-up">
+      <div class="comparison-header">
+        <div class="comparison-title-wrap">
+          <app-icon name="bar-chart" [size]="20" color="var(--accent-secondary)"></app-icon>
+          <div>
+            <h4 class="comparison-title">Sprint Comparison & Retrospective Delta Studio</h4>
+            <p class="comparison-subtitle">Compare performance, quality gates, and velocity between any two sprints</p>
+          </div>
+        </div>
+        <button (click)="showComparison.set(false)" class="btn-close">&times;</button>
+      </div>
+
+      <div class="comparison-selectors">
+        <div class="compare-select-wrap">
+          <label class="compare-label">Sprint A (Baseline):</label>
+          <select [ngModel]="compareSprintA()" (ngModelChange)="compareSprintA.set($event); runComparison()" class="control-select">
+            @for (sp of state.sprints(); track sp.id) {
+              <option [value]="sp.id">{{ sp.name }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="compare-vs-badge">VS</div>
+
+        <div class="compare-select-wrap">
+          <label class="compare-label">Sprint B (Target):</label>
+          <select [ngModel]="compareSprintB()" (ngModelChange)="compareSprintB.set($event); runComparison()" class="control-select">
+            @for (sp of state.sprints(); track sp.id) {
+              <option [value]="sp.id">{{ sp.name }}</option>
+            }
+          </select>
+        </div>
+
+        <button (click)="runComparison()" class="btn-primary btn-compare-action">
+          <app-icon name="refresh-cw" [size]="14"></app-icon> Recalculate
+        </button>
+      </div>
+
+      @if (comparisonError()) {
+        <div class="error-banner">
+          <app-icon name="alert-circle" [size]="14" color="#f87171"></app-icon>
+          <span>{{ comparisonError() }}</span>
+        </div>
+      }
+
+      @if (comparisonData(); as comp) {
+        <div class="comparison-summary-banner">
+          <app-icon name="check-circle" [size]="16" color="var(--accent-success)"></app-icon>
+          <span>{{ comp.comparisonSummary }}</span>
+        </div>
+
+        <div class="comparison-metrics-grid">
+          @for (metric of comp.metrics; track metric.metricName) {
+            <div class="compare-metric-card">
+              <span class="compare-metric-name">{{ metric.metricName }}</span>
+              <div class="compare-values-row">
+                <div class="compare-val-box">
+                  <span class="compare-val-label">{{ comp.sprintAName }}</span>
+                  <span class="compare-val-num">{{ metric.valueSprintA }} {{ metric.unit }}</span>
+                </div>
+                <div class="compare-arrow">&rarr;</div>
+                <div class="compare-val-box">
+                  <span class="compare-val-label">{{ comp.sprintBName }}</span>
+                  <span class="compare-val-num">{{ metric.valueSprintB }} {{ metric.unit }}</span>
+                </div>
+              </div>
+              <div class="compare-delta-row">
+                <span class="delta-badge" [class.improvement]="metric.isImprovement" [class.regression]="!metric.isImprovement">
+                  {{ metric.delta > 0 ? '+' : '' }}{{ metric.delta }} {{ metric.unit }}
+                  ({{ metric.isImprovement ? 'Improved' : 'Needs Focus' }})
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Sprint Health Radar & Velocity Trend Analytics Grid -->
+  <div class="executive-analytics-grid">
+    <!-- Sprint Health Radar Card -->
+    @if (sprintHealth(); as health) {
+      <div class="glass-panel health-radar-card animate-slide-up">
+        <div class="health-card-header">
+          <div class="health-title-wrap">
+            <app-icon name="shield" [size]="20" color="var(--accent-primary)"></app-icon>
+            <div>
+              <h4 class="health-title">Sprint Health & Governance Radar</h4>
+              <p class="health-subtitle">{{ health.sprintName }} &bull; Real-time composite index</p>
+            </div>
+          </div>
+          <div class="health-score-badge" [class.grade-optimal]="health.overallScore >= 85" [class.grade-good]="health.overallScore >= 70 && health.overallScore < 85" [class.grade-attention]="health.overallScore >= 55 && health.overallScore < 70" [class.grade-risk]="health.overallScore < 55">
+            <span class="health-score-number">{{ health.overallScore }}</span>
+            <span class="health-score-grade">{{ health.healthGrade }}</span>
+          </div>
+        </div>
+
+        <p class="health-summary-text">{{ health.statusSummary }}</p>
+
+        <div class="health-factors-list">
+          @for (factor of health.factors; track factor.dimension) {
+            <div class="factor-row">
+              <div class="factor-header">
+                <span class="factor-name">{{ factor.dimension }} <small class="factor-weight">({{ factor.weight }}% weight)</small></span>
+                <span class="factor-badge" [class.optimal]="factor.score >= 80" [class.moderate]="factor.score >= 50 && factor.score < 80" [class.critical]="factor.score < 50">{{ factor.status }} ({{ factor.score }}/100)</span>
+              </div>
+              <div class="factor-bar-track">
+                <div class="factor-bar-fill" [style.width.%]="factor.score" [class.optimal]="factor.score >= 80" [class.moderate]="factor.score >= 50 && factor.score < 80" [class.critical]="factor.score < 50"></div>
+              </div>
+              <span class="factor-details">{{ factor.details }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Sprint Velocity Trend & Predictability Hub -->
+    @if (velocityTrend(); as trend) {
+      <div class="glass-panel velocity-trend-card animate-slide-up">
+        <div class="trend-card-header">
+          <div class="trend-title-wrap">
+            <app-icon name="bar-chart" [size]="20" color="var(--accent-secondary)"></app-icon>
+            <div>
+              <h4 class="trend-title">Historical Velocity & Predictability</h4>
+              <p class="trend-subtitle">Multi-sprint delivery trend & rolling capacity predictability</p>
+            </div>
+          </div>
+          <div class="trend-kpis">
+            <div class="mini-kpi">
+              <span class="mini-kpi-val">{{ trend.averageVelocity }}</span>
+              <span class="mini-kpi-lbl">Avg Velocity (SP)</span>
+            </div>
+            <div class="mini-kpi">
+              <span class="mini-kpi-val">{{ trend.predictabilityScore }}%</span>
+              <span class="mini-kpi-lbl">Predictability</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="trend-bars-container">
+          @for (sp of trend.sprints; track sp.sprintId) {
+            <div class="sprint-trend-col">
+              <div class="sprint-bar-pair">
+                <div class="bar-committed" [style.height.px]="Math.min(130, Math.max(12, sp.committedPoints * 3))" [title]="'Committed: ' + sp.committedPoints + ' SP'">
+                  <span class="bar-num">{{ sp.committedPoints }}</span>
+                </div>
+                <div class="bar-delivered" [style.height.px]="Math.min(130, Math.max(12, sp.deliveredPoints * 3))" [title]="'Delivered: ' + sp.deliveredPoints + ' SP (' + sp.sayDoPercentage + '%)'">
+                  <span class="bar-num">{{ sp.deliveredPoints }}</span>
+                </div>
+              </div>
+              <span class="sprint-col-label" [title]="sp.sprintName">{{ sp.sprintName }}</span>
+              <span class="sprint-saydo-badge">{{ sp.sayDoPercentage }}%</span>
+            </div>
+          } @empty {
+            <div class="empty-trend-state">No sprint velocity history recorded yet.</div>
+          }
+        </div>
+
+        <div class="trend-legend">
+          <span class="legend-item"><span class="legend-dot committed-dot"></span> Committed SP</span>
+          <span class="legend-item"><span class="legend-dot delivered-dot"></span> Delivered SP</span>
+        </div>
+      </div>
+    }
   </div>
 
   <!-- AI 360° Executive Intelligence & Strengths / Weaknesses Analysis -->

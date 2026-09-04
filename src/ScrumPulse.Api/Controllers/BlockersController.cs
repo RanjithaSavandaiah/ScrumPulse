@@ -12,13 +12,14 @@ public class BlockersController(
 ) : BaseApiController
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<BlockerDto>>> GetAll([FromQuery] Guid? sprintId) =>
-        Ok(await mediator.QueryAsync(new GetBlockersQuery(sprintId)));
+    public async Task<ActionResult<IEnumerable<BlockerDto>>> GetAll([FromQuery] Guid? sprintId, CancellationToken ct = default) =>
+        Ok(await mediator.QueryAsync(new GetBlockersQuery(sprintId), ct));
 
     [HttpPost]
     public async Task<ActionResult<BlockerDto>> Create(
         [FromBody] CreateBlockerRequest request,
-        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey)
+        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey,
+        CancellationToken ct = default)
     {
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -26,7 +27,7 @@ public class BlockersController(
             if (cached != null) return Ok(cached);
         }
 
-        var result = await mediator.SendAsync(new CreateBlockerCommand(request));
+        var result = await mediator.SendAsync(new CreateBlockerCommand(request), ct);
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -37,25 +38,25 @@ public class BlockersController(
     }
 
     [HttpPost("{id:guid}/resolve")]
-    public async Task<ActionResult<BlockerDto>> Resolve(Guid id, [FromBody] ResolveBlockerRequest request)
+    public async Task<ActionResult<BlockerDto>> Resolve(Guid id, [FromBody] ResolveBlockerRequest request, CancellationToken ct = default)
     {
-        var result = await mediator.SendAsync(new ResolveBlockerCommand(id, request));
+        var result = await mediator.SendAsync(new ResolveBlockerCommand(id, request), ct);
         if (result == null) return NotFound();
         return Ok(result);
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<BlockerDto>> Update(Guid id, [FromBody] CreateBlockerRequest request)
+    public async Task<ActionResult<BlockerDto>> Update(Guid id, [FromBody] CreateBlockerRequest request, CancellationToken ct = default)
     {
-        var result = await mediator.SendAsync(new UpdateBlockerCommand(id, request));
+        var result = await mediator.SendAsync(new UpdateBlockerCommand(id, request), ct);
         if (result == null) return NotFound();
         return Ok(result);
     }
 
     [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {
-        var success = await mediator.SendAsync(new DeleteBlockerCommand(id));
+        var success = await mediator.SendAsync(new DeleteBlockerCommand(id), ct);
         if (!success) return NotFound();
         return NoContent();
     }

@@ -36,16 +36,16 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
         {
             TeamMemberId = request.TeamMemberId,
             MonthYear = string.IsNullOrWhiteSpace(request.MonthYear) ? DateTime.UtcNow.ToString("yyyy-MM") : request.MonthYear,
-            ScrumMasterFeedback = string.IsNullOrWhiteSpace(request.ScrumMasterFeedback) ? "Consistent sprint delivery and active team collaboration." : request.ScrumMasterFeedback.Trim(),
-            CdlFeedback = string.IsNullOrWhiteSpace(request.CdlFeedback) ? "Steady career progression and architectural competency." : request.CdlFeedback.Trim(),
-            ClientFeedback = string.IsNullOrWhiteSpace(request.ClientFeedback) ? "Positive sprint demo perception and prompt communication." : request.ClientFeedback.Trim(),
-            SelfReflection = string.IsNullOrWhiteSpace(request.SelfReflection) ? "Focused on velocity commitment and Definition of Done." : request.SelfReflection.Trim(),
+            ScrumMasterFeedback = request.ScrumMasterFeedback?.Trim() ?? string.Empty,
+            CdlFeedback = request.CdlFeedback?.Trim() ?? string.Empty,
+            ClientFeedback = request.ClientFeedback?.Trim() ?? string.Empty,
+            SelfReflection = request.SelfReflection?.Trim() ?? string.Empty,
             SmRating = smRating,
             HappinessIndex = happinessIndex,
-            ActionItems = string.IsNullOrWhiteSpace(request.ActionItems) ? "Maintain focus on DoD quality checks and architectural mentoring." : request.ActionItems.Trim(),
-            NextMonthGoals = string.IsNullOrWhiteSpace(request.NextMonthGoals) ? "Continue feature delivery and test coverage expansion." : request.NextMonthGoals.Trim(),
-            AiSynthesizedStrengths = "High technical agility; swift PR resolutions; zero QA escapes.",
-            AiGrowthRecommendations = "Continue cross-squad architecture mentoring during overlap hours.",
+            ActionItems = request.ActionItems?.Trim() ?? string.Empty,
+            NextMonthGoals = request.NextMonthGoals?.Trim() ?? string.Empty,
+            AiSynthesizedStrengths = string.Empty,
+            AiGrowthRecommendations = string.Empty,
             AiBurnoutRiskAssessment = happinessIndex < 6 ? "Medium Risk" : "Low Risk"
         };
 
@@ -71,14 +71,14 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
 
         feedback.TeamMemberId = request.TeamMemberId;
         if (!string.IsNullOrWhiteSpace(request.MonthYear)) feedback.MonthYear = request.MonthYear;
-        feedback.ScrumMasterFeedback = string.IsNullOrWhiteSpace(request.ScrumMasterFeedback) ? "Consistent sprint delivery and active team collaboration." : request.ScrumMasterFeedback.Trim();
-        feedback.CdlFeedback = string.IsNullOrWhiteSpace(request.CdlFeedback) ? "Steady career progression and architectural competency." : request.CdlFeedback.Trim();
-        feedback.ClientFeedback = string.IsNullOrWhiteSpace(request.ClientFeedback) ? "Positive sprint demo perception and prompt communication." : request.ClientFeedback.Trim();
-        feedback.SelfReflection = string.IsNullOrWhiteSpace(request.SelfReflection) ? "Focused on velocity commitment and Definition of Done." : request.SelfReflection.Trim();
+        if (request.ScrumMasterFeedback != null) feedback.ScrumMasterFeedback = request.ScrumMasterFeedback.Trim();
+        if (request.CdlFeedback != null) feedback.CdlFeedback = request.CdlFeedback.Trim();
+        if (request.ClientFeedback != null) feedback.ClientFeedback = request.ClientFeedback.Trim();
+        if (request.SelfReflection != null) feedback.SelfReflection = request.SelfReflection.Trim();
         feedback.SmRating = smRating;
         feedback.HappinessIndex = happinessIndex;
-        feedback.ActionItems = string.IsNullOrWhiteSpace(request.ActionItems) ? "Maintain focus on DoD quality checks and architectural mentoring." : request.ActionItems.Trim();
-        feedback.NextMonthGoals = string.IsNullOrWhiteSpace(request.NextMonthGoals) ? "Continue feature delivery and test coverage expansion." : request.NextMonthGoals.Trim();
+        if (request.ActionItems != null) feedback.ActionItems = request.ActionItems.Trim();
+        if (request.NextMonthGoals != null) feedback.NextMonthGoals = request.NextMonthGoals.Trim();
         feedback.AiBurnoutRiskAssessment = happinessIndex < 6 ? "Medium Risk" : "Low Risk";
 
         await db.SaveChangesAsync(ct);

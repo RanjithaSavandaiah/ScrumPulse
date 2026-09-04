@@ -29,7 +29,8 @@ public static class MappingExtensions
         item.PickupLatencyHours, item.DevCycleTimeHours,
         item.PrReviewLatencyHours, item.PrMergeLatencyHours,
         item.QaTestingLatencyHours, item.TotalCycleTimeHours,
-        item.EstimatedHours
+        item.EstimatedHours,
+        item.DaysInCurrentStatus
     );
 
     public static IEnumerable<WorkItemDto> ToDtos(this IEnumerable<WorkItem> items) =>
@@ -162,4 +163,14 @@ public static class MappingExtensions
 
     public static IEnumerable<TechTalkLogDto> ToDtos(this IEnumerable<TechTalkLog> logs) =>
         logs.Select(log => log.ToDto());
+
+    // ── Team ─────────────────────────────────────────────────────────────
+
+    public static TeamDto ToDto(this Team team) => new(
+        team.Id, team.Name, team.Slug, team.Description,
+        team.JoinCode, team.IsActive, team.CreatedAtUtc
+    );
+
+    public static IEnumerable<TeamDto> ToDtos(this IEnumerable<Team> teams) =>
+        teams.Select(team => team.ToDto());
 }

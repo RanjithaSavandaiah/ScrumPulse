@@ -13,6 +13,9 @@ public abstract class BaseEntity
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>Multi-tenant team identifier for squad isolation.</summary>
+    public Guid? TeamId { get; set; }
+
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
 

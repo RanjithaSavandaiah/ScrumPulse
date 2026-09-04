@@ -71,7 +71,7 @@ public class AiResponseEvaluator
 
     private static int EvaluateRiskCalibration(string riskLevel, IReadOnlyList<string> findings)
     {
-        int warningCount = findings.Count(f => f.Contains("⚠️") || f.Contains("RISK", StringComparison.OrdinalIgnoreCase));
+        int warningCount = findings.Count(f => f.Contains("[WARNING]", StringComparison.OrdinalIgnoreCase) || f.Contains("WARNING", StringComparison.OrdinalIgnoreCase) || f.Contains("RISK", StringComparison.OrdinalIgnoreCase));
         bool hasHighRisk = riskLevel.Contains("High", StringComparison.OrdinalIgnoreCase);
         bool hasMediumRisk = riskLevel.Contains("Medium", StringComparison.OrdinalIgnoreCase);
 

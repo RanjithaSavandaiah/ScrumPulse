@@ -73,6 +73,7 @@ export interface WorkItem {
   qaTestingLatencyHours?: number;
   totalCycleTimeHours?: number;
   estimatedHours?: number;
+  daysInCurrentStatus?: number;
 }
 
 export interface Blocker {
@@ -252,6 +253,41 @@ export interface ExecutiveReport {
   executiveSummaryMarkdown: string;
 }
 
+export interface SprintVelocityDataPoint {
+  sprintId: string;
+  sprintName: string;
+  startDate: string;
+  endDate: string;
+  committedPoints: number;
+  deliveredPoints: number;
+  sayDoPercentage: number;
+  rollingAverageVelocity: number;
+}
+
+export interface SprintVelocityTrend {
+  sprints: SprintVelocityDataPoint[];
+  averageVelocity: number;
+  predictabilityScore: number;
+}
+
+export interface SprintHealthFactor {
+  dimension: string;
+  score: number;
+  weight: number;
+  status: string;
+  details: string;
+}
+
+export interface SprintHealth {
+  sprintId: string;
+  sprintName: string;
+  overallScore: number;
+  healthGrade: string;
+  statusSummary: string;
+  factors: SprintHealthFactor[];
+  evaluatedAtUtc: string;
+}
+
 export interface PullRequestLog {
   id: string;
   workItemId?: string;
@@ -284,5 +320,44 @@ export interface DeveloperPrMetrics {
   actionabilityRatePercentage: number;
   avgCommentsPerPr: number;
   prs: PullRequestLog[];
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  joinCode: string;
+  isActive: boolean;
+  createdAtUtc: string;
+}
+
+export interface CreateTeamRequest {
+  name: string;
+  description?: string;
+  slug?: string;
+}
+
+export interface JoinTeamRequest {
+  joinCode: string;
+}
+
+export interface SprintComparisonMetric {
+  metricName: string;
+  unit: string;
+  valueSprintA: number;
+  valueSprintB: number;
+  delta: number;
+  isImprovement: boolean;
+  sentiment: string;
+}
+
+export interface SprintComparison {
+  sprintAId: string;
+  sprintAName: string;
+  sprintBId: string;
+  sprintBName: string;
+  metrics: SprintComparisonMetric[];
+  comparisonSummary: string;
 }
 

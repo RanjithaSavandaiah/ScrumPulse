@@ -4,6 +4,7 @@ using ScrumPulse.Domain.Entities;
 
 public interface IAppDbContext
 {
+    DbSet<Team> Teams { get; }
     DbSet<Sprint> Sprints { get; }
     DbSet<TeamMember> TeamMembers { get; }
     DbSet<WorkItem> WorkItems { get; }

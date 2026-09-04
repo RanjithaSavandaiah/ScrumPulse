@@ -12,8 +12,14 @@ using ScrumPulse.Domain.Entities;
 /// </summary>
 public class AppDbContext : DbContext, IAppDbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly ITenantContext? _tenantContext;
 
+    public AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext? tenantContext = null) : base(options)
+    {
+        _tenantContext = tenantContext;
+    }
+
+    public DbSet<Team> Teams => Set<Team>();
     public DbSet<Sprint> Sprints => Set<Sprint>();
     public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
     public DbSet<WorkItem> WorkItems => Set<WorkItem>();
@@ -89,6 +95,10 @@ public class AppDbContext : DbContext, IAppDbContext
                         entry.Entity.CreatedAtUtc = now;
                     }
                     entry.Entity.IsDeleted = false;
+                    if (entry.Entity.TeamId == null && _tenantContext?.CurrentTeamId != null)
+                    {
+                        entry.Entity.TeamId = _tenantContext.CurrentTeamId;
+                    }
                     break;
 
                 case EntityState.Modified:

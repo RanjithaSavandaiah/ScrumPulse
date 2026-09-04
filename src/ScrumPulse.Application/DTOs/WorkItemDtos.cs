@@ -43,7 +43,8 @@ public record WorkItemDto(
     double? PrMergeLatencyHours,
     double? QaTestingLatencyHours,
     double? TotalCycleTimeHours,
-    double? EstimatedHours = null
+    double? EstimatedHours = null,
+    double DaysInCurrentStatus = 0
 );
 
 public record CreateWorkItemRequest(

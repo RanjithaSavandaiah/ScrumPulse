@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { ReportExportService, ExportFilterOptions } from '../../core/services/report-export.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
-import { AiSuggestionResponse } from '../../core/models/scrum.models';
+import { AiSuggestionResponse, SprintComparison, SprintHealth, SprintVelocityTrend } from '../../core/models/scrum.models';
 import { generateDynamicMonths, generateDynamicQuarters, getCurrentMonthValue, getCurrentQuarterValue, getDatePresetRange, getThisMonthDateRange, getSprintDateRange } from '../../core/utils/date-utils';
 import { CORE_PIPES } from '../../core/pipes';
 
@@ -16,6 +16,7 @@ import { CORE_PIPES } from '../../core/pipes';
   styleUrl: './executive.component.css'
 })
 export class ExecutiveComponent implements OnInit {
+  protected readonly Math = Math;
   state = inject(ScrumStateService);
   private exportService = inject(ReportExportService);
 
@@ -30,11 +31,46 @@ export class ExecutiveComponent implements OnInit {
   aiData = signal<AiSuggestionResponse | null>(null);
   loadingAi = signal<boolean>(false);
 
+  velocityTrend = signal<SprintVelocityTrend | null>(null);
+  sprintHealth = signal<SprintHealth | null>(null);
+  loadingMetrics = signal<boolean>(false);
+
+  // Sprint Comparison Feature
+  showComparison = signal<boolean>(false);
+  compareSprintA = signal<string>('');
+  compareSprintB = signal<string>('');
+  comparisonData = signal<SprintComparison | null>(null);
+  loadingComparison = signal<boolean>(false);
+  comparisonError = signal<string | null>(null);
+
   monthsList = generateDynamicMonths(11, 2);
   quartersList = generateDynamicQuarters(6, 1);
 
   ngOnInit(): void {
     this.refreshAiIntelligence();
+    this.loadExecutiveMetrics();
+  }
+
+  loadExecutiveMetrics(): void {
+    this.loadingMetrics.set(true);
+    this.state.getVelocityTrend(6).subscribe({
+      next: (data) => this.velocityTrend.set(data),
+      error: () => {}
+    });
+
+    const spId = this.effectiveSprintId();
+    if (spId && spId !== 'ALL') {
+      this.state.getSprintHealth(spId).subscribe({
+        next: (data) => {
+          this.sprintHealth.set(data);
+          this.loadingMetrics.set(false);
+        },
+        error: () => this.loadingMetrics.set(false)
+      });
+    } else {
+      this.sprintHealth.set(null);
+      this.loadingMetrics.set(false);
+    }
   }
 
   refreshAiIntelligence(): void {
@@ -154,5 +190,47 @@ export class ExecutiveComponent implements OnInit {
       this.copiedSummary.set(true);
       setTimeout(() => this.copiedSummary.set(false), 2500);
     }
+  }
+
+  exportSprintCsv(): void {
+    const spId = this.effectiveSprintId();
+    if (spId && spId !== 'ALL') {
+      this.state.exportSprintCsv(spId);
+    }
+  }
+
+  openComparison(): void {
+    const sprints = this.state.sprints();
+    if (sprints.length >= 2) {
+      this.compareSprintA.set(sprints[1].id);
+      this.compareSprintB.set(sprints[0].id);
+    } else if (sprints.length === 1) {
+      this.compareSprintA.set(sprints[0].id);
+      this.compareSprintB.set(sprints[0].id);
+    }
+    this.showComparison.set(true);
+    if (this.compareSprintA() && this.compareSprintB()) {
+      this.runComparison();
+    }
+  }
+
+  runComparison(): void {
+    const a = this.compareSprintA();
+    const b = this.compareSprintB();
+    if (!a || !b) return;
+
+    this.loadingComparison.set(true);
+    this.comparisonError.set(null);
+
+    this.state.compareSprints(a, b).subscribe({
+      next: (data) => {
+        this.comparisonData.set(data);
+        this.loadingComparison.set(false);
+      },
+      error: (err) => {
+        this.comparisonError.set(err?.message || 'Unable to compare sprints.');
+        this.loadingComparison.set(false);
+      }
+    });
   }
 }

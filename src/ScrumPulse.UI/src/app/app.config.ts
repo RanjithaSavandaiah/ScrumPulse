@@ -6,13 +6,14 @@ import { provideEffects } from '@ngrx/effects';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { routes } from './app.routes';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { tenantInterceptor } from './core/interceptors/tenant.interceptor';
 import { appEffects, appReducers } from './core/state';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([errorInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([tenantInterceptor, errorInterceptor])),
     provideStore(appReducers),
     provideEffects(appEffects),
     provideStoreDevtools({

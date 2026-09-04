@@ -11,6 +11,12 @@
       @if (item.estimatedHours !== undefined && item.estimatedHours !== null && item.estimatedHours > 0) {
         <span class="glass-badge hours-badge">{{ item.estimatedHours }}h</span>
       }
+      @if (item.daysInCurrentStatus && item.daysInCurrentStatus >= 3 && !isStatus(item, 'Done', 6)) {
+        <span class="glass-badge aging-badge" [class.stale-danger]="item.daysInCurrentStatus >= 5" [title]="'In current stage for ' + item.daysInCurrentStatus + ' days. Needs attention!'">
+          <app-icon name="clock" [size]="12"></app-icon>
+          {{ item.daysInCurrentStatus }}d in stage
+        </span>
+      }
       <span class="glass-badge status-badge">
         {{ getStatusLabel(item.status) }}
       </span>

@@ -222,4 +222,157 @@ public class MetricsCalculatorServiceTests
         Assert.Equal(85.0, capacity.MemberBreakdown[0].AvailableHours);
         Assert.Equal(85.0, capacity.TotalAvailableHours);
     }
+
+    [Fact]
+    public async Task GetVelocityTrendAsync_CalculatesChronologicalTrendAndRollingAverage()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var s1Id = Guid.NewGuid();
+        var s2Id = Guid.NewGuid();
+        var s1 = new Sprint { Id = s1Id, Name = "Sprint 1", StartDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc), EndDate = new DateTime(2026, 7, 14, 0, 0, 0, DateTimeKind.Utc), CommittedStoryPoints = 20 };
+        var s2 = new Sprint { Id = s2Id, Name = "Sprint 2", StartDate = new DateTime(2026, 7, 15, 0, 0, 0, DateTimeKind.Utc), EndDate = new DateTime(2026, 7, 28, 0, 0, 0, DateTimeKind.Utc), CommittedStoryPoints = 30 };
+        db.Sprints.AddRange(s1, s2);
+
+        var item1 = new WorkItem { Id = Guid.NewGuid(), SprintId = s1Id, Status = WorkItemStatus.Done, StoryPoints = 18, Title = "PBI 1" };
+        var item2 = new WorkItem { Id = Guid.NewGuid(), SprintId = s2Id, Status = WorkItemStatus.Done, StoryPoints = 27, Title = "PBI 2" };
+        db.WorkItems.AddRange(item1, item2);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+
+        // Act
+        var trend = await service.GetVelocityTrendAsync(6);
+
+        // Assert
+        Assert.NotNull(trend);
+        Assert.Equal(2, trend.Sprints.Count);
+        Assert.Equal(18, trend.Sprints[0].DeliveredPoints);
+        Assert.Equal(27, trend.Sprints[1].DeliveredPoints);
+        Assert.Equal(18.0, trend.Sprints[0].RollingAverageVelocity);
+        Assert.Equal(22.5, trend.Sprints[1].RollingAverageVelocity); // (18 + 27) / 2 = 22.5
+        Assert.Equal(22.5, trend.AverageVelocity);
+    }
+
+    [Fact]
+    public async Task CalculateSprintHealthAsync_ComputesCompositeScoreAndFactors()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var sprintId = Guid.NewGuid();
+        var sprint = new Sprint { Id = sprintId, Name = "Sprint 10", CommittedStoryPoints = 20 };
+        db.Sprints.Add(sprint);
+
+        var item = new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprintId,
+            Status = WorkItemStatus.Done,
+            StoryPoints = 20,
+            Title = "Story Done",
+            PrCreatedAtUtc = DateTime.UtcNow.AddHours(-3.5),
+            PrApprovedAtUtc = DateTime.UtcNow,
+            IsEscapedDefect = false
+        };
+        db.WorkItems.Add(item);
+
+        var standup = new DailyStandup
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprintId,
+            TeamMemberId = Guid.NewGuid(),
+            MoodScore = 5,
+            StandupDate = DateTime.UtcNow,
+            YesterdaySummary = "Done",
+            TodayPlan = "Next"
+        };
+        db.DailyStandups.Add(standup);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+
+        // Act
+        var health = await service.CalculateSprintHealthAsync(sprintId);
+
+        // Assert
+        Assert.NotNull(health);
+        Assert.Equal(sprintId, health.SprintId);
+        Assert.True(health.OverallScore >= 80, $"Expected high score for clean sprint, got {health.OverallScore}");
+        Assert.Equal("Optimal", health.HealthGrade);
+        Assert.Equal(6, health.Factors.Count);
+    }
+
+    [Fact]
+    public async Task CompareSprintsAsync_CalculatesDeltasAndSummary()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var sprint1 = new Sprint
+        {
+            Id = Guid.NewGuid(),
+            Name = "Sprint 10",
+            CommittedStoryPoints = 30,
+            StartDate = DateTime.UtcNow.AddDays(-28),
+            EndDate = DateTime.UtcNow.AddDays(-14)
+        };
+        var sprint2 = new Sprint
+        {
+            Id = Guid.NewGuid(),
+            Name = "Sprint 11",
+            CommittedStoryPoints = 35,
+            StartDate = DateTime.UtcNow.AddDays(-14),
+            EndDate = DateTime.UtcNow
+        };
+        db.Sprints.AddRange(sprint1, sprint2);
+
+        // Sprint 1: delivered 20 pts (1 story), 2 blockers
+        db.WorkItems.Add(new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprint1.Id,
+            Status = WorkItemStatus.Done,
+            StoryPoints = 20,
+            Title = "Sprint 1 Story"
+        });
+        db.Blockers.AddRange(
+            new Blocker { Id = Guid.NewGuid(), SprintId = sprint1.Id, Title = "B1" },
+            new Blocker { Id = Guid.NewGuid(), SprintId = sprint1.Id, Title = "B2" }
+        );
+
+        // Sprint 2: delivered 32 pts (1 story), 0 blockers
+        db.WorkItems.Add(new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprint2.Id,
+            Status = WorkItemStatus.Done,
+            StoryPoints = 32,
+            Title = "Sprint 2 Story"
+        });
+
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+
+        // Act
+        var comparison = await service.CompareSprintsAsync(sprint1.Id, sprint2.Id);
+
+        // Assert
+        Assert.NotNull(comparison);
+        Assert.Equal(sprint1.Id, comparison.SprintAId);
+        Assert.Equal(sprint2.Id, comparison.SprintBId);
+        Assert.Equal("Sprint 10", comparison.SprintAName);
+        Assert.Equal("Sprint 11", comparison.SprintBName);
+
+        var velocityMetric = comparison.Metrics.First(m => m.MetricName == "Delivered Story Points");
+        Assert.Equal(20, velocityMetric.ValueSprintA);
+        Assert.Equal(32, velocityMetric.ValueSprintB);
+        Assert.Equal(12, velocityMetric.Delta);
+        Assert.True(velocityMetric.IsImprovement);
+
+        var blockerMetric = comparison.Metrics.First(m => m.MetricName == "Total Blockers Encountered");
+        Assert.Equal(2, blockerMetric.ValueSprintA);
+        Assert.Equal(0, blockerMetric.ValueSprintB);
+        Assert.Equal(-2, blockerMetric.Delta);
+        Assert.True(blockerMetric.IsImprovement);
+    }
 }

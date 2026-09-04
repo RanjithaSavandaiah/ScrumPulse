@@ -62,6 +62,24 @@ public class DomainEntitiesTests
     }
 
     [Fact]
+    public void TeamLeave_DaysCalculation_ExcludesWeekendsAcrossDates()
+    {
+        // Friday to Monday: Fri, Sat, Sun, Mon -> 2 business days
+        var start = new DateTime(2026, 8, 7, 0, 0, 0, DateTimeKind.Utc); // Friday
+        var end = new DateTime(2026, 8, 10, 0, 0, 0, DateTimeKind.Utc);  // Monday
+        var leave = new TeamLeave
+        {
+            StartDate = start,
+            EndDate = end,
+            Reason = "Weekend Trip PTO",
+            LeaveType = LeaveCategory.PlannedTimeOff,
+            IsApproved = true
+        };
+
+        Assert.Equal(2, leave.TotalDays);
+    }
+
+    [Fact]
     public void KudosCard_Reactions_InitializesDictionaryProperly()
     {
         var kudos = new KudosCard

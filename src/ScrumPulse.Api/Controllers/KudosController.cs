@@ -55,7 +55,7 @@ public class KudosController(IAppDbContext db) : BaseApiController
     {
         var reactionKey = !string.IsNullOrWhiteSpace(emoji)
             ? emoji
-            : (bodyRequest?.ReactionType ?? bodyRequest?.Emoji ?? "🚀");
+            : (bodyRequest?.ReactionType ?? bodyRequest?.Emoji ?? "rocket");
 
         var kudos = await db.KudosCards
             .Include(k => k.Sender)

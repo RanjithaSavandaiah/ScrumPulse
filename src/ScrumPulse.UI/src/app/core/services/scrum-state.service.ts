@@ -50,6 +50,12 @@ import {
   RoleType,
   Sprint,
   SprintCapacity,
+  SprintComparison,
+  SprintHealth,
+  SprintVelocityTrend,
+  Team,
+  CreateTeamRequest,
+  JoinTeamRequest,
   TeamLeave,
   TeamMember,
   TechDebtItem,
@@ -66,6 +72,8 @@ export class ScrumStateService {
   // Modular Signals exposed via feature selectors
   readonly sprints = this.store.selectSignal(selectAllSprints);
   readonly activeSprint = this.store.selectSignal(selectActiveSprint);
+  readonly teams = signal<Team[]>([]);
+  readonly currentTeam = signal<Team | null>(null);
   readonly members = this.store.selectSignal(selectAllMembers);
   readonly workItems = this.store.selectSignal(selectAllWorkItems);
   readonly blockers = this.store.selectSignal(selectAllBlockers);
@@ -143,6 +151,7 @@ export class ScrumStateService {
   readonly sayDoRatio = computed(() => this.executiveReport()?.sayDoRatioPercentage ?? 0);
 
   constructor() {
+    this.loadTeams();
     this.refreshAllData();
   }
 
@@ -423,6 +432,70 @@ export class ScrumStateService {
 
   getExecutiveReport(sprintId: string): Observable<ExecutiveReport> {
     return this.http.get<ExecutiveReport>(`${this.apiUrl}/metrics/sprint/${sprintId}/report`);
+  }
+
+  getVelocityTrend(count: number = 6): Observable<SprintVelocityTrend> {
+    return this.http.get<SprintVelocityTrend>(`${this.apiUrl}/executive-reports/velocity-trend?count=${count}`);
+  }
+
+  getSprintHealth(sprintId: string): Observable<SprintHealth> {
+    return this.http.get<SprintHealth>(`${this.apiUrl}/executive-reports/sprint/${sprintId}/health`);
+  }
+
+  // Multi-Team Tenant Management
+  loadTeams(): void {
+    this.http.get<Team[]>(`${this.apiUrl}/teams`).pipe(
+      catchError(() => of([]))
+    ).subscribe(list => {
+      this.teams.set(list);
+      const savedId = localStorage.getItem('scrumpulse_current_team_id');
+      const found = list.find(t => t.id === savedId) || list[0] || null;
+      if (found && (!this.currentTeam() || this.currentTeam()?.id !== found.id)) {
+        this.selectTeam(found, false);
+      }
+    });
+  }
+
+  selectTeam(team: Team | null, triggerReload: boolean = true): void {
+    this.currentTeam.set(team);
+    if (team) {
+      localStorage.setItem('scrumpulse_current_team_id', team.id);
+    } else {
+      localStorage.removeItem('scrumpulse_current_team_id');
+    }
+    if (triggerReload) {
+      this.refreshAllData();
+    }
+  }
+
+  createTeam(request: CreateTeamRequest): Observable<Team> {
+    return this.http.post<Team>(`${this.apiUrl}/teams`, request).pipe(
+      map(team => {
+        this.teams.update(list => [...list, team]);
+        this.selectTeam(team);
+        return team;
+      })
+    );
+  }
+
+  joinTeam(request: JoinTeamRequest): Observable<Team> {
+    return this.http.post<Team>(`${this.apiUrl}/teams/join`, request).pipe(
+      map(team => {
+        if (!this.teams().some(t => t.id === team.id)) {
+          this.teams.update(list => [...list, team]);
+        }
+        this.selectTeam(team);
+        return team;
+      })
+    );
+  }
+
+  compareSprints(sprintA: string, sprintB: string): Observable<SprintComparison> {
+    return this.http.get<SprintComparison>(`${this.apiUrl}/executive-reports/compare?sprintA=${sprintA}&sprintB=${sprintB}`);
+  }
+
+  exportSprintCsv(sprintId: string): void {
+    window.open(`${this.apiUrl}/executive-reports/sprint/${sprintId}/export-csv`, '_blank');
   }
 
   exportDataJson(): void {
