@@ -168,4 +168,58 @@ public class MetricsCalculatorServiceTests
         Assert.Equal(22.5, report.AvgTotalCycleTimeHours); // 2.5 + 11.0 + 4.5 + 1.0 + 3.5 = 22.5
         Assert.Contains("# Sprint Executive Progress & Value Summary", report.ExecutiveSummaryMarkdown);
     }
+
+    [Fact]
+    public void CalculateWorkingDays_August31ToSeptember11_ReturnsExact10WorkingDays()
+    {
+        // Arrange
+        var start = new DateTime(2026, 8, 31, 0, 0, 0, DateTimeKind.Utc); // Monday
+        var end = new DateTime(2026, 9, 11, 0, 0, 0, DateTimeKind.Utc);   // Friday
+
+        // Act
+        int workingDays = MetricsCalculatorService.CalculateWorkingDays(start, end);
+
+        // Assert: Mon Aug 31 - Fri Sep 4 (5) + Mon Sep 7 - Fri Sep 11 (5) = exactly 10 days
+        Assert.Equal(10, workingDays);
+    }
+
+    [Fact]
+    public async Task CalculateSprintCapacityAsync_With8Point5DailyHours_Computes85HoursPerDeveloper()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var sprintId = Guid.NewGuid();
+        var sprint = new Sprint
+        {
+            Id = sprintId,
+            Name = "Sprint 2",
+            StartDate = new DateTime(2026, 8, 31, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 9, 11, 0, 0, 0, DateTimeKind.Utc),
+            DailyWorkingHours = 8.5,
+            CommittedStoryPoints = 30
+        };
+        db.Sprints.Add(sprint);
+
+        var member = new TeamMember
+        {
+            Id = Guid.NewGuid(),
+            Name = "Kaushik",
+            Role = RoleType.Developer,
+            IsActive = true
+        };
+        db.TeamMembers.Add(member);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+
+        // Act
+        var capacity = await service.CalculateSprintCapacityAsync(sprintId);
+
+        // Assert: 10 working days * 8.5 hours = 85.0 hours
+        Assert.NotNull(capacity);
+        Assert.Single(capacity.MemberBreakdown);
+        Assert.Equal(10, capacity.MemberBreakdown[0].WorkingDays);
+        Assert.Equal(85.0, capacity.MemberBreakdown[0].AvailableHours);
+        Assert.Equal(85.0, capacity.TotalAvailableHours);
+    }
 }

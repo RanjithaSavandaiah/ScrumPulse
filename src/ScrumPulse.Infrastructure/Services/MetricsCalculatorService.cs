@@ -13,8 +13,10 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
         var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
         var members = await db.TeamMembers.Where(teamMember => teamMember.IsActive && teamMember.Role != RoleType.ClientStakeholder).ToListAsync(ct);
         
-        int totalDays = sprint != null ? Math.Max(1, (int)(sprint.EndDate.Date - sprint.StartDate.Date).TotalDays + 1) : 10;
-        int workingDays = Math.Max(1, (int)(totalDays * (5.0 / 7.0)));
+        int workingDays = sprint != null 
+            ? CalculateWorkingDays(sprint.StartDate, sprint.EndDate) 
+            : 10;
+        double baseDailyHours = sprint?.DailyWorkingHours > 0 ? sprint.DailyWorkingHours : 8.5;
 
         var leaves = await db.TeamLeaves.Where(leave => leave.IsApproved).ToListAsync(ct);
 
@@ -32,11 +34,11 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
             double netDays = Math.Max(0.0, workingDays - memberLeaveDays);
             double dailyProductiveHours = member.Role switch
             {
-                RoleType.Developer => 6.0,
-                RoleType.QaEngineer => 6.0,
-                RoleType.ScrumMaster => 4.5,
-                RoleType.Cdl => 4.0,
-                _ => 5.0
+                RoleType.Developer => baseDailyHours,
+                RoleType.QaEngineer => baseDailyHours,
+                RoleType.ScrumMaster => Math.Round(baseDailyHours * 0.75, 1),
+                RoleType.Cdl => Math.Round(baseDailyHours * 0.5, 1),
+                _ => baseDailyHours
             };
 
             double availableHours = Math.Round(netDays * dailyProductiveHours, 1);
@@ -136,5 +138,26 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
             inSprintBugs,
             markdownSummary
         );
+    }
+
+    /// <summary>
+    /// Calculates exact business working days between startDate and endDate (inclusive),
+    /// excluding Saturdays and Sundays.
+    /// </summary>
+    public static int CalculateWorkingDays(DateTime startDate, DateTime endDate)
+    {
+        var start = startDate.Date;
+        var end = endDate.Date;
+        if (end < start) return 0;
+
+        int workingDays = 0;
+        for (var date = start; date <= end; date = date.AddDays(1))
+        {
+            if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+            {
+                workingDays++;
+            }
+        }
+        return Math.Max(1, workingDays);
     }
 }

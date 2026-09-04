@@ -8,6 +8,7 @@ import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estim
 
 import { signal } from '@angular/core';
 import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
+import { calculateWorkingDays } from '../../../../core/utils/date-utils';
 
 @Component({
   selector: 'app-edit-sprint-modal',
@@ -17,7 +18,7 @@ import { ConfirmModalComponent } from '../../../../core/components/confirm-modal
   styleUrl: './edit-sprint-modal.component.css'
 })
 export class EditSprintModalComponent implements OnInit {
-  state = inject(ScrumStateService);
+  private state = inject(ScrumStateService);
 
   @Input() sprint: Sprint | null = null;
   @Output() close = new EventEmitter<void>();
@@ -31,6 +32,9 @@ export class EditSprintModalComponent implements OnInit {
   startDate: string = new Date().toISOString().split('T')[0];
   endDate: string = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   
+  // Daily Working Hours Configuration (SM Configurable)
+  dailyWorkingHours: number = 8.5;
+
   // Dual Target Commitment System
   targetMode: 'storyPoints' | 'hours' = 'storyPoints';
   committedStoryPoints: number = 30;
@@ -41,6 +45,10 @@ export class EditSprintModalComponent implements OnInit {
   showMatrixModal: boolean = false;
   capacityCalculationSummary: string | null = null;
   isActive: boolean = true;
+
+  get calculatedWorkingDays(): number {
+    return calculateWorkingDays(this.startDate, this.endDate);
+  }
 
   get isInvalidDateRange(): boolean {
     if (!this.startDate || !this.endDate) return false;
@@ -71,11 +79,26 @@ export class EditSprintModalComponent implements OnInit {
       this.goal = this.sprint.goal || '';
       this.startDate = this.sprint.startDate ? new Date(this.sprint.startDate).toISOString().split('T')[0] : this.startDate;
       this.endDate = this.sprint.endDate ? new Date(this.sprint.endDate).toISOString().split('T')[0] : this.endDate;
+      this.dailyWorkingHours = this.sprint.dailyWorkingHours || 8.5;
       this.committedStoryPoints = this.sprint.committedStoryPoints || 30;
       this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
       this.isActive = this.sprint.isActive ?? true;
     } else {
+      this.dailyWorkingHours = 8.5;
       this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
+    }
+  }
+
+  setDailyHours(hours: number): void {
+    this.dailyWorkingHours = hours;
+    if (this.capacityCalculationSummary) {
+      this.autoCalculateFromCapacity();
+    }
+  }
+
+  onDailyHoursChange(): void {
+    if (this.capacityCalculationSummary) {
+      this.autoCalculateFromCapacity();
     }
   }
 
@@ -109,8 +132,8 @@ export class EditSprintModalComponent implements OnInit {
   autoCalculateFromCapacity(): void {
     const start = new Date(this.startDate || Date.now());
     const end = new Date(this.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
-    const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const workingDays = Math.max(1, Math.round(totalDays * (5 / 7)));
+    const workingDays = this.calculatedWorkingDays;
+    const hoursPerDay = this.dailyWorkingHours > 0 ? this.dailyWorkingHours : 8.5;
 
     // Active delivery members
     const members = this.state.members();
@@ -135,8 +158,8 @@ export class EditSprintModalComponent implements OnInit {
       }
     }
 
-    const grossHours = workingDays * memberCount * 8;
-    const leaveHoursDeducted = Math.round(totalLeaveDays * 8);
+    const grossHours = Math.round(workingDays * memberCount * hoursPerDay);
+    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay);
     const netAvailableHours = Math.max(0, grossHours - leaveHoursDeducted);
     const productiveFocusHours = Math.round(netAvailableHours * 0.70); // 70% focus factor
     const suggestedPoints = Math.max(1, Math.round(productiveFocusHours / this.hoursPerPointRatio));
@@ -144,7 +167,7 @@ export class EditSprintModalComponent implements OnInit {
     this.committedHours = productiveFocusHours;
     this.committedStoryPoints = suggestedPoints;
 
-    this.capacityCalculationSummary = `Auto-calculated for ${memberCount} developers across ${workingDays} working days: ${grossHours}h gross - ${leaveHoursDeducted}h leave (${totalLeaveDays}d) = ${netAvailableHours}h net &times; 70% focus = ${productiveFocusHours}h (${suggestedPoints} SP).`;
+    this.capacityCalculationSummary = `Auto-calculated for ${memberCount} developers across ${workingDays} working days (@ ${hoursPerDay}h/day): ${grossHours}h gross - ${leaveHoursDeducted}h leave (${totalLeaveDays}d) = ${netAvailableHours}h net &times; 70% focus = ${productiveFocusHours}h (${suggestedPoints} SP).`;
   }
 
   onSelectMatrixEstimation(event: { points: number; hours: number }): void {
@@ -167,7 +190,8 @@ export class EditSprintModalComponent implements OnInit {
       startDate: new Date(this.startDate).toISOString(),
       endDate: new Date(this.endDate).toISOString(),
       committedStoryPoints: finalPoints,
-      isActive: this.isActive
+      isActive: this.isActive,
+      dailyWorkingHours: this.dailyWorkingHours > 0 ? this.dailyWorkingHours : 8.5
     };
 
     if (this.sprint?.id) {

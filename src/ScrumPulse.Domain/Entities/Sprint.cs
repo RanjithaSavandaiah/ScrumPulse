@@ -12,6 +12,7 @@ public class Sprint : BaseEntity
     public int DeliveredStoryPoints { get; set; }
     public int ConfidenceScore { get; set; } = 8;
     public string? ConfidenceNotes { get; set; }
+    public double DailyWorkingHours { get; set; } = 8.5;
 
     public ICollection<WorkItem> WorkItems { get; set; } = new List<WorkItem>();
     public ICollection<Blocker> Blockers { get; set; } = new List<Blocker>();

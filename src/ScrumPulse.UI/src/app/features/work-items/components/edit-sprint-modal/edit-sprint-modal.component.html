@@ -87,6 +87,45 @@
         </div>
       </div>
 
+      <!-- Working Days & Work Hours Configuration -->
+      <div class="form-row capacity-config-row">
+        <div class="form-group">
+          <label class="form-label">
+            Working Days (Mon – Fri)
+            <span class="badge-auto">Excludes Weekends</span>
+          </label>
+          <div class="working-days-box">
+            <app-icon name="calendar" [size]="16" color="var(--accent-primary)"></app-icon>
+            <span class="days-val">{{ calculatedWorkingDays }} working days</span>
+            <span class="days-hint">({{ startDate | date:'mediumDate' }} &rarr; {{ endDate | date:'mediumDate' }})</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-with-presets">
+            <label class="form-label">Work Hours / Dev / Day</label>
+            <div class="hours-presets-pill-group">
+              <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 8.0" (click)="setDailyHours(8.0)">8.0h</button>
+              <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 8.5" (click)="setDailyHours(8.5)">8.5h</button>
+              <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 9.0" (click)="setDailyHours(9.0)">9.0h</button>
+            </div>
+          </div>
+          <div class="hours-input-container">
+            <input
+              type="number"
+              step="0.5"
+              min="1"
+              max="24"
+              [(ngModel)]="dailyWorkingHours"
+              (ngModelChange)="onDailyHoursChange()"
+              name="dailyWorkingHours"
+              class="interactive-input hours-field"
+            />
+            <span class="hours-suffix">hrs / day</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Date Range Validation Warning Banner -->
       @if (isInvalidDateRange) {
         <div class="date-validation-banner animate-fade-in">

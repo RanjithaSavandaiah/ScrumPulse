@@ -12,7 +12,8 @@ public record CreateSprintRequest(
     bool IsActive = true,
     [Range(0, 500)] int CommittedStoryPoints = 0,
     [Range(1, 10)] int ConfidenceScore = 8,
-    [StringLength(500)] string? ConfidenceNotes = null
+    [StringLength(500)] string? ConfidenceNotes = null,
+    [Range(1.0, 24.0)] double DailyWorkingHours = 8.5
 );
 
 /// <summary>Request DTO for updating sprints.</summary>
@@ -24,7 +25,8 @@ public record UpdateSprintRequest(
     [Range(0, 500)] int CommittedStoryPoints = 0,
     [Range(0, 500)] int DeliveredStoryPoints = 0,
     [Range(1, 10)] int ConfidenceScore = 8,
-    [StringLength(500)] string? ConfidenceNotes = null
+    [StringLength(500)] string? ConfidenceNotes = null,
+    [Range(1.0, 24.0)] double DailyWorkingHours = 8.5
 );
 
 /// <summary>Request DTO for creating team members — prevents mass assignment.</summary>

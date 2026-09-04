@@ -132,3 +132,27 @@ export function getSprintDateRange(startDate?: string | Date | null, endDate?: s
     endDate: new Date(endDate).toISOString().split('T')[0]
   };
 }
+
+/**
+ * Calculates exact business / working days between startDate and endDate (inclusive),
+ * strictly excluding Saturdays and Sundays.
+ */
+export function calculateWorkingDays(startDate?: string | Date | null, endDate?: string | Date | null): number {
+  if (!startDate || !endDate) return 10;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  if (end < start) return 0;
+
+  let workingDays = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dayOfWeek = cur.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0 = Sunday, 6 = Saturday
+      workingDays++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return Math.max(1, workingDays);
+}

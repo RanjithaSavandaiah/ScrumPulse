@@ -10,6 +10,7 @@ import { SprintBurndownChartComponent } from './components/sprint-burndown-chart
 import { EditSprintModalComponent } from './components/edit-sprint-modal/edit-sprint-modal.component';
 import { EstimationMatrixModalComponent } from './components/estimation-matrix-modal/estimation-matrix-modal.component';
 import { Sprint, WorkItem } from '../../core/models/scrum.models';
+import { calculateWorkingDays } from '../../core/utils/date-utils';
 import { CORE_PIPES } from '../../core/pipes';
 
 @Component({
@@ -77,10 +78,10 @@ export class WorkItemsComponent {
 
     const start = sp ? new Date(sp.startDate || Date.now()) : new Date();
     const end = sp ? new Date(sp.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000)) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-    const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const workingDays = Math.max(1, Math.round(totalDays * (5 / 7)));
-    const grossHours = workingDays * mCount * 8;
-    const leaveHours = Math.round(totalLeaveDays * 8);
+    const workingDays = calculateWorkingDays(start, end);
+    const hoursPerDay = sp?.dailyWorkingHours && sp.dailyWorkingHours > 0 ? sp.dailyWorkingHours : 8.5;
+    const grossHours = Math.round(workingDays * mCount * hoursPerDay);
+    const leaveHours = Math.round(totalLeaveDays * hoursPerDay);
     const netHours = Math.max(0, grossHours - leaveHours);
 
     const sprintItems = sp ? this.state.workItems().filter(w => w.sprintId === sp.id) : this.state.workItems();

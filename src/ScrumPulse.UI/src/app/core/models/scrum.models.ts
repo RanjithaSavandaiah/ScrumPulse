@@ -29,6 +29,7 @@ export interface Sprint {
   deliveredStoryPoints: number;
   confidenceScore: number;
   confidenceNotes?: string;
+  dailyWorkingHours?: number;
 }
 
 export interface WorkItem {

@@ -38,7 +38,8 @@ public class SprintsController(IAppDbContext db) : BaseApiController
             IsActive = request.IsActive,
             CommittedStoryPoints = request.CommittedStoryPoints,
             ConfidenceScore = request.ConfidenceScore,
-            ConfidenceNotes = request.ConfidenceNotes
+            ConfidenceNotes = request.ConfidenceNotes,
+            DailyWorkingHours = request.DailyWorkingHours > 0 ? request.DailyWorkingHours : 8.5
         };
 
         if (sprint.IsActive)
@@ -95,6 +96,7 @@ public class SprintsController(IAppDbContext db) : BaseApiController
         sprint.DeliveredStoryPoints = request.DeliveredStoryPoints;
         if (request.ConfidenceScore > 0) sprint.ConfidenceScore = request.ConfidenceScore;
         if (request.ConfidenceNotes != null) sprint.ConfidenceNotes = request.ConfidenceNotes;
+        if (request.DailyWorkingHours > 0) sprint.DailyWorkingHours = request.DailyWorkingHours;
 
         await db.SaveChangesAsync(ct);
         return Ok(sprint);

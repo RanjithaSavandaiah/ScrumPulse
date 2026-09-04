@@ -394,3 +394,98 @@ input:checked + .slider:before {
   line-height: 1.35;
   box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
 }
+
+/* Working Days & Daily Hours Configuration */
+.capacity-config-row {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  margin-top: -0.25rem;
+}
+
+.badge-auto {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.35rem;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-primary);
+  font-weight: 500;
+  margin-left: 0.35rem;
+}
+
+.working-days-box {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.days-val {
+  font-weight: 700;
+  color: #fff;
+}
+
+.days-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.label-with-presets {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.hours-presets-pill-group {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.preset-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  border-radius: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.preset-pill.active {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: var(--accent-primary);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+}
+
+.hours-input-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.hours-field {
+  padding-right: 4.5rem;
+  font-weight: 600;
+}
+
+.hours-suffix {
+  position: absolute;
+  right: 0.85rem;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}

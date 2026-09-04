@@ -2,7 +2,7 @@ import { Component, Input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
 import { Sprint, WorkItem, TeamLeave, TeamMember } from '../../../../core/models/scrum.models';
-
+import { calculateWorkingDays } from '../../../../core/utils/date-utils';
 import { cleanName } from '../../../../core/utils/format-utils';
 
 export interface BurndownDayPoint {
@@ -37,10 +37,10 @@ export class SprintBurndownChartComponent {
       return {
         workingDays: 10,
         memberCount: this.members.length || 7,
-        grossHours: 560,
+        grossHours: 595,
         totalLeaveDays: 0,
         leaveHoursDeducted: 0,
-        netAvailableHours: 560,
+        netAvailableHours: 595,
         committedPoints: 30,
         deliveredPoints: 0,
         remainingPoints: 30,
@@ -51,8 +51,8 @@ export class SprintBurndownChartComponent {
 
     const start = new Date(this.sprint.startDate || Date.now());
     const end = new Date(this.sprint.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
-    const totalDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const workingDays = Math.max(1, Math.round(totalDays * (5 / 7)));
+    const workingDays = calculateWorkingDays(start, end);
+    const hoursPerDay: number = this.sprint?.dailyWorkingHours || 8.5;
 
     // Active delivery team members
     const deliveryMembers = this.members.filter(m => m.isActive && m.role !== 'ClientStakeholder');
@@ -85,9 +85,9 @@ export class SprintBurndownChartComponent {
       totalLeaveDays += mDays;
     }
 
-    // Standard 8 productive hours per day
-    const grossHours = workingDays * memberCount * 8;
-    const leaveHoursDeducted = Math.round(totalLeaveDays * 8);
+    // Configurable productive hours per day (default 8.5h)
+    const grossHours = Math.round(workingDays * memberCount * hoursPerDay);
+    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay);
     const netAvailableHours = Math.max(0, grossHours - leaveHoursDeducted);
 
     // Sprint Items Story Points
@@ -123,6 +123,7 @@ export class SprintBurndownChartComponent {
     const totalCommitted = analysis.committedPoints;
     const workingDays = analysis.workingDays;
     const start = new Date(this.sprint.startDate || Date.now());
+    const end = new Date(this.sprint.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
     const sprintItems = this.workItems.filter(w => w.sprintId === this.sprint.id || (!w.sprintId && this.sprint.isActive));
 
     const today = new Date();
@@ -142,12 +143,25 @@ export class SprintBurndownChartComponent {
       deliveredOnDay: 0
     });
 
+    // Compute exact calendar business days
+    const businessDates: Date[] = [];
+    const cur = new Date(start);
+    cur.setHours(0, 0, 0, 0);
+    const endDay = new Date(end);
+    endDay.setHours(23, 59, 59, 999);
+    while (cur <= endDay && businessDates.length < workingDays) {
+      if (cur.getDay() !== 0 && cur.getDay() !== 6) { // Skip Sat (6) and Sun (0)
+        businessDates.push(new Date(cur));
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
     let cumulativeDelivered = 0;
 
     for (let i = 1; i <= workingDays; i++) {
-      // Calculate date for day i
-      const d = new Date(start);
-      d.setDate(d.getDate() + Math.round((i * 14) / workingDays)); // spread across 2 weeks
+      // Calculate date for business day i
+      const d = businessDates[i - 1] ? new Date(businessDates[i - 1]) : new Date(start);
+      d.setHours(23, 59, 59, 999);
 
       const isPast = d <= today;
       const isToday = d.toDateString() === new Date().toDateString();
