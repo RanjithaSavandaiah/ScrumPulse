@@ -108,13 +108,14 @@ export class TeamRosterComponent {
   }
 
   onLinkMember(memberId: string): void {
-    if (!memberId) return;
+    if (!this.state.canEditOrDelete() || !memberId) return;
     const current = this.state.currentTeam();
     if (!current) return;
     this.state.assignMemberSquad(memberId, current.id).subscribe();
   }
 
   onLinkAllUnassigned(): void {
+    if (!this.state.canEditOrDelete()) return;
     const current = this.state.currentTeam();
     if (!current) return;
     const toLink = this.unassignedOrOtherMembers();
@@ -124,12 +125,14 @@ export class TeamRosterComponent {
   }
 
   onAssignSquad(memberId: string, event: Event): void {
+    if (!this.state.canEditOrDelete()) return;
     const selectEl = event.target as HTMLSelectElement;
     const teamId = selectEl.value ? selectEl.value : null;
     this.state.assignMemberSquad(memberId, teamId).subscribe();
   }
 
   onAssignSquadId(memberId: string, targetTeamId: string | null): void {
+    if (!this.state.canEditOrDelete()) return;
     const teamId = targetTeamId && targetTeamId.trim() ? targetTeamId.trim() : null;
     this.state.assignMemberSquad(memberId, teamId).subscribe();
   }

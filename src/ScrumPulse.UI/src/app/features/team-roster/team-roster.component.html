@@ -7,11 +7,13 @@
       </div>
       <p class="section-subtitle">Scrum Master Management &bull; Add, assign, and manage team members and squad affiliations</p>
     </div>
-    <div>
-      <button (click)="openAddModal()" class="btn-primary">
-        <app-icon name="plus" [size]="16"></app-icon> Add Team Member
-      </button>
-    </div>
+    @if (state.canEditOrDelete()) {
+      <div>
+        <button (click)="openAddModal()" class="btn-primary">
+          <app-icon name="plus" [size]="16"></app-icon> Add Team Member
+        </button>
+      </div>
+    }
   </div>
 
   <!-- Squad Context & Quick Link Banner -->
@@ -41,7 +43,7 @@
       </div>
     </div>
 
-    @if (state.currentTeam() && unassignedOrOtherMembers().length > 0) {
+    @if (state.currentTeam() && state.canEditOrDelete() && unassignedOrOtherMembers().length > 0) {
       <div class="link-member-action">
         <label class="link-label">Link Talent:</label>
         <select
@@ -123,30 +125,32 @@
             </span>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 0.35rem;">
-            @if (!member.teamId && state.currentTeam()) {
-              <button
-                type="button"
-                (click)="onLinkMember(member.id)"
-                class="btn-assign-quick"
-                title="Assign to {{ state.currentTeam()?.name }}"
-              >
-                + Link
-              </button>
-            }
-
-            <select
-              class="squad-quick-select"
-              [ngModel]="getMemberSquadId(member)"
-              (ngModelChange)="onAssignSquadId(member.id, $event)"
-              title="Change squad assignment"
-            >
-              <option value="">Unassigned</option>
-              @for (t of state.teams(); track t.id) {
-                <option [value]="t.id" [selected]="isMemberInSquad(member, t.id)">{{ t.name }}</option>
+          @if (state.canEditOrDelete()) {
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              @if (!member.teamId && state.currentTeam()) {
+                <button
+                  type="button"
+                  (click)="onLinkMember(member.id)"
+                  class="btn-assign-quick"
+                  title="Assign to {{ state.currentTeam()?.name }}"
+                >
+                  + Link
+                </button>
               }
-            </select>
-          </div>
+
+              <select
+                class="squad-quick-select"
+                [ngModel]="getMemberSquadId(member)"
+                (ngModelChange)="onAssignSquadId(member.id, $event)"
+                title="Change squad assignment"
+              >
+                <option value="">Unassigned</option>
+                @for (t of state.teams(); track t.id) {
+                  <option [value]="t.id" [selected]="isMemberInSquad(member, t.id)">{{ t.name }}</option>
+                }
+              </select>
+            </div>
+          }
         </div>
 
         <div class="card-bottom-meta">
@@ -163,18 +167,24 @@
           <h4>No members linked to {{ cur.name }} yet</h4>
           @if (unassignedOrOtherMembers().length > 0) {
             <p style="max-width: 520px; margin: 0 auto 1.25rem; color: var(--text-secondary); line-height: 1.5;">
-              Found <strong>{{ unassignedOrOtherMembers().length }}</strong> unassigned team members in your organization directory. Click below to instantly link them to <strong>{{ cur.name }}</strong>.
+              Found <strong>{{ unassignedOrOtherMembers().length }}</strong> unassigned team members in your organization directory.
             </p>
-            <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
-              <button (click)="onLinkAllUnassigned()" class="btn-primary" style="font-weight: 600;">
-                <app-icon name="check" [size]="16"></app-icon> Link All {{ unassignedOrOtherMembers().length }} Members to {{ cur.name }}
-              </button>
-              <button (click)="openAddModal()" class="btn-secondary">
-                <app-icon name="plus" [size]="16"></app-icon> Add New Member
-              </button>
-            </div>
+            @if (state.canEditOrDelete()) {
+              <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <button (click)="onLinkAllUnassigned()" class="btn-primary" style="font-weight: 600;">
+                  <app-icon name="check" [size]="16"></app-icon> Link All {{ unassignedOrOtherMembers().length }} Members to {{ cur.name }}
+                </button>
+                <button (click)="openAddModal()" class="btn-secondary">
+                  <app-icon name="plus" [size]="16"></app-icon> Add New Member
+                </button>
+              </div>
+            } @else {
+              <p style="font-size: 0.85rem; color: var(--text-muted);">
+                Switch to Scrum Master role to link members to this squad.
+              </p>
+            }
           } @else {
-            <p>Click "+ Add Team Member" to create new members for this squad.</p>
+            <p>No squad members found.</p>
           }
         } @else {
           <h4>No squad members found</h4>
