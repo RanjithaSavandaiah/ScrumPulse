@@ -33,14 +33,23 @@ export class SprintBurndownChartComponent {
 
   // 1. Capacity Auto-Calculation from Leaves
   capacityAnalysis = computed(() => {
+    const allMembers = (this.members && this.members.length > 0 ? this.members : []).filter(m => (m.isActive ?? true));
+    const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
+    const deliveryMembers = allMembers.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
+    });
+    const targetDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
+    const memberCount = targetDevs.length;
+
     if (!this.sprint) {
       return {
         workingDays: 10,
-        memberCount: this.members.length || 7,
-        grossHours: 595,
+        memberCount,
+        grossHours: Math.round(10 * memberCount * 8.5 * 10) / 10,
         totalLeaveDays: 0,
         leaveHoursDeducted: 0,
-        netAvailableHours: 595,
+        netAvailableHours: Math.round(10 * memberCount * 8.5 * 10) / 10,
         committedPoints: 30,
         deliveredPoints: 0,
         remainingPoints: 30,
@@ -54,10 +63,6 @@ export class SprintBurndownChartComponent {
     const workingDays = calculateWorkingDays(start, end);
     const hoursPerDay: number = this.sprint?.dailyWorkingHours || 8.5;
 
-    // Active delivery team members
-    const deliveryMembers = this.members.filter(m => m.isActive && m.role !== 'ClientStakeholder');
-    const memberCount = deliveryMembers.length || 7;
-
     // Filter leaves that intersect this sprint window
     const relevantLeaves = this.leaves.filter(l => {
       if (!l.isApproved) return false;
@@ -69,7 +74,7 @@ export class SprintBurndownChartComponent {
     const leaveBreakdown: { memberName: string; leaveDays: number; leaveHours: number; leaveType: string; slot: string }[] = [];
     let totalLeaveDays = 0;
 
-    for (const member of deliveryMembers) {
+    for (const member of targetDevs) {
       const memberLeaves = relevantLeaves.filter(l => l.teamMemberId === member.id);
       let mDays = 0;
       for (const ml of memberLeaves) {

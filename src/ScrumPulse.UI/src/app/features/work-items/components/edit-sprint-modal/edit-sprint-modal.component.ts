@@ -6,7 +6,7 @@ import { Sprint } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
 import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estimation-matrix-modal.component';
 
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
 
@@ -45,6 +45,16 @@ export class EditSprintModalComponent implements OnInit {
   showMatrixModal: boolean = false;
   capacityCalculationSummary: string | null = null;
   isActive: boolean = true;
+
+  rosterDeveloperCount = computed(() => {
+    const all = this.state.members().filter(m => (m.isActive ?? true));
+    const devs = all.filter(m => (m.role || '').toLowerCase() === 'developer');
+    if (devs.length > 0) return devs.length;
+    return all.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
+    }).length;
+  });
 
   get calculatedWorkingDays(): number {
     return calculateWorkingDays(this.startDate, this.endDate);
@@ -135,12 +145,23 @@ export class EditSprintModalComponent implements OnInit {
     const workingDays = this.calculatedWorkingDays;
     const hoursPerDay = this.dailyWorkingHours > 0 ? this.dailyWorkingHours : 8.5;
 
-    // Active delivery members
-    const members = this.state.members();
-    const deliveryMembers = members.filter(m => (m.isActive ?? true) && m.role !== 'ClientStakeholder' && m.role !== 'ScrumMaster' && m.role !== 'Cdl');
-    const memberCount = deliveryMembers.length || 5;
+    // Read developer count dynamically from Team Roster
+    const allMembers = this.state.members().filter(m => (m.isActive ?? true));
+    const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
+    const deliveryMembers = allMembers.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
+    });
 
-    // Leaves within window
+    const activeDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
+    const memberCount = activeDevs.length;
+
+    if (memberCount === 0) {
+      this.capacityCalculationSummary = `<strong>Notice:</strong> No active developers found in the Team Roster. Please add team members under the <strong>Team Roster</strong> tab to calculate sprint capacity.`;
+      return;
+    }
+
+    // Leaves within window for active roster developers
     const leaves = this.state.leaves();
     const relevantLeaves = leaves.filter(l => {
       if (!l.isApproved) return false;
@@ -150,7 +171,7 @@ export class EditSprintModalComponent implements OnInit {
     });
 
     let totalLeaveDays = 0;
-    for (const member of deliveryMembers) {
+    for (const member of activeDevs) {
       const memberLeaves = relevantLeaves.filter(l => l.teamMemberId === member.id);
       for (const ml of memberLeaves) {
         const d = ml.totalDays || (ml.leaveSlot && ml.leaveSlot !== 'FullDay' ? 0.5 : 1.0);
@@ -167,7 +188,7 @@ export class EditSprintModalComponent implements OnInit {
     this.committedHours = productiveFocusHours;
     this.committedStoryPoints = suggestedPoints;
 
-    this.capacityCalculationSummary = `Auto-calculated for ${memberCount} developers across ${workingDays} working days (@ ${hoursPerDay}h/day): ${grossHours}h gross - ${leaveHoursDeducted}h leave (${totalLeaveDays}d) = ${netAvailableHours}h net &times; 70% focus = ${productiveFocusHours}h (${suggestedPoints} SP).`;
+    this.capacityCalculationSummary = `Auto-calculated for <strong>${memberCount} developer${memberCount === 1 ? '' : 's'}</strong> from Team Roster across ${workingDays} working days (@ ${hoursPerDay}h/day): ${grossHours}h gross - ${leaveHoursDeducted}h leave (${totalLeaveDays}d) = ${netAvailableHours}h net &times; 70% focus = ${productiveFocusHours}h (${suggestedPoints} SP).`;
   }
 
   onSelectMatrixEstimation(event: { points: number; hours: number }): void {

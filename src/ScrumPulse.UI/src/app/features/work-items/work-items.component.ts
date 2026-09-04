@@ -67,9 +67,15 @@ export class WorkItemsComponent {
 
   sprintCapacitySummary = computed(() => {
     const sp = this.currentEffectiveSprint();
-    const members = this.state.members().filter(m => m.isActive && m.role !== 'ClientStakeholder');
+    const allMembers = this.state.members().filter(m => (m.isActive ?? true));
+    const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
+    const deliveryMembers = allMembers.filter(m => {
+      const r = (m.role || '').toLowerCase();
+      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
+    });
+    const targetDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
+    const mCount = targetDevs.length;
     const leaves = this.sprintLeaves().filter(l => l.isApproved);
-    const mCount = members.length || 7;
 
     let totalLeaveDays = 0;
     leaves.forEach(l => {

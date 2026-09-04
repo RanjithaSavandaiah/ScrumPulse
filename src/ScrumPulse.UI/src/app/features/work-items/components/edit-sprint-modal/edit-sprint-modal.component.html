@@ -222,10 +222,10 @@
               type="button"
               (click)="autoCalculateFromCapacity()"
               class="btn-calc-capacity"
-              title="Calculates committed hours and story points from active team members, working days, and approved leaves"
+              title="Calculates committed hours and story points dynamically from active developers in Team Roster, working days, and approved leaves"
             >
               <app-icon name="sparkles" [size]="14" color="var(--accent-warning)"></app-icon>
-              Auto-Calculate from Team Leaves & Capacity
+              Auto-Calculate from Team Roster ({{ rosterDeveloperCount() }} Devs) & Leaves
             </button>
 
             <button
