@@ -27,7 +27,7 @@
         <app-icon name="user-check" [size]="15" color="var(--accent-primary)"></app-icon>
         <strong>Select Developer for Individual Feedback:</strong>
       </label>
-      <select [ngModel]="selectedMemberId" (ngModelChange)="memberChange.emit($event)" class="picker-select">
+      <select [value]="selectedMemberId" (change)="onMemberSelect($event)" class="picker-select" data-testid="dev-select">
         @for (m of members; track m.id) {
           <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
         }
@@ -39,7 +39,7 @@
         <app-icon name="calendar" [size]="15" color="var(--accent-warning)"></app-icon>
         <strong>Select Sprint Board for Radar Analysis:</strong>
       </label>
-      <select [ngModel]="selectedSprintId" (ngModelChange)="sprintChange.emit($event)" class="picker-select">
+      <select [value]="selectedSprintId" (change)="onSprintSelect($event)" class="picker-select" data-testid="sprint-select">
         @for (s of sprints; track s.id) {
           <option [value]="s.id">{{ s.name }} {{ s.isActive ? '(Active)' : '' }}</option>
         }

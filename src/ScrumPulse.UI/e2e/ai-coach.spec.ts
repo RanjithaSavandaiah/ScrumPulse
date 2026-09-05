@@ -13,8 +13,9 @@ test.describe('Microsoft AI Intelligence & Coaching Studio', () => {
     await expect(picker).toBeVisible({ timeout: 10000 });
 
     // Select developer
-    const devSelect = picker.locator('.picker-select');
+    const devSelect = page.locator('[data-testid="dev-select"]');
     await expect(devSelect).toBeVisible();
+    await expect(devSelect.locator('option').nth(1)).toBeAttached({ timeout: 15000 });
     await devSelect.selectOption({ index: 1 });
 
     // Verify AI insights card with findings and recommendations

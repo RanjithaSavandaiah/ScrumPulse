@@ -98,6 +98,7 @@ describe('TeamPerformanceComponent', () => {
   });
 
   it('should handle API error gracefully', () => {
+    spyOn(console, 'error');
     spyOn(stateService, 'getTeamPerformanceSummary').and.returnValue(throwError(() => new Error('Server unavailable')));
 
     fixture.detectChanges();
@@ -105,6 +106,7 @@ describe('TeamPerformanceComponent', () => {
     expect(component.error()).toContain('Server unavailable');
     expect(component.loading()).toBeFalse();
     expect(component.hasDataToAnalyze()).toBeFalse();
+    expect(console.error).toHaveBeenCalled();
   });
 
   it('should resolve grade classes properly', () => {

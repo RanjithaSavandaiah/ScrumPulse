@@ -23,7 +23,7 @@
     <div class="role-selector squad-selector">
       <app-icon name="users" [size]="14" color="var(--accent-secondary)"></app-icon>
       <span class="role-label">Squad:</span>
-      <select [value]="state.currentTeam()?.id || ''" (change)="onSquadChange($event)" class="role-select" title="Switch squad tenant">
+      <select [value]="state.currentTeam()?.id || ''" (change)="onSquadChange($event)" class="role-select" data-testid="squad-select" title="Switch squad tenant">
         <option value="">All Squads (Default)</option>
         @for (team of state.teams(); track team.id) {
           <option [value]="team.id">{{ team.name }}</option>
@@ -42,7 +42,7 @@
     <div class="role-selector">
       <app-icon name="user" [size]="14" color="var(--text-secondary)"></app-icon>
       <span class="role-label">Role:</span>
-      <select [value]="state.currentRole()" (change)="onRoleChange($event)" class="role-select">
+      <select [value]="state.currentRole()" (change)="onRoleChange($event)" class="role-select" data-testid="role-select">
         <option value="ScrumMaster">Scrum Master</option>
         <option value="Developer">Developer</option>
         <option value="QaEngineer">QA Engineer</option>

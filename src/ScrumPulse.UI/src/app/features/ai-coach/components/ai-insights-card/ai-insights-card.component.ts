@@ -24,4 +24,14 @@ export class AiInsightsCardComponent {
   @Output() tierChange = new EventEmitter<string>();
   @Output() memberChange = new EventEmitter<string>();
   @Output() sprintChange = new EventEmitter<string>();
+
+  onMemberSelect(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value;
+    this.memberChange.emit(val);
+  }
+
+  onSprintSelect(event: Event): void {
+    const val = (event.target as HTMLSelectElement).value;
+    this.sprintChange.emit(val);
+  }
 }

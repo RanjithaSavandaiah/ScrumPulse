@@ -1,0 +1,145 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-quality-gate:
+    name: Backend Tests & Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore ScrumPulse.slnx
+
+      - name: Build with Strict Warning-as-Error
+        run: dotnet build ScrumPulse.slnx -c Release --no-restore /warnaserror
+
+      - name: Run Backend Unit & Integration Tests
+        run: dotnet test ScrumPulse.slnx -c Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+  frontend-unit-tests:
+    name: Frontend Unit Tests & Console Sentinel
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/ScrumPulse.UI
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: src/ScrumPulse.UI/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Angular Application (Bundle Verification)
+        run: npm run build
+
+      - name: Run Frontend Tests with Zero Console Error & Warning Sentinel
+        run: npm run test:ci
+
+  e2e-console-sentinel:
+    name: E2E Runtime & Zero Console Error Sentinel
+    runs-on: ubuntu-latest
+    needs: [backend-quality-gate, frontend-unit-tests]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: src/ScrumPulse.UI/package-lock.json
+
+      - name: Build Backend Service
+        run: dotnet build ScrumPulse.slnx -c Release
+
+      - name: Install Frontend Dependencies
+        working-directory: src/ScrumPulse.UI
+        run: npm ci
+
+      - name: Build Frontend SPA
+        working-directory: src/ScrumPulse.UI
+        run: npm run build
+
+      - name: Deploy Frontend Assets to Backend wwwroot
+        run: |
+          mkdir -p src/ScrumPulse.Api/wwwroot
+          cp -r src/ScrumPulse.UI/dist/scrum-pulse.ui/browser/* src/ScrumPulse.Api/wwwroot/
+
+      - name: Install Playwright Chromium Browser
+        working-directory: src/ScrumPulse.UI
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E & Browser Console Sentinel
+        working-directory: src/ScrumPulse.UI
+        run: npx playwright test
+
+      - name: Upload Playwright Failure Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-report
+          path: src/ScrumPulse.UI/test-results/
+          retention-days: 7
+
+  deploy-to-render:
+    name: Continuous Deployment to Render (Free)
+    needs: [backend-quality-gate, frontend-unit-tests, e2e-console-sentinel]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Render Production Deploy Hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_URL is not configured in GitHub repository secrets!"
+            echo "To enable 100% free automated CD to Render:"
+            echo "1. Go to your Render Dashboard -> scrumpulse web service -> Settings"
+            echo "2. Copy the 'Deploy Hook' URL"
+            echo "3. Go to GitHub -> Settings -> Secrets and variables -> Actions"
+            echo "4. Add repository secret: RENDER_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+
+          echo "Initiating production deployment via Render deploy webhook..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "Render deployment triggered successfully! (HTTP $HTTP_STATUS)"
+            echo "Build & live rollout underway at https://scrumpulse.onrender.com"
+          else
+            echo "::error::Render deploy hook failed with HTTP status $HTTP_STATUS"
+            exit 1
+          fi

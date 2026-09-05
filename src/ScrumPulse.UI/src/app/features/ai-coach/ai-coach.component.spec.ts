@@ -96,6 +96,7 @@ describe('AiCoachComponent', () => {
   });
 
   it('should handle Copilot chat error gracefully with user-friendly error message', () => {
+    spyOn(console, 'error');
     spyOn(stateService, 'askCopilot').and.returnValue(throwError(() => new Error('Server timeout')));
 
     const initialLen = component.chatMessages.length;
@@ -103,5 +104,6 @@ describe('AiCoachComponent', () => {
 
     expect(component.chatMessages.length).toBe(initialLen + 2);
     expect(component.chatMessages[component.chatMessages.length - 1].text).toContain('Sorry, I encountered an issue');
+    expect(console.error).toHaveBeenCalled();
   });
 });

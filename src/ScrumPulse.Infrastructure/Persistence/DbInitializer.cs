@@ -369,14 +369,80 @@ public static class DbInitializer
                 }
             }
         }
-        else if (!await context.TeamMembers.AnyAsync())
+        else
         {
-            var sm = new TeamMember { Name = "Scrum Master", Email = "sm@scrumpulse.io", Role = RoleType.ScrumMaster, Location = "Offshore", Avatar = "SM", ActiveWipLimit = 5 };
-            var dev1 = new TeamMember { Name = "Developer 1", Email = "dev1@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D1", ActiveWipLimit = 3 };
-            var dev2 = new TeamMember { Name = "Developer 2", Email = "dev2@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D2", ActiveWipLimit = 3 };
-            var qa1 = new TeamMember { Name = "QA Engineer", Email = "qa@scrumpulse.io", Role = RoleType.QaEngineer, Location = "Offshore", Avatar = "QA", ActiveWipLimit = 4 };
+            // Ensure demo team exists
+            var demoTeam = await context.Teams.FirstOrDefaultAsync();
+            if (demoTeam == null)
+            {
+                demoTeam = new Team
+                {
+                    Name = "Fikacoders",
+                    Slug = "fikacoders",
+                    Description = "Primary Engineering Squad",
+                    JoinCode = "FIKA123",
+                    IsActive = true
+                };
+                context.Teams.Add(demoTeam);
+                await context.SaveChangesAsync();
+            }
 
-            context.TeamMembers.AddRange(sm, dev1, dev2, qa1);
+            // Ensure demo active sprint exists
+            if (!await context.Sprints.AnyAsync())
+            {
+                var now = DateTime.UtcNow;
+                var sprint = new Sprint
+                {
+                    Name = "Sprint 1",
+                    StartDate = now.AddDays(-7),
+                    EndDate = now.AddDays(7),
+                    Goal = "Deliver Sprint Core Features & Production Telemetry",
+                    IsActive = true,
+                    CommittedStoryPoints = 40,
+                    TeamId = demoTeam.Id
+                };
+                context.Sprints.Add(sprint);
+                await context.SaveChangesAsync();
+            }
+
+            var demoEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "ranjitha.sm@scrumpulse.io",
+                "kaushik.dev@scrumpulse.io",
+                "athul.dev@scrumpulse.io",
+                "venkat.dev@scrumpulse.io",
+                "suhaim.dev@scrumpulse.io",
+                "angan.qa@scrumpulse.io",
+                "rahul.cdl@scrumpulse.io",
+                "sm@scrumpulse.io",
+                "dev1@scrumpulse.io",
+                "dev2@scrumpulse.io",
+                "qa@scrumpulse.io"
+            };
+
+            var softDeletedDemoMembers = await context.TeamMembers
+                .IgnoreQueryFilters()
+                .Where(m => demoEmails.Contains(m.Email))
+                .ToListAsync();
+
+            if (softDeletedDemoMembers.Count > 0)
+            {
+                foreach (var member in softDeletedDemoMembers)
+                {
+                    member.IsDeleted = false;
+                    member.IsActive = true;
+                    if (member.TeamId == null) member.TeamId = demoTeam.Id;
+                }
+            }
+            else if (!await context.TeamMembers.AnyAsync())
+            {
+                var sm = new TeamMember { TeamId = demoTeam.Id, Name = "Scrum Master", Email = "sm@scrumpulse.io", Role = RoleType.ScrumMaster, Location = "Offshore", Avatar = "SM", ActiveWipLimit = 5 };
+                var dev1 = new TeamMember { TeamId = demoTeam.Id, Name = "Developer 1", Email = "dev1@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D1", ActiveWipLimit = 3 };
+                var dev2 = new TeamMember { TeamId = demoTeam.Id, Name = "Developer 2", Email = "dev2@scrumpulse.io", Role = RoleType.Developer, Location = "Offshore", Avatar = "D2", ActiveWipLimit = 3 };
+                var qa1 = new TeamMember { TeamId = demoTeam.Id, Name = "QA Engineer", Email = "qa@scrumpulse.io", Role = RoleType.QaEngineer, Location = "Offshore", Avatar = "QA", ActiveWipLimit = 4 };
+
+                context.TeamMembers.AddRange(sm, dev1, dev2, qa1);
+            }
         }
 
         await context.SaveChangesAsync();

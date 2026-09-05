@@ -24,11 +24,13 @@ describe('errorInterceptor', () => {
   });
 
   it('should intercept 500 error and transform into informative Error message', (done) => {
+    spyOn(console, 'error');
     httpClient.get('/api/test-endpoint').subscribe({
       next: () => fail('should have failed with 500'),
       error: (error: Error) => {
         expect(error).toBeTruthy();
         expect(error.message).toContain('Database connection timeout');
+        expect(console.error).toHaveBeenCalled();
         done();
       }
     });
@@ -41,11 +43,13 @@ describe('errorInterceptor', () => {
   });
 
   it('should handle network connection failure status 0', (done) => {
+    spyOn(console, 'error');
     httpClient.get('/api/network-offline').subscribe({
       next: () => fail('should have failed with network error'),
       error: (error: Error) => {
         expect(error).toBeTruthy();
         expect(error.message).toContain('Unable to connect to ScrumPulse API server');
+        expect(console.error).toHaveBeenCalled();
         done();
       }
     });

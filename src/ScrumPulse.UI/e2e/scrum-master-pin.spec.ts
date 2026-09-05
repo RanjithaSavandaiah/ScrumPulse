@@ -6,7 +6,7 @@ test.describe('Scrum Master PIN Security & Role Interception', () => {
   });
 
   test('should default role to Developer and intercept switching to Scrum Master', async ({ page }) => {
-    const roleSelect = page.locator('.role-select');
+    const roleSelect = page.locator('[data-testid="role-select"]');
     await expect(roleSelect).toBeVisible();
 
     // Select should initially be Developer
@@ -28,7 +28,7 @@ test.describe('Scrum Master PIN Security & Role Interception', () => {
   });
 
   test('should reject invalid PIN and show error alert', async ({ page }) => {
-    await page.locator('.role-select').selectOption('ScrumMaster');
+    await page.locator('[data-testid="role-select"]').selectOption('ScrumMaster');
 
     // Enter wrong PIN (9999) using keypad
     const key9 = page.locator('.keypad-grid .key-btn', { hasText: '9' });
@@ -44,7 +44,7 @@ test.describe('Scrum Master PIN Security & Role Interception', () => {
   });
 
   test('should authenticate with PIN 1234 and unlock SM privileges', async ({ page }) => {
-    await page.locator('.role-select').selectOption('ScrumMaster');
+    await page.locator('[data-testid="role-select"]').selectOption('ScrumMaster');
 
     // Enter 1 2 3 4 via keypad
     await page.locator('.keypad-grid .key-btn', { hasText: '1' }).click();
@@ -54,7 +54,7 @@ test.describe('Scrum Master PIN Security & Role Interception', () => {
 
     // Modal should close and role should become ScrumMaster
     await expect(page.locator('app-sm-pin-modal')).not.toBeVisible();
-    await expect(page.locator('.role-select')).toHaveValue('ScrumMaster');
+    await expect(page.locator('[data-testid="role-select"]')).toHaveValue('ScrumMaster');
 
     // Green unlocked status should appear
     const lockBtn = page.locator('.btn-sm-locked');
@@ -63,6 +63,6 @@ test.describe('Scrum Master PIN Security & Role Interception', () => {
 
     // Re-lock session
     await lockBtn.click();
-    await expect(page.locator('.role-select')).toHaveValue('Developer');
+    await expect(page.locator('[data-testid="role-select"]')).toHaveValue('Developer');
   });
 });

@@ -20,8 +20,28 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     ContentRootPath = AppContext.BaseDirectory
 });
 
-// Ensure WebRoot directory exists so StaticFileMiddleware initializes with zero warnings
+// Ensure WebRoot directory exists and is discovered across Docker and dotnet run contexts
 var wwwrootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+if (!File.Exists(Path.Combine(wwwrootPath, "index.html")))
+{
+    var candidates = new[]
+    {
+        Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+        Path.Combine(Directory.GetCurrentDirectory(), "src", "ScrumPulse.Api", "wwwroot"),
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "wwwroot")
+    };
+    foreach (var candidate in candidates)
+    {
+        var fullPath = Path.GetFullPath(candidate);
+        if (File.Exists(Path.Combine(fullPath, "index.html")))
+        {
+            wwwrootPath = fullPath;
+            builder.Environment.WebRootPath = fullPath;
+            break;
+        }
+    }
+}
+
 if (!Directory.Exists(wwwrootPath))
 {
     Directory.CreateDirectory(wwwrootPath);
@@ -154,7 +174,7 @@ app.UseOutputCache();
 // 7. Rate limiting
 app.UseRateLimiter();
 
-// ── Database Initialization ──────────────────────────────────────────────
+// -- Database Initialization --
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -164,7 +184,7 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.SeedAsync(db, seedDemoData, dbLogger);
 }
 
-// ── Swagger ──────────────────────────────────────────────────────────────
+// -- Swagger --
 app.UseSwagger();
 app.UseSwaggerUI(swaggerUiOptions =>
 {
@@ -176,24 +196,24 @@ app.UseSwaggerUI(swaggerUiOptions =>
 var corsPolicy = app.Environment.IsDevelopment() ? "Development" : "Production";
 app.UseCors(corsPolicy);
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+var fileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath);
+app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider });
+app.UseStaticFiles(new StaticFileOptions { FileProvider = fileProvider });
 
 app.UseRouting();
 app.UseAuthorization();
 
-// ── Health Probes ────────────────────────────────────────────────────────
-app.MapHealthChecks("/health");
+// -- Health Probes --
 app.MapHealthChecks("/healthz");
 
-// ── Map Controllers with global rate limiting ────────────────────────────
+// -- Map Controllers with global rate limiting --
 app.MapControllers().RequireRateLimiting("global");
 
-// ── SPA Fallback ─────────────────────────────────────────────────────────
+// -- SPA Fallback --
 var indexHtmlPath = Path.Combine(wwwrootPath, "index.html");
 if (File.Exists(indexHtmlPath))
 {
-    app.MapFallbackToFile("index.html");
+    app.MapFallbackToFile("index.html", new StaticFileOptions { FileProvider = fileProvider });
 }
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";

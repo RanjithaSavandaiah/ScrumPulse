@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5000',
+    baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -22,9 +22,14 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: 'dotnet run --project ../ScrumPulse.Api/ScrumPulse.Api.csproj --urls "http://localhost:5000"',
-    url: 'http://localhost:5000',
+    command: 'dotnet run --project ../ScrumPulse.Api/ScrumPulse.Api.csproj',
+    url: 'http://localhost:8080/health',
     reuseExistingServer: true,
     timeout: 120 * 1000,
+    env: {
+      PORT: '8080',
+      ASPNETCORE_ENVIRONMENT: 'Development',
+      SeedDemoData: 'true'
+    }
   },
 });
