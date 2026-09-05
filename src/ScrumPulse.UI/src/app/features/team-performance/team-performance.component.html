@@ -15,8 +15,66 @@
   }
 
   @if (summary(); as perf) {
-    <!-- Hero Performance Grade Card -->
-    <div class="glass-panel hero-grade-card">
+    @if (!hasDataToAnalyze()) {
+      <!-- Empty State: No Data to Analyze -->
+      <div class="glass-panel no-data-card animate-fade-in">
+        <div class="no-data-icon-wrap">
+          <app-icon name="bar-chart" [size]="48" color="var(--accent-primary)"></app-icon>
+        </div>
+        <div class="no-data-badge">
+          <app-icon name="alert-circle" [size]="14"></app-icon>
+          <span>No Data to Analyze</span>
+        </div>
+        <h3 class="no-data-title">No Sprint Performance Data Available</h3>
+        <p class="no-data-subtitle">
+          {{ perf.teamName }} currently has <strong>0 completed sprints</strong> recorded.
+          ScrumPulse calculates velocity growth, Say-Do commitment predictability, defect escape ratios, and code review turnaround across completed sprints.
+          Once your team completes at least one sprint with estimated work items, performance telemetry will automatically appear here.
+        </p>
+
+        <div class="no-data-steps">
+          <div class="step-card">
+            <div class="step-header">
+              <span class="step-num">1</span>
+              <app-icon name="plus" [size]="18" color="var(--accent-primary)"></app-icon>
+            </div>
+            <h4>Plan & Estimate Work</h4>
+            <p>Add user stories and tasks with story points in Work Items & Lifecycle.</p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-header">
+              <span class="step-num">2</span>
+              <app-icon name="zap" [size]="18" color="var(--accent-secondary)"></app-icon>
+            </div>
+            <h4>Track Execution</h4>
+            <p>Conduct daily standups, review PRs, and clear blocker SLAs.</p>
+          </div>
+
+          <div class="step-card">
+            <div class="step-header">
+              <span class="step-num">3</span>
+              <app-icon name="check-circle" [size]="18" color="var(--accent-success)"></app-icon>
+            </div>
+            <h4>Complete the Sprint</h4>
+            <p>Close the sprint to snapshot velocity and auto-generate client-ready performance metrics.</p>
+          </div>
+        </div>
+
+        <div class="no-data-actions">
+          <button (click)="loadPerformance()" class="btn-refresh-data" title="Check for newly completed sprint telemetry">
+            <app-icon name="refresh-cw" [size]="16"></app-icon>
+            <span>Refresh Telemetry</span>
+          </button>
+          <a routerLink="/" fragment="lifecycle" class="btn-goto-lifecycle">
+            <app-icon name="arrow-right" [size]="16"></app-icon>
+            <span>Go to Work Items & Lifecycle</span>
+          </a>
+        </div>
+      </div>
+    } @else {
+      <!-- Hero Performance Grade Card -->
+      <div class="glass-panel hero-grade-card">
       <div class="hero-grade-content">
         <div class="grade-badge-wrap">
           <div class="grade-badge" [class]="getGradeClass(perf.performanceGrade)">
@@ -180,5 +238,6 @@
         </div>
       </div>
     </div>
+    }
   }
 </section>

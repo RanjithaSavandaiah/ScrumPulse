@@ -21,13 +21,6 @@ public class TeamPerformanceService(
         try
         {
             var snapshots = await GetGrowthTrendAsync(sprintCount, ct);
-            var metrics = ComputeGrowthMetrics(snapshots);
-            var highlights = GenerateHighlights(snapshots, metrics);
-            var engagement = await ComputeEngagementAsync(snapshots.Count, ct);
-
-            int overallScore = ComputeOverallScore(metrics, engagement);
-            string grade = overallScore >= 90 ? "A+" : overallScore >= 80 ? "A" : overallScore >= 70 ? "B+" : overallScore >= 60 ? "B" : "C";
-            string headline = GenerateHeadline(grade, snapshots, metrics);
 
             var teamName = "FikaCoders";
             try
@@ -42,6 +35,30 @@ public class TeamPerformanceService(
             {
                 logger?.LogDebug(ex, "Failed to resolve active team name for performance summary");
             }
+
+            if (snapshots.Count == 0)
+            {
+                return new TeamPerformanceSummaryDto(
+                    teamName,
+                    "N/A",
+                    0,
+                    "No completed sprint telemetry available to analyze team performance yet. Complete at least one sprint with story point estimates and delivered work items to generate performance metrics.",
+                    0,
+                    DateTime.UtcNow,
+                    [],
+                    [],
+                    [],
+                    new TeamEngagementDto(0, 0, 0, 0, 0, 0, "No Data")
+                );
+            }
+
+            var metrics = ComputeGrowthMetrics(snapshots);
+            var highlights = GenerateHighlights(snapshots, metrics);
+            var engagement = await ComputeEngagementAsync(snapshots.Count, ct);
+
+            int overallScore = ComputeOverallScore(metrics, engagement);
+            string grade = overallScore >= 90 ? "A+" : overallScore >= 80 ? "A" : overallScore >= 70 ? "B+" : overallScore >= 60 ? "B" : "C";
+            string headline = GenerateHeadline(grade, snapshots, metrics);
 
             return new TeamPerformanceSummaryDto(
                 teamName, grade, overallScore, headline,
@@ -61,13 +78,14 @@ public class TeamPerformanceService(
         try
         {
             var snapshots = await GetGrowthTrendAsync(sprintCount, ct);
+            if (snapshots.Count == 0) return [];
             var metrics = ComputeGrowthMetrics(snapshots);
             return GenerateHighlights(snapshots, metrics);
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Error computing team highlights; returning default highlights");
-            return GetDefaultHighlights();
+            logger?.LogWarning(ex, "Error computing team highlights; returning empty list");
+            return [];
         }
     }
 
@@ -169,7 +187,7 @@ public class TeamPerformanceService(
     {
         if (snapshots.Count == 0)
         {
-            return GetDefaultMetrics();
+            return [];
         }
 
         var latest = snapshots[^1];
@@ -249,7 +267,7 @@ public class TeamPerformanceService(
         IReadOnlyList<GrowthMetricDto> metrics)
     {
         var highlights = new List<TeamHighlightDto>();
-        if (snapshots.Count == 0) return GetDefaultHighlights();
+        if (snapshots.Count == 0) return [];
 
         // Velocity growth highlight
         var velocityMetric = metrics.FirstOrDefault(m => m.MetricName == "Velocity Growth");
@@ -297,7 +315,7 @@ public class TeamPerformanceService(
             highlights.Add(new("sparkles", "Growth", $"Team completed {latest.DeliveredPoints} story points in {latest.SprintName} with {latest.SayDoPercent}% commitment accuracy.", "Neutral"));
         }
 
-        return highlights.Count > 0 ? highlights : GetDefaultHighlights();
+        return highlights;
     }
 
     private async Task<TeamEngagementDto> ComputeEngagementAsync(int sprintCount, CancellationToken ct)
@@ -401,12 +419,12 @@ public class TeamPerformanceService(
 
     private static TeamPerformanceSummaryDto GetDefaultSummary()
     {
-        var defaultEngagement = new TeamEngagementDto(4.5, 0, 0, 0, 0, 0, "Good");
+        var defaultEngagement = new TeamEngagementDto(0, 0, 0, 0, 0, 0, "No Data");
         return new TeamPerformanceSummaryDto(
-            "FikaCoders", "A", 85,
-            "Team growth & performance telemetry active — metrics will continue to dynamically update as sprints progress.",
+            "FikaCoders", "N/A", 0,
+            "No completed sprint telemetry available to analyze team performance yet.",
             0, DateTime.UtcNow,
-            GetDefaultMetrics(), [], GetDefaultHighlights(), defaultEngagement
+            [], [], [], defaultEngagement
         );
     }
 

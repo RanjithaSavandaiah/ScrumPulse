@@ -40,6 +40,111 @@ export function generateDynamicMonths(pastCount = 11, futureCount = 3, includeAl
 }
 
 /**
+ * Dynamically generates all 12 calendar months (January to December) for a given year.
+ */
+export function generateCalendarYearMonths(year: number): SelectOption<string>[] {
+  const options: SelectOption<string>[] = [];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  for (let m = 0; m < 12; m++) {
+    const d = new Date(year, m, 1);
+    const monthName = d.toLocaleString('default', { month: 'long' });
+    const value = `${year}-${String(m + 1).padStart(2, '0')}`;
+    const isCurrent = year === currentYear && m === currentMonth;
+    options.push({
+      value,
+      label: `${monthName} ${year}${isCurrent ? ' (Current)' : ''}`
+    });
+  }
+  return options;
+}
+
+/**
+ * Gets the calendar year date range strictly from January 1 to December 31.
+ * Leaves and annual capacity follow the calendar year (Jan to Dec), not financial year.
+ */
+export function getCalendarYearRange(year: number): DateRangePreset {
+  return {
+    startDate: `${year}-01-01`,
+    endDate: `${year}-12-31`
+  };
+}
+
+/**
+ * Formats a Date or ISO string into a normalized YYYY-MM-DD string for exact date comparisons.
+ */
+export function toDateOnlyString(val: string | Date | null | undefined): string | null {
+  if (!val) return null;
+  if (typeof val === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+      return val.substring(0, 10);
+    }
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Checks whether a leave interval overlaps with a requested period.
+ * Supports:
+ *  - 'ALL': Matches any leave.
+ *  - 'YEAR_<YYYY>': Calendar Year (strictly January 1 to December 31 of <YYYY>).
+ *  - '<YYYY>-<MM>': Specific calendar month (1st to last day of that month).
+ *  - 'CUSTOM': User-specified date range [customStart, customEnd].
+ */
+export function isLeaveInPeriod(
+  leave: { startDate?: string | Date | null; endDate?: string | Date | null },
+  period: string,
+  customStart?: string | null,
+  customEnd?: string | null
+): boolean {
+  if (!period || period === 'ALL') return true;
+  if (!leave || !leave.startDate) return false;
+
+  const leaveStart = toDateOnlyString(leave.startDate);
+  const leaveEnd = toDateOnlyString(leave.endDate || leave.startDate);
+  if (!leaveStart || !leaveEnd) return false;
+
+  let rangeStart = '';
+  let rangeEnd = '';
+
+  if (period.startsWith('YEAR_')) {
+    const yearStr = period.replace('YEAR_', '');
+    const year = parseInt(yearStr, 10);
+    if (isNaN(year)) return true;
+    // Strict calendar year: Jan 1 to Dec 31
+    rangeStart = `${year}-01-01`;
+    rangeEnd = `${year}-12-31`;
+  } else if (period === 'CUSTOM') {
+    rangeStart = customStart ? toDateOnlyString(customStart) || '' : '';
+    rangeEnd = customEnd ? toDateOnlyString(customEnd) || '' : '';
+
+    if (!rangeStart && !rangeEnd) return true;
+    if (rangeStart && !rangeEnd) return leaveEnd >= rangeStart;
+    if (!rangeStart && rangeEnd) return leaveStart <= rangeEnd;
+  } else if (/^\d{4}-\d{2}$/.test(period)) {
+    const [yearStr, monthStr] = period.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    rangeStart = `${period}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    rangeEnd = `${period}-${String(lastDay).padStart(2, '0')}`;
+  } else {
+    return true;
+  }
+
+  // Two intervals [leaveStart, leaveEnd] and [rangeStart, rangeEnd] overlap if:
+  // leaveStart <= rangeEnd AND leaveEnd >= rangeStart
+  return leaveStart <= rangeEnd && leaveEnd >= rangeStart;
+}
+
+/**
  * Dynamically generates rolling quarters based on the current runtime date.
  */
 export function generateDynamicQuarters(pastCount = 7, futureCount = 1): SelectOption<string>[] {

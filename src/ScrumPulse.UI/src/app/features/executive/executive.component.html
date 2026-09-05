@@ -477,7 +477,7 @@
           </div>
         </div>
         <div class="ai-header-right">
-          <span class="glass-badge" [style.color]="ai.riskLevel.includes('High') ? 'var(--accent-danger)' : (ai.riskLevel.includes('Medium') ? 'var(--accent-warning)' : 'var(--accent-success)')">
+          <span class="glass-badge" [style.color]="ai.riskLevel.includes('High') ? 'var(--accent-danger)' : (ai.riskLevel.includes('Medium') ? 'var(--accent-warning)' : (ai.riskLevel.includes('No Data') ? 'var(--text-secondary)' : 'var(--accent-success)'))">
             {{ ai.riskLevel }}
           </span>
           <button (click)="refreshAiIntelligence()" [disabled]="loadingAi()" class="btn-refresh-ai" title="Re-evaluate AI Telemetry">
@@ -495,7 +495,10 @@
           </h5>
           <ul class="ai-findings-list">
             @for (finding of ai.keyFindings; track finding) {
-              <li class="ai-finding-item" [class.strength-item]="finding.includes('STRENGTH')" [class.weakness-item]="finding.includes('WEAKNESS') || finding.includes('RISK')">
+              <li class="ai-finding-item"
+                  [class.strength-item]="finding.includes('STRENGTH')"
+                  [class.weakness-item]="finding.includes('WEAKNESS') || finding.includes('RISK') || finding.includes('WARNING')"
+                  [class.pending-item]="finding.includes('NO DATA') || finding.includes('TELEMETRY PENDING')">
                 {{ finding }}
               </li>
             }

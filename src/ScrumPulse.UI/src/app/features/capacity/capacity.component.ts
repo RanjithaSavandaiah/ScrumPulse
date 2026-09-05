@@ -7,7 +7,7 @@ import { TeamLeave, TeamMember } from '../../core/models/scrum.models';
 import { BookLeaveModalComponent } from './components/book-leave-modal/book-leave-modal.component';
 
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
-import { generateDynamicMonths } from '../../core/utils/date-utils';
+import { generateCalendarYearMonths, isLeaveInPeriod, SelectOption } from '../../core/utils/date-utils';
 import { CORE_PIPES } from '../../core/pipes';
 import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constants';
 
@@ -30,18 +30,34 @@ export class CapacityComponent {
     return this.state.activeSprint()?.dailyWorkingHours || DEFAULT_DAILY_WORKING_HOURS;
   }
 
-  // Filters per Month & per Individual
-  selectedMonth = signal<string>('ALL');
+  // Dynamic Calendar Years & Months (Jan to Dec calendar year standard)
+  currentYear = new Date().getFullYear();
+  selectedPeriod = signal<string>('YEAR_' + this.currentYear);
+  customStartDate = signal<string>('');
+  customEndDate = signal<string>('');
   selectedMemberId = signal<string>('ALL');
 
-  monthsList = generateDynamicMonths(6, 6, true);
+  currentYearMonths: SelectOption<string>[] = generateCalendarYearMonths(this.currentYear);
+  nextYearMonths: SelectOption<string>[] = generateCalendarYearMonths(this.currentYear + 1);
+  previousYearMonths: SelectOption<string>[] = generateCalendarYearMonths(this.currentYear - 1);
 
-  private isDateInMonth(dateStr: string | Date | undefined | null, targetYearMonth: string): boolean {
-    if (!dateStr || targetYearMonth === 'ALL') return true;
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return false;
-    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return ym === targetYearMonth;
+  onPeriodChange(val: string): void {
+    this.selectedPeriod.set(val);
+    if (val === 'CUSTOM') {
+      if (!this.customStartDate() && !this.customEndDate()) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+        this.customStartDate.set(`${y}-${m}-01`);
+        this.customEndDate.set(`${y}-${m}-${String(lastDay).padStart(2, '0')}`);
+      }
+    }
+  }
+
+  clearCustomDates(): void {
+    this.customStartDate.set('');
+    this.customEndDate.set('');
   }
 
   filteredLeaves = computed(() => {
@@ -60,8 +76,10 @@ export class CapacityComponent {
       list = list.filter(l => l.teamMemberId === this.selectedMemberId());
     }
 
-    if (this.selectedMonth() !== 'ALL') {
-      list = list.filter(l => this.isDateInMonth(l.startDate, this.selectedMonth()) || this.isDateInMonth(l.endDate, this.selectedMonth()));
+    if (this.selectedPeriod() !== 'ALL') {
+      list = list.filter(l =>
+        isLeaveInPeriod(l, this.selectedPeriod(), this.customStartDate(), this.customEndDate())
+      );
     }
 
     return list;

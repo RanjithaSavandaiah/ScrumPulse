@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
 import { TeamPerformanceSummary } from '../../core/models/scrum.models';
@@ -7,7 +8,7 @@ import { TeamPerformanceSummary } from '../../core/models/scrum.models';
 @Component({
   selector: 'app-team-performance',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, RouterLink, IconComponent],
   templateUrl: './team-performance.component.html',
   styleUrl: './team-performance.component.css'
 })
@@ -38,12 +39,19 @@ export class TeamPerformanceComponent implements OnInit {
     });
   }
 
+  hasDataToAnalyze(): boolean {
+    const s = this.summary();
+    return !!s && s.sprintsAnalyzed > 0 && s.metrics.length > 0;
+  }
+
   getGradeClass(grade: string): string {
     switch (grade) {
       case 'A+': return 'grade-aplus';
       case 'A': return 'grade-a';
       case 'B+': return 'grade-bplus';
       case 'B': return 'grade-b';
+      case 'N/A':
+      case '--': return 'grade-na';
       default: return 'grade-c';
     }
   }

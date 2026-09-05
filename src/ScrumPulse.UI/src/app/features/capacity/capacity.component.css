@@ -144,6 +144,20 @@
   color: var(--text-primary);
 }
 
+.schedule-count-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--accent-secondary, #a78bfa);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 9999px;
+  padding: 0.1rem 0.55rem;
+  min-width: 1.4rem;
+  text-align: center;
+  display: inline-block;
+  line-height: 1.4;
+}
+
 .schedule-subtitle {
   margin: 0.3rem 0 0;
   font-size: 0.78rem;
@@ -179,11 +193,76 @@
   font-size: 0.8rem;
   font-family: inherit;
   cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .schedule-select:focus {
   outline: none;
   border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.schedule-select optgroup {
+  background: var(--bg-primary, #0f172a);
+  color: var(--accent-secondary, #a78bfa);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.schedule-select option {
+  background: var(--bg-secondary, #1e293b);
+  color: var(--text-primary, #f8fafc);
+  font-weight: 500;
+}
+
+.custom-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.2rem 0.5rem;
+  background: rgba(139, 92, 246, 0.06);
+  border: 1px dashed rgba(139, 92, 246, 0.3);
+  border-radius: 0.5rem;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.schedule-date-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+  border-radius: 0.45rem;
+  color: var(--text-primary);
+  padding: 0.3rem 0.55rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  color-scheme: dark;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.schedule-date-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.btn-clear-date {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-date:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: #ef4444;
 }
 
 /* Leaves Table */

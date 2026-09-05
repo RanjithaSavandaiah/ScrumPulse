@@ -56,20 +56,75 @@
         <h4 class="schedule-title">
           <app-icon name="calendar" [size]="18" color="var(--accent-primary)"></app-icon>
           Planned Team Leaves & Holidays Schedule
+          <span class="schedule-count-badge" title="Showing {{ filteredLeaves().length }} matching leave records">{{ filteredLeaves().length }}</span>
         </h4>
         <p class="schedule-subtitle">Track squad availability, approved PTOs, and sprint capacity</p>
       </div>
 
-      <!-- Filter Controls (Per Month & Per Individual) -->
+      <!-- Filter Controls (Per Calendar Year / Month / Custom Period & Per Individual) -->
       <div class="schedule-filters">
         <div class="filter-item">
-          <label class="filter-label">Month</label>
-          <select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)" class="schedule-select">
-            @for (m of monthsList; track m.value) {
-              <option [value]="m.value">{{ m.label }}</option>
-            }
+          <label class="filter-label">Period</label>
+          <select [ngModel]="selectedPeriod()" (ngModelChange)="onPeriodChange($event)" class="schedule-select">
+            <option value="ALL">All Time (All Leaves)</option>
+
+            <optgroup label="Calendar Year (Jan – Dec)">
+              <option [value]="'YEAR_' + currentYear">Current Year (Jan – Dec {{ currentYear }})</option>
+              <option [value]="'YEAR_' + (currentYear - 1)">Previous Year (Jan – Dec {{ currentYear - 1 }})</option>
+              <option [value]="'YEAR_' + (currentYear + 1)">Next Year (Jan – Dec {{ currentYear + 1 }})</option>
+            </optgroup>
+
+            <optgroup [label]="'Current Year Months (' + currentYear + ')'">
+              @for (m of currentYearMonths; track m.value) {
+                <option [value]="m.value">{{ m.label }}</option>
+              }
+            </optgroup>
+
+            <optgroup [label]="'Next Year Months (' + (currentYear + 1) + ')'">
+              @for (m of nextYearMonths; track m.value) {
+                <option [value]="m.value">{{ m.label }}</option>
+              }
+            </optgroup>
+
+            <optgroup [label]="'Previous Year Months (' + (currentYear - 1) + ')'">
+              @for (m of previousYearMonths; track m.value) {
+                <option [value]="m.value">{{ m.label }}</option>
+              }
+            </optgroup>
+
+            <optgroup label="Custom Date Range">
+              <option value="CUSTOM">Custom Date Range...</option>
+            </optgroup>
           </select>
         </div>
+
+        @if (selectedPeriod() === 'CUSTOM') {
+          <div class="custom-range-inputs">
+            <div class="filter-item">
+              <label class="filter-label">From</label>
+              <input
+                type="date"
+                class="schedule-date-input"
+                [ngModel]="customStartDate()"
+                (ngModelChange)="customStartDate.set($event)"
+              />
+            </div>
+            <div class="filter-item">
+              <label class="filter-label">To</label>
+              <input
+                type="date"
+                class="schedule-date-input"
+                [ngModel]="customEndDate()"
+                (ngModelChange)="customEndDate.set($event)"
+              />
+            </div>
+            @if (customStartDate() || customEndDate()) {
+              <button type="button" class="btn-clear-date" (click)="clearCustomDates()" title="Reset custom dates">
+                <app-icon name="x" [size]="13"></app-icon>
+              </button>
+            }
+          </div>
+        }
 
         <div class="filter-item">
           <label class="filter-label">Member</label>
@@ -153,7 +208,7 @@
           } @empty {
             <tr>
               <td [attr.colspan]="state.canEditOrDelete() ? 7 : 6" class="empty-cell">
-                No leave records found matching the selected month and member filters.
+                No leave records found matching the selected period and member filters.
               </td>
             </tr>
           }

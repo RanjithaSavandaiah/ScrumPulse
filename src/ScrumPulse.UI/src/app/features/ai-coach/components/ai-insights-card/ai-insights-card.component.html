@@ -51,7 +51,7 @@
     <div class="glass-panel insight-card animate-slide-up">
       <div class="insight-header">
         <h4 class="insight-title">{{ aiData.title }}</h4>
-        <span class="glass-badge" [style.color]="aiData.riskLevel.includes('High') ? 'var(--accent-danger)' : (aiData.riskLevel.includes('Medium') ? 'var(--accent-warning)' : 'var(--accent-success)')">
+        <span class="glass-badge" [style.color]="aiData.riskLevel.includes('High') ? 'var(--accent-danger)' : (aiData.riskLevel.includes('Medium') ? 'var(--accent-warning)' : (aiData.riskLevel.includes('No Data') ? 'var(--text-secondary)' : 'var(--accent-success)'))">
           {{ aiData.riskLevel }}
         </span>
       </div>
@@ -63,7 +63,10 @@
       </h5>
       <ul class="findings-list">
         @for (finding of aiData.keyFindings; track finding) {
-          <li class="finding-item" [class.strength-item]="finding.includes('STRENGTH')" [class.weakness-item]="finding.includes('WEAKNESS') || finding.includes('RISK')">
+          <li class="finding-item"
+              [class.strength-item]="finding.includes('STRENGTH')"
+              [class.weakness-item]="finding.includes('WEAKNESS') || finding.includes('RISK') || finding.includes('WARNING')"
+              [class.pending-item]="finding.includes('NO DATA') || finding.includes('TELEMETRY PENDING')">
             {{ finding }}
           </li>
         }

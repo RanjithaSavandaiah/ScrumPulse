@@ -18,10 +18,12 @@ public class LeavesController(
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TeamLeaveDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamLeaveDto>>> GetAll(
-        [FromQuery] Guid? memberId,
-        [FromQuery] int? year,
-        [FromQuery] int? month,
-        CancellationToken ct = default)
+        [FromQuery] Guid? memberId = null,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
+        CancellationToken ct = default,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
     {
         try
         {
@@ -32,11 +34,25 @@ public class LeavesController(
                 .AsQueryable();
 
             if (memberId.HasValue) query = query.Where(l => l.TeamMemberId == memberId.Value);
-            if (year.HasValue && month.HasValue && year.Value >= 2000 && month.Value >= 1 && month.Value <= 12)
+
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                var s = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                var e = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                query = query.Where(l => l.StartDate <= e && l.EndDate >= s);
+            }
+            else if (year.HasValue && month.HasValue && year.Value >= 2000 && month.Value >= 1 && month.Value <= 12)
             {
                 var startOfMonth = new DateTime(year.Value, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
-                var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+                var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
                 query = query.Where(l => l.StartDate <= endOfMonth && l.EndDate >= startOfMonth);
+            }
+            else if (year.HasValue && year.Value >= 2000)
+            {
+                // Calendar Year strictly follows Jan 1 to Dec 31
+                var startOfYear = new DateTime(year.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                var endOfYear = new DateTime(year.Value, 12, 31, 23, 59, 59, 999, DateTimeKind.Utc);
+                query = query.Where(l => l.StartDate <= endOfYear && l.EndDate >= startOfYear);
             }
 
             var list = await query

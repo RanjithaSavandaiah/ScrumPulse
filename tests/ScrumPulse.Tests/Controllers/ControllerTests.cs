@@ -523,6 +523,78 @@ public class ControllerTests
     }
 
     [Fact]
+    public async Task LeavesController_CalendarYear_And_CustomDateRange_Filtering_Works()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var member = new TeamMember { Id = Guid.NewGuid(), Name = "Dev One", Role = RoleType.Developer, IsActive = true };
+        db.TeamMembers.Add(member);
+
+        var leave2025 = new TeamLeave
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = member.Id,
+            StartDate = new DateTime(2025, 11, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2025, 11, 3, 23, 59, 59, DateTimeKind.Utc),
+            Reason = "Winter Break 2025",
+            LeaveType = LeaveCategory.PrivilegeLeave,
+            IsApproved = true
+        };
+
+        var leave2026Early = new TeamLeave
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = member.Id,
+            StartDate = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 3, 12, 23, 59, 59, DateTimeKind.Utc),
+            Reason = "Spring Leave 2026",
+            LeaveType = LeaveCategory.PrivilegeLeave,
+            IsApproved = true
+        };
+
+        var leave2026Autumn = new TeamLeave
+        {
+            Id = Guid.NewGuid(),
+            TeamMemberId = member.Id,
+            StartDate = new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 9, 7, 23, 59, 59, DateTimeKind.Utc),
+            Reason = "Autumn Leave 2026",
+            LeaveType = LeaveCategory.SickLeave,
+            IsApproved = true
+        };
+
+        db.TeamLeaves.AddRange(leave2025, leave2026Early, leave2026Autumn);
+        await db.SaveChangesAsync(Ct);
+
+        var metricsService = new MetricsCalculatorService(db);
+        var controller = new LeavesController(db, metricsService);
+
+        // 1. Calendar Year filter: 2026 (Jan to Dec)
+        var year2026Result = await controller.GetAll(year: 2026, ct: Ct);
+        var year2026Ok = Assert.IsType<OkObjectResult>(year2026Result.Result);
+        var year2026List = Assert.IsAssignableFrom<IEnumerable<TeamLeaveDto>>(year2026Ok.Value).ToList();
+        Assert.Equal(2, year2026List.Count);
+        Assert.All(year2026List, l => Assert.Equal(2026, l.StartDate.Year));
+
+        // 2. Calendar Year filter: 2025 (Jan to Dec)
+        var year2025Result = await controller.GetAll(year: 2025, ct: Ct);
+        var year2025Ok = Assert.IsType<OkObjectResult>(year2025Result.Result);
+        var year2025List = Assert.IsAssignableFrom<IEnumerable<TeamLeaveDto>>(year2025Ok.Value).ToList();
+        Assert.Single(year2025List);
+        Assert.Equal("Winter Break 2025", year2025List[0].Reason);
+
+        // 3. Custom Date Range filter: 2026-09-01 to 2026-09-30
+        var customRangeResult = await controller.GetAll(
+            startDate: new DateTime(2026, 9, 1),
+            endDate: new DateTime(2026, 9, 30),
+            ct: Ct
+        );
+        var customRangeOk = Assert.IsType<OkObjectResult>(customRangeResult.Result);
+        var customList = Assert.IsAssignableFrom<IEnumerable<TeamLeaveDto>>(customRangeOk.Value).ToList();
+        Assert.Single(customList);
+        Assert.Equal("Autumn Leave 2026", customList[0].Reason);
+    }
+
+    [Fact]
     public async Task TeamMembersController_SquadFiltering_And_AssignSquad_WorkCorrectly()
     {
         var (db, _, _, _) = CreateTestServices();
@@ -567,5 +639,26 @@ public class ControllerTests
         var squadAAfterResult = await controller.GetAll(teamId: squadA, ct: Ct);
         var squadAAfterList = Assert.IsAssignableFrom<IEnumerable<TeamMember>>(((OkObjectResult)squadAAfterResult.Result!).Value).ToList();
         Assert.Equal(2, squadAAfterList.Count);
+    }
+
+    [Fact]
+    public async Task TeamPerformance_WhenNoSprints_Returns_NoDataToAnalyze()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var service = new ScrumPulse.Infrastructure.Services.TeamPerformanceService(db);
+        var controller = new TeamPerformanceController(service);
+
+        var result = await controller.GetSummary(6, Ct);
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var summary = Assert.IsType<TeamPerformanceSummaryDto>(okResult.Value);
+
+        Assert.Equal(0, summary.SprintsAnalyzed);
+        Assert.Equal("N/A", summary.PerformanceGrade);
+        Assert.Equal(0, summary.OverallScore);
+        Assert.Empty(summary.Metrics);
+        Assert.Empty(summary.Highlights);
+        Assert.Empty(summary.SprintSnapshots);
+        Assert.Equal("No Data", summary.Engagement.EngagementGrade);
+        Assert.Contains("No completed sprint telemetry", summary.Headline);
     }
 }

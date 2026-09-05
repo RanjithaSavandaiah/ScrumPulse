@@ -61,7 +61,7 @@ public class MicrosoftAgentServiceTests
     }
 
     [Fact]
-    public async Task AnalyzeCompanyStrategicCollaborationAsync_ReturnsStrategicReport()
+    public async Task AnalyzeCompanyStrategicCollaborationAsync_WhenEmpty_ReturnsNoDataToAnalyze()
     {
         var (db, aiService) = CreateTestService();
         using (db)
@@ -70,9 +70,45 @@ public class MicrosoftAgentServiceTests
 
             Assert.NotNull(result);
             Assert.Contains("Strategic", result.Title);
-            Assert.NotEmpty(result.Summary);
-            Assert.NotEmpty(result.KeyFindings);
+            Assert.Equal("No Data (Telemetry Pending)", result.RiskLevel);
+            Assert.Contains(result.KeyFindings, f => f.Contains("NO DATA TO ANALYZE"));
             Assert.NotEmpty(result.ActionableRecommendations);
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzeCompanyStrategicCollaborationAsync_WithData_ComputesFactualMetrics()
+    {
+        var (db, aiService) = CreateTestService();
+        using (db)
+        {
+            var sprint = new ScrumPulse.Domain.Entities.Sprint
+            {
+                Id = Guid.NewGuid(),
+                Name = "Sprint 1",
+                StartDate = DateTime.UtcNow.AddDays(-14),
+                EndDate = DateTime.UtcNow.AddDays(-1),
+                IsActive = false
+            };
+            db.Sprints.Add(sprint);
+
+            var item = new ScrumPulse.Domain.Entities.WorkItem
+            {
+                Id = Guid.NewGuid(),
+                SprintId = sprint.Id,
+                Title = "Feature A",
+                StoryPoints = 8,
+                Status = ScrumPulse.Domain.Enums.WorkItemStatus.Done
+            };
+            db.WorkItems.Add(item);
+            await db.SaveChangesAsync();
+
+            var result = await aiService.GenerateCompanyStrategicInsightsAsync();
+
+            Assert.NotNull(result);
+            Assert.DoesNotContain("No Data", result.RiskLevel);
+            Assert.Contains(result.KeyFindings, f => f.Contains("8 story points"));
+            Assert.DoesNotContain(result.KeyFindings, f => f.Contains("18% over the past 3 sprints"));
         }
     }
 
