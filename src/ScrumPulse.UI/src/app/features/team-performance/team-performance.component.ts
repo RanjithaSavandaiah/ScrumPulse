@@ -87,4 +87,8 @@ export class TeamPerformanceComponent implements OnInit {
   asIcon(name: string): IconName {
     return (name || 'activity') as IconName;
   }
+
+  getHighlightSentimentClass(sentiment: string): string {
+    return sentiment === 'Positive' ? 'sentiment-positive' : 'sentiment-neutral';
+  }
 }

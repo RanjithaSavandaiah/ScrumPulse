@@ -129,7 +129,9 @@
         <div class="highlights-list">
           @for (h of perf.highlights; track h.statement) {
             <div class="highlight-item" [class.positive]="h.sentiment === 'Positive'" [class.neutral]="h.sentiment === 'Neutral'">
-              <span class="highlight-icon">{{ h.icon }}</span>
+              <div class="highlight-icon-wrap" [class]="getHighlightSentimentClass(h.sentiment)">
+                <app-icon [name]="asIcon(h.icon)" [size]="18"></app-icon>
+              </div>
               <div class="highlight-content">
                 <span class="highlight-category">{{ h.category }}</span>
                 <p class="highlight-statement">{{ h.statement }}</p>

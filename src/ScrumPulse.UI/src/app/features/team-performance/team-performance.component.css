@@ -475,11 +475,27 @@
   border-left: 3px solid rgba(148, 163, 184, 0.3);
 }
 
-.highlight-icon {
-  font-size: 1.2rem;
-  line-height: 1;
+.highlight-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  margin-top: 0.1rem;
+  transition: all 0.2s ease;
+}
+
+.highlight-icon-wrap.sentiment-positive {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #34d399;
+}
+
+.highlight-icon-wrap.sentiment-neutral {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #818cf8;
 }
 
 .highlight-content {
