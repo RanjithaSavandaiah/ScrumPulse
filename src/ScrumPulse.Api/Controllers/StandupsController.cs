@@ -118,9 +118,7 @@ public class StandupsController(IAppDbContext db) : BaseApiController
             return StatusCode(StatusCodes.Status403Forbidden, new { error = "Admin key required for bulk deletion." });
         }
 
-        var items = await db.DailyStandups.ToListAsync(ct);
-        db.DailyStandups.RemoveRange(items);
-        await db.SaveChangesAsync(ct);
+        await db.DailyStandups.ExecuteDeleteAsync(ct);
         return NoContent();
     }
 }

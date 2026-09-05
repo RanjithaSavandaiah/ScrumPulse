@@ -46,6 +46,9 @@ export class ExecutiveComponent implements OnInit {
   monthsList = generateDynamicMonths(11, 2);
   quartersList = generateDynamicQuarters(6, 1);
 
+  // Error state
+  metricsError = signal<string | null>(null);
+
   ngOnInit(): void {
     this.refreshAiIntelligence();
     this.loadExecutiveMetrics();
@@ -53,9 +56,10 @@ export class ExecutiveComponent implements OnInit {
 
   loadExecutiveMetrics(): void {
     this.loadingMetrics.set(true);
+    this.metricsError.set(null);
     this.state.getVelocityTrend(6).subscribe({
       next: (data) => this.velocityTrend.set(data),
-      error: () => {}
+      error: (err) => this.metricsError.set('Unable to load velocity trend: ' + (err?.message || 'Network error'))
     });
 
     const spId = this.effectiveSprintId();
@@ -65,7 +69,10 @@ export class ExecutiveComponent implements OnInit {
           this.sprintHealth.set(data);
           this.loadingMetrics.set(false);
         },
-        error: () => this.loadingMetrics.set(false)
+        error: (err) => {
+          this.metricsError.set('Unable to load sprint health: ' + (err?.message || 'Network error'));
+          this.loadingMetrics.set(false);
+        }
       });
     } else {
       this.sprintHealth.set(null);

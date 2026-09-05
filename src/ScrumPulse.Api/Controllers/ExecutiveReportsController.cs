@@ -74,13 +74,13 @@ public class ExecutiveReportsController(IMetricsCalculatorService metricsCalcula
     [HttpGet("export-json")]
     public async Task<IActionResult> ExportJson(CancellationToken ct = default)
     {
-        var sprints = await db.Sprints.Include(sprint => sprint.WorkItems).ToListAsync(ct);
-        var members = await db.TeamMembers.ToListAsync(ct);
-        var blockers = await db.Blockers.ToListAsync(ct);
-        var feedbacks = await db.Monthly1on1Feedbacks.ToListAsync(ct);
-        var kudos = await db.KudosCards.ToListAsync(ct);
-        var leaves = await db.TeamLeaves.ToListAsync(ct);
-        var standups = await db.DailyStandups.ToListAsync(ct);
+        var sprints = await db.Sprints.Include(sprint => sprint.WorkItems).AsNoTracking().ToListAsync(ct);
+        var members = await db.TeamMembers.AsNoTracking().ToListAsync(ct);
+        var blockers = await db.Blockers.AsNoTracking().ToListAsync(ct);
+        var feedbacks = await db.Monthly1on1Feedbacks.AsNoTracking().ToListAsync(ct);
+        var kudos = await db.KudosCards.AsNoTracking().ToListAsync(ct);
+        var leaves = await db.TeamLeaves.AsNoTracking().ToListAsync(ct);
+        var standups = await db.DailyStandups.AsNoTracking().ToListAsync(ct);
 
         var bundle = new
         {
@@ -95,7 +95,9 @@ public class ExecutiveReportsController(IMetricsCalculatorService metricsCalcula
             DailyStandups = standups
         };
 
-        var json = JsonSerializer.Serialize(bundle, new JsonSerializerOptions { WriteIndented = true });
-        return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json", $"ScrumPulse_Export_{DateTime.UtcNow:yyyyMMdd}.json");
+        var stream = new MemoryStream();
+        await System.Text.Json.JsonSerializer.SerializeAsync(stream, bundle, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }, ct);
+        stream.Position = 0;
+        return File(stream, "application/json", $"ScrumPulse_Export_{DateTime.UtcNow:yyyyMMdd}.json");
     }
 }

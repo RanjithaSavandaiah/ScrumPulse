@@ -1,24 +1,36 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Entities;
 
-/// <summary>Sprint management with proper request DTOs and production hardening.</summary>
-public class SprintsController(IAppDbContext db) : BaseApiController
+/// <summary>Sprint management with DTO mapping, tenant scoping, and production hardening.</summary>
+public class SprintsController(IAppDbContext db, ITenantContext? tenantContext = null) : BaseApiController
 {
+    private static SprintDto ToDto(Sprint s) => new(
+        s.Id, s.Name, s.Goal, s.StartDate, s.EndDate, s.IsActive,
+        s.CommittedStoryPoints, s.DeliveredStoryPoints, s.ConfidenceScore,
+        s.ConfidenceNotes, s.DailyWorkingHours, s.TeamId
+    );
+
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Sprint>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Sprint>>> GetAll(CancellationToken ct) =>
-        Ok(await db.Sprints.AsNoTracking().OrderByDescending(sprint => sprint.StartDate).ToListAsync(ct));
+    [ProducesResponseType(typeof(IEnumerable<SprintDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<SprintDto>>> GetAll(CancellationToken ct)
+    {
+        var sprints = await db.Sprints
+            .AsNoTracking()
+            .OrderByDescending(sprint => sprint.StartDate)
+            .ToListAsync(ct);
+
+        return Ok(sprints.Select(ToDto));
+    }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Sprint), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SprintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Sprint>> Create([FromBody] CreateSprintRequest request, CancellationToken ct)
+    public async Task<ActionResult<SprintDto>> Create([FromBody] CreateSprintRequest request, CancellationToken ct)
     {
         if (request.EndDate < request.StartDate)
         {
@@ -39,7 +51,8 @@ public class SprintsController(IAppDbContext db) : BaseApiController
             CommittedStoryPoints = request.CommittedStoryPoints,
             ConfidenceScore = request.ConfidenceScore,
             ConfidenceNotes = request.ConfidenceNotes,
-            DailyWorkingHours = request.DailyWorkingHours
+            DailyWorkingHours = request.DailyWorkingHours,
+            TeamId = tenantContext?.CurrentTeamId
         };
 
         if (sprint.IsActive)
@@ -51,11 +64,11 @@ public class SprintsController(IAppDbContext db) : BaseApiController
 
         db.Sprints.Add(sprint);
         await db.SaveChangesAsync(ct);
-        return Ok(sprint);
+        return Ok(ToDto(sprint));
     }
 
     [HttpPost("{id:guid}/activate")]
-    [ProducesResponseType(typeof(Sprint), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SprintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ActivateSprint(Guid id, CancellationToken ct)
     {
@@ -68,13 +81,13 @@ public class SprintsController(IAppDbContext db) : BaseApiController
 
         targetSprint.IsActive = true;
         await db.SaveChangesAsync(ct);
-        return Ok(targetSprint);
+        return Ok(ToDto(targetSprint));
     }
 
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof(Sprint), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SprintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Sprint>> Update(Guid id, [FromBody] UpdateSprintRequest request, CancellationToken ct)
+    public async Task<ActionResult<SprintDto>> Update(Guid id, [FromBody] UpdateSprintRequest request, CancellationToken ct)
     {
         var sprint = await db.Sprints.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (sprint == null) return NotFound();
@@ -99,11 +112,11 @@ public class SprintsController(IAppDbContext db) : BaseApiController
         if (request.DailyWorkingHours > 0) sprint.DailyWorkingHours = request.DailyWorkingHours;
 
         await db.SaveChangesAsync(ct);
-        return Ok(sprint);
+        return Ok(ToDto(sprint));
     }
 
     [HttpPost("{id:guid}/confidence")]
-    [ProducesResponseType(typeof(Sprint), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SprintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateConfidence(Guid id, [FromQuery] int score, [FromQuery] string? notes, CancellationToken ct)
     {
@@ -112,7 +125,7 @@ public class SprintsController(IAppDbContext db) : BaseApiController
         sprint.ConfidenceScore = Math.Clamp(score, 1, 10);
         sprint.ConfidenceNotes = notes;
         await db.SaveChangesAsync(ct);
-        return Ok(sprint);
+        return Ok(ToDto(sprint));
     }
 
     [HttpDelete("{id:guid}")]

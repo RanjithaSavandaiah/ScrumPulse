@@ -60,7 +60,10 @@ import {
   TeamMember,
   TechDebtItem,
   TechTalkLog,
-  WorkItem
+  WorkItem,
+  TeamPerformanceSummary,
+  TeamHighlight,
+  SprintGrowthSnapshot
 } from '../models/scrum.models';
 
 @Injectable({ providedIn: 'root' })
@@ -510,6 +513,19 @@ export class ScrumStateService {
 
   compareSprints(sprintA: string, sprintB: string): Observable<SprintComparison> {
     return this.http.get<SprintComparison>(`${this.apiUrl}/executive-reports/compare?sprintA=${sprintA}&sprintB=${sprintB}`);
+  }
+
+  // ── Team Performance & Growth ──────────────────────────────────────
+  getTeamPerformanceSummary(sprintCount: number = 6): Observable<TeamPerformanceSummary> {
+    return this.http.get<TeamPerformanceSummary>(`${this.apiUrl}/team-performance/summary?sprintCount=${sprintCount}`);
+  }
+
+  getTeamHighlights(sprintCount: number = 6): Observable<TeamHighlight[]> {
+    return this.http.get<TeamHighlight[]>(`${this.apiUrl}/team-performance/highlights?sprintCount=${sprintCount}`);
+  }
+
+  getGrowthTrend(sprintCount: number = 8): Observable<SprintGrowthSnapshot[]> {
+    return this.http.get<SprintGrowthSnapshot[]>(`${this.apiUrl}/team-performance/growth-trend?sprintCount=${sprintCount}`);
   }
 
   exportSprintCsv(sprintId: string): void {

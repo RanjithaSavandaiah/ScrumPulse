@@ -64,7 +64,10 @@ export type IconName =
   | 'external-link'
   | 'eye-off'
   | 'activity'
-  | 'loader';
+  | 'loader'
+  | 'trending-up'
+  | 'trending-down'
+  | 'minus';
 
 @Component({
   selector: 'app-icon',

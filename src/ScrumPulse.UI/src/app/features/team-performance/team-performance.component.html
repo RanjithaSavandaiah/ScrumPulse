@@ -1,0 +1,182 @@
+<section class="animate-fade-in performance-section">
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>Analyzing team performance across sprints...</span>
+    </div>
+  }
+
+  @if (error(); as errMsg) {
+    <div class="glass-panel error-banner">
+      <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+      <span>{{ errMsg }}</span>
+      <button (click)="loadPerformance()" class="btn-retry">Retry</button>
+    </div>
+  }
+
+  @if (summary(); as perf) {
+    <!-- Hero Performance Grade Card -->
+    <div class="glass-panel hero-grade-card">
+      <div class="hero-grade-content">
+        <div class="grade-badge-wrap">
+          <div class="grade-badge" [class]="getGradeClass(perf.performanceGrade)">
+            <span class="grade-letter">{{ perf.performanceGrade }}</span>
+            <span class="grade-score">{{ perf.overallScore }}/100</span>
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-tag">
+            <app-icon name="trending-up" [size]="16" color="var(--accent-primary)"></app-icon>
+            <span>Team Growth & Performance Dashboard</span>
+          </div>
+          <h2 class="hero-title">{{ perf.teamName }} — Performance Report</h2>
+          <p class="hero-headline">{{ perf.headline }}</p>
+          <div class="hero-meta">
+            <span class="meta-item">
+              <app-icon name="bar-chart" [size]="14"></app-icon>
+              {{ perf.sprintsAnalyzed }} sprints analyzed
+            </span>
+            <span class="meta-item">
+              <app-icon name="clock" [size]="14"></app-icon>
+              {{ perf.engagement.engagementGrade }} Engagement
+            </span>
+          </div>
+        </div>
+        <button (click)="loadPerformance()" class="btn-refresh" title="Refresh performance data">
+          <app-icon name="refresh-cw" [size]="16"></app-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Growth Metrics Grid -->
+    <div class="metrics-grid">
+      @for (metric of perf.metrics; track metric.metricName) {
+        <div class="glass-panel metric-card" [class]="getMetricCategoryClass(metric.category)">
+          <div class="metric-header">
+            <div class="metric-icon-box">
+            <app-icon [name]="asIcon(metric.icon)" [size]="20"></app-icon>
+            </div>
+            <div class="metric-trend" [class]="getTrendClass(metric.trendDirection)">
+              <app-icon [name]="getTrendIcon(metric.trendDirection)" [size]="14"></app-icon>
+              @if (metric.deltaPercent !== 0) {
+                <span>{{ metric.deltaPercent > 0 ? '+' : '' }}{{ metric.deltaPercent }}%</span>
+              } @else {
+                <span>Stable</span>
+              }
+            </div>
+          </div>
+          <div class="metric-body">
+            <span class="metric-name">{{ metric.metricName }}</span>
+            <span class="metric-value">{{ metric.currentValue }}<small class="metric-unit">{{ metric.unit }}</small></span>
+          </div>
+          <p class="metric-client-label">{{ metric.clientLabel }}</p>
+        </div>
+      }
+    </div>
+
+    <!-- Sprint Growth Trend -->
+    @if (perf.sprintSnapshots.length > 0) {
+      <div class="glass-panel trend-card">
+        <div class="trend-header">
+          <div class="trend-title-wrap">
+            <app-icon name="bar-chart" [size]="22" color="var(--accent-secondary)"></app-icon>
+            <div>
+              <h4 class="trend-title">Sprint-over-Sprint Growth Trend</h4>
+              <p class="trend-subtitle">Velocity progression and commitment accuracy across {{ perf.sprintSnapshots.length }} sprints</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="trend-chart">
+          @for (sp of perf.sprintSnapshots; track sp.sprintId) {
+            <div class="trend-col">
+              <div class="bar-group">
+                <div class="bar committed-bar"
+                     [style.height.px]="Math.min(140, Math.max(14, sp.committedPoints / getMaxDelivered() * 130))"
+                     [title]="'Committed: ' + sp.committedPoints + ' SP'">
+                  <span class="bar-label">{{ sp.committedPoints }}</span>
+                </div>
+                <div class="bar delivered-bar"
+                     [style.height.px]="Math.min(140, Math.max(14, sp.deliveredPoints / getMaxDelivered() * 130))"
+                     [title]="'Delivered: ' + sp.deliveredPoints + ' SP'">
+                  <span class="bar-label">{{ sp.deliveredPoints }}</span>
+                </div>
+              </div>
+              <span class="trend-sprint-name" [title]="sp.sprintName">{{ sp.sprintName }}</span>
+              <span class="trend-saydo-badge">{{ sp.sayDoPercent }}%</span>
+            </div>
+          }
+        </div>
+
+        <div class="trend-legend">
+          <span class="legend-item"><span class="legend-dot committed-dot"></span> Committed</span>
+          <span class="legend-item"><span class="legend-dot delivered-dot"></span> Delivered</span>
+          <span class="legend-item"><span class="legend-dot saydo-dot"></span> Say-Do %</span>
+        </div>
+      </div>
+    }
+
+    <!-- Client-Ready Highlights -->
+    @if (perf.highlights.length > 0) {
+      <div class="glass-panel highlights-card">
+        <div class="highlights-header">
+          <app-icon name="sparkles" [size]="22" color="var(--accent-warning)"></app-icon>
+          <div>
+            <h4 class="highlights-title">Client-Ready Performance Highlights</h4>
+            <p class="highlights-subtitle">Auto-generated executive bullet points for stakeholder presentations</p>
+          </div>
+        </div>
+        <div class="highlights-list">
+          @for (h of perf.highlights; track h.statement) {
+            <div class="highlight-item" [class.positive]="h.sentiment === 'Positive'" [class.neutral]="h.sentiment === 'Neutral'">
+              <span class="highlight-icon">{{ h.icon }}</span>
+              <div class="highlight-content">
+                <span class="highlight-category">{{ h.category }}</span>
+                <p class="highlight-statement">{{ h.statement }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Team Engagement & Culture -->
+    <div class="glass-panel engagement-card">
+      <div class="engagement-header">
+        <app-icon name="heart" [size]="22" color="var(--accent-danger)"></app-icon>
+        <div>
+          <h4 class="engagement-title">Team Engagement & Engineering Culture</h4>
+          <p class="engagement-subtitle">Collaboration, knowledge sharing, and morale indicators</p>
+        </div>
+        <div class="engagement-grade-badge" [class]="getGradeClass(perf.engagement.engagementGrade === 'Excellent' ? 'A+' : perf.engagement.engagementGrade === 'Good' ? 'A' : 'B')">
+          {{ perf.engagement.engagementGrade }}
+        </div>
+      </div>
+
+      <div class="engagement-metrics-row">
+        <div class="engagement-metric">
+          <app-icon name="smile" [size]="24" color="var(--accent-warning)"></app-icon>
+          <span class="eng-metric-val">{{ perf.engagement.avgMoodScore }}/5</span>
+          <span class="eng-metric-label">Team Morale</span>
+        </div>
+        <div class="engagement-metric">
+          <app-icon name="award" [size]="24" color="var(--accent-primary)"></app-icon>
+          <span class="eng-metric-val">{{ perf.engagement.totalKudosGiven }}</span>
+          <span class="eng-metric-label">Kudos Given</span>
+          <span class="eng-metric-sub">{{ perf.engagement.kudosPerSprint }}/sprint</span>
+        </div>
+        <div class="engagement-metric">
+          <app-icon name="book-open" [size]="24" color="var(--accent-secondary)"></app-icon>
+          <span class="eng-metric-val">{{ perf.engagement.techTalksDelivered }}</span>
+          <span class="eng-metric-label">Tech Talks</span>
+          <span class="eng-metric-sub">{{ perf.engagement.techTalksPerSprint }}/sprint</span>
+        </div>
+        <div class="engagement-metric">
+          <app-icon name="check-circle" [size]="24" color="var(--accent-success)"></app-icon>
+          <span class="eng-metric-val">{{ perf.engagement.techDebtItemsResolved }}</span>
+          <span class="eng-metric-label">Tech Debt Resolved</span>
+        </div>
+      </div>
+    </div>
+  }
+</section>

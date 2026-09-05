@@ -15,6 +15,7 @@ import { RetroComponent } from './features/retro/retro.component';
 import { KudosComponent } from './features/kudos/kudos.component';
 import { TechHubComponent } from './features/tech-hub/tech-hub.component';
 import { ExecutiveComponent } from './features/executive/executive.component';
+import { TeamPerformanceComponent } from './features/team-performance/team-performance.component';
 
 @Component({
   selector: 'app-root',
@@ -34,7 +35,8 @@ import { ExecutiveComponent } from './features/executive/executive.component';
     RetroComponent,
     KudosComponent,
     TechHubComponent,
-    ExecutiveComponent
+    ExecutiveComponent,
+    TeamPerformanceComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'

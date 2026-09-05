@@ -365,3 +365,62 @@ export interface SprintComparison {
   comparisonSummary: string;
 }
 
+// ── Team Performance & Growth Dashboard Models ──────────────────────
+
+export interface GrowthMetric {
+  metricName: string;
+  category: string;
+  currentValue: number;
+  previousValue: number;
+  deltaPercent: number;
+  trendDirection: 'Up' | 'Down' | 'Stable';
+  unit: string;
+  clientLabel: string;
+  icon: string;
+}
+
+export interface SprintGrowthSnapshot {
+  sprintId: string;
+  sprintName: string;
+  startDate: string;
+  endDate: string;
+  deliveredPoints: number;
+  committedPoints: number;
+  sayDoPercent: number;
+  escapedDefects: number;
+  avgPrReviewHours: number;
+  blockersRaised: number;
+  blockersResolved: number;
+  teamMoodAvg: number;
+}
+
+export interface TeamHighlight {
+  icon: string;
+  category: string;
+  statement: string;
+  sentiment: 'Positive' | 'Neutral' | 'Negative';
+}
+
+export interface TeamEngagement {
+  avgMoodScore: number;
+  totalKudosGiven: number;
+  techTalksDelivered: number;
+  techDebtItemsResolved: number;
+  kudosPerSprint: number;
+  techTalksPerSprint: number;
+  engagementGrade: string;
+}
+
+export interface TeamPerformanceSummary {
+  teamName: string;
+  performanceGrade: string;
+  overallScore: number;
+  headline: string;
+  sprintsAnalyzed: number;
+  evaluatedAtUtc: string;
+  metrics: GrowthMetric[];
+  sprintSnapshots: SprintGrowthSnapshot[];
+  highlights: TeamHighlight[];
+  engagement: TeamEngagement;
+}
+

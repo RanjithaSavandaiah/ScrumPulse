@@ -55,3 +55,19 @@ public record UpdateTeamMemberRequest(
 
 /// <summary>Request DTO for assigning/reassigning a member to a squad.</summary>
 public record AssignMemberSquadRequest(Guid? TeamId);
+
+/// <summary>Response DTO for Sprint — prevents leaking raw domain entities (RowVersion, DomainEvents, etc).</summary>
+public record SprintDto(
+    Guid Id,
+    string Name,
+    string Goal,
+    DateTime StartDate,
+    DateTime EndDate,
+    bool IsActive,
+    int CommittedStoryPoints,
+    int DeliveredStoryPoints,
+    int ConfidenceScore,
+    string? ConfidenceNotes,
+    double DailyWorkingHours,
+    Guid? TeamId
+);

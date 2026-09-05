@@ -434,6 +434,23 @@
     <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
   </g>
 
+  <!-- Trending Up -->
+  <g *ngSwitchCase="'trending-up'">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+    <polyline points="17 6 23 6 23 12"></polyline>
+  </g>
+
+  <!-- Trending Down -->
+  <g *ngSwitchCase="'trending-down'">
+    <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+    <polyline points="17 18 23 18 23 12"></polyline>
+  </g>
+
+  <!-- Minus -->
+  <g *ngSwitchCase="'minus'">
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </g>
+
   <!-- Default fallback -->
   <g *ngSwitchDefault>
     <circle cx="12" cy="12" r="10"></circle>

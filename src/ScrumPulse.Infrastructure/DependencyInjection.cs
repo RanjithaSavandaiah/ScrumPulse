@@ -48,6 +48,7 @@ public static class DependencyInjection
         // ── Core Infrastructure Services ─────────────────────────────────
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<IMetricsCalculatorService, MetricsCalculatorService>();
+        services.AddScoped<ITeamPerformanceService, TeamPerformanceService>();
         services.AddScoped(typeof(IAsyncRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 

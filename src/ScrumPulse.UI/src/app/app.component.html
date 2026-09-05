@@ -53,7 +53,12 @@
         <app-icon name="award" [size]="16"></app-icon> Appreciation Wall
       </button>
 
-      <!-- 10. Tech Debt & Architecture Hub -->
+      <!-- 10. Team Growth & Performance -->
+      <button (click)="activeTab.set('team-performance')" [class.active-tab]="activeTab() === 'team-performance'" class="tab-btn">
+        <app-icon name="trending-up" [size]="16"></app-icon> Team Growth & Performance
+      </button>
+
+      <!-- 11. Tech Debt & Architecture Hub -->
       <button (click)="activeTab.set('tech-hub')" [class.active-tab]="activeTab() === 'tech-hub'" class="tab-btn">
         <app-icon name="book-open" [size]="16"></app-icon> Tech Debt & Talks
       </button>
@@ -83,6 +88,7 @@
       @case ('retro') { <app-retro></app-retro> }
       @case ('kudos') { <app-kudos></app-kudos> }
       @case ('tech-hub') { <app-tech-hub></app-tech-hub> }
+      @case ('team-performance') { <app-team-performance></app-team-performance> }
       @case ('ai-coach') { <app-ai-coach></app-ai-coach> }
       @case ('executive') { <app-executive></app-executive> }
     }
