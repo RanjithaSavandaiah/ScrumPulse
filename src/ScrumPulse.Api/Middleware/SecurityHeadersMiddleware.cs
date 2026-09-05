@@ -28,12 +28,12 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
         // Content Security Policy (Hardened + Google AdSense & Traffic Quality Whitelisted)
         headers["Content-Security-Policy"] =
             "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://adservice.google.com https://www.googletagservices.com https://tpc.googlesyndication.com https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.googlesyndication.com https://*.google.com; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://adservice.google.com https://www.googletagservices.com https://tpc.googlesyndication.com https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; " +
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
             "font-src 'self' https://fonts.gstatic.com data:; " +
-            "img-src 'self' data: https: https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.g.doubleclick.net; " +
-            "connect-src 'self' https: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.googlesyndication.com https://*.google.com; " +
-            "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net; " +
+            "img-src 'self' data: https: https://pagead2.googlesyndication.com https://*.googlesyndication.com https://*.google.com https://*.g.doubleclick.net https://*.adtrafficquality.google; " +
+            "connect-src 'self' https: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.googlesyndication.com https://*.google.com https://*.doubleclick.net; " +
+            "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep2.adtrafficquality.google https://*.adtrafficquality.google; " +
             "frame-ancestors 'none';";
 
         // Prevent embedding in cross origin contexts
