@@ -11,6 +11,7 @@ import { EditSprintModalComponent } from './components/edit-sprint-modal/edit-sp
 import { EstimationMatrixModalComponent } from './components/estimation-matrix-modal/estimation-matrix-modal.component';
 import { Sprint, WorkItem } from '../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../core/utils/date-utils';
+import { isDeliveryRole } from '../../core/utils/format-utils';
 import { CORE_PIPES } from '../../core/pipes';
 import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constants';
 
@@ -70,10 +71,7 @@ export class WorkItemsComponent {
     const sp = this.currentEffectiveSprint();
     const allMembers = this.state.squadMembers().filter(m => (m.isActive ?? true));
     const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
-    const deliveryMembers = allMembers.filter(m => {
-      const r = (m.role || '').toLowerCase();
-      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
-    });
+    const deliveryMembers = allMembers.filter(m => isDeliveryRole(m.role));
     const targetDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
     const mCount = targetDevs.length;
     const leaves = this.sprintLeaves().filter(l => l.isApproved);
@@ -109,10 +107,7 @@ export class WorkItemsComponent {
   });
 
   contributingMembers = computed(() => {
-    return this.state.squadMembers().filter(m => {
-      const role = (m.role || '').toLowerCase();
-      return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
-    });
+    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
   });
 
   filteredWorkItems = computed(() => {

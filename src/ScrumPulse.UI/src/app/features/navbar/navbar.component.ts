@@ -46,6 +46,12 @@ export class NavbarComponent {
   onSquadChange(event: Event): void {
     const selectEl = event.target as HTMLSelectElement;
     const teamId = selectEl.value;
+    if (teamId === '__join__') {
+      selectEl.value = this.state.currentTeam()?.id || '';
+      this.openSquadModal('join');
+      return;
+    }
+
     if (!teamId) {
       this.state.selectTeam(null);
     } else {
@@ -56,8 +62,14 @@ export class NavbarComponent {
     }
   }
 
-  openSquadModal(): void {
+  openSquadModal(tab: 'create' | 'join' = 'create'): void {
     this.squadError.set(null);
+    // Normal developers cannot create squads; default to join tab
+    if (!this.state.canEditOrDelete()) {
+      this.squadModalTab.set('join');
+    } else {
+      this.squadModalTab.set(tab);
+    }
     this.showSquadModal.set(true);
   }
 
@@ -70,6 +82,11 @@ export class NavbarComponent {
   }
 
   handleCreateSquad(): void {
+    if (!this.state.canEditOrDelete()) {
+      this.squadError.set('Only authenticated Scrum Masters can create new squads.');
+      return;
+    }
+
     const name = this.newSquadName().trim();
     if (!name) {
       this.squadError.set('Squad name is required.');
@@ -84,7 +101,7 @@ export class NavbarComponent {
         this.closeSquadModal();
       },
       error: (err) => {
-        this.squadError.set(err?.message || 'Failed to create squad.');
+        this.squadError.set(err?.error?.error || err?.message || 'Failed to create squad.');
       }
     });
   }

@@ -1,4 +1,4 @@
-export type RoleType = 'ScrumMaster' | 'Developer' | 'QaEngineer' | 'Cdl' | 'ClientStakeholder';
+export type RoleType = 'ScrumMaster' | 'Developer' | 'QaEngineer' | 'Cdl' | 'ProductOwner' | 'ClientStakeholder' | 'AgileCoach';
 export type WorkItemType = 'UserStory' | 'Bug' | 'TaskPbi' | 'TechDebtSpike';
 export type WorkItemStatus = 'Backlog' | 'InProgress' | 'PrCreated' | 'PrApproved' | 'Merged' | 'InQa' | 'Done';
 export type PriorityLevel = 'Low' | 'Medium' | 'High' | 'Critical';

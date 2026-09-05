@@ -28,10 +28,15 @@
         @for (team of state.teams(); track team.id) {
           <option [value]="team.id">{{ team.name }}</option>
         }
+        @if (!state.canEditOrDelete()) {
+          <option value="__join__">&rarr; Join Squad with Code...</option>
+        }
       </select>
-      <button (click)="openSquadModal()" class="btn-squad-action" title="Create or Join Squad">
-        <app-icon name="plus" [size]="12"></app-icon>
-      </button>
+      @if (state.canEditOrDelete()) {
+        <button (click)="openSquadModal('create')" class="btn-squad-action" title="Create New Squad">
+          <app-icon name="plus" [size]="12"></app-icon>
+        </button>
+      }
     </div>
 
     <div class="role-selector">
@@ -41,8 +46,9 @@
         <option value="ScrumMaster">Scrum Master</option>
         <option value="Developer">Developer</option>
         <option value="QaEngineer">QA Engineer</option>
-        <option value="Cdl">CDL Lead</option>
-        <option value="ClientStakeholder">Client / PO</option>
+        <option value="Cdl">CDL</option>
+        <option value="ProductOwner">Product Owner</option>
+        <option value="AgileCoach">Agile Coach</option>
       </select>
 
       @if (state.isSmAuthenticated() && state.currentRole() === 'ScrumMaster') {
@@ -70,29 +76,31 @@
       <div class="modal-header">
         <div class="modal-title-row">
           <app-icon name="users" [size]="20" color="var(--accent-secondary)"></app-icon>
-          <h3>Squad Hub & Multi-Team Context</h3>
+          <h3>{{ state.canEditOrDelete() ? 'Squad Hub & Multi-Team Context' : 'Join Squad with Invite Code' }}</h3>
         </div>
         <button (click)="closeSquadModal()" class="btn-close">&times;</button>
       </div>
 
-      <div class="modal-tabs">
-        <button
-          type="button"
-          class="modal-tab-btn"
-          [class.active]="squadModalTab() === 'create'"
-          (click)="squadModalTab.set('create'); squadError.set(null)"
-        >
-          Create New Squad
-        </button>
-        <button
-          type="button"
-          class="modal-tab-btn"
-          [class.active]="squadModalTab() === 'join'"
-          (click)="squadModalTab.set('join'); squadError.set(null)"
-        >
-          Join with Code
-        </button>
-      </div>
+      @if (state.canEditOrDelete()) {
+        <div class="modal-tabs">
+          <button
+            type="button"
+            class="modal-tab-btn"
+            [class.active]="squadModalTab() === 'create'"
+            (click)="squadModalTab.set('create'); squadError.set(null)"
+          >
+            Create New Squad
+          </button>
+          <button
+            type="button"
+            class="modal-tab-btn"
+            [class.active]="squadModalTab() === 'join'"
+            (click)="squadModalTab.set('join'); squadError.set(null)"
+          >
+            Join with Code
+          </button>
+        </div>
+      }
 
       @if (squadError()) {
         <div class="error-banner">
@@ -102,6 +110,7 @@
       }
 
       @if (squadModalTab() === 'create') {
+        @if (state.canEditOrDelete()) {
         <div class="modal-body">
           <div class="form-group">
             <label>Squad Name *</label>
@@ -147,6 +156,17 @@
             <app-icon name="plus" [size]="14"></app-icon> Create Squad
           </button>
         </div>
+        } @else {
+          <div class="modal-body">
+            <div class="error-banner">
+              <app-icon name="alert-circle" [size]="14" color="#f87171"></app-icon>
+              <span>Only authenticated Scrum Masters can create new squads.</span>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button (click)="closeSquadModal()" class="btn-secondary">Close</button>
+          </div>
+        }
       } @else {
         <div class="modal-body">
           <div class="form-group">

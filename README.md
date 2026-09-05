@@ -61,8 +61,8 @@ ScrumPulse connects granular engineering metrics (micro-stage cycle times, PR tu
 ### 7. 360° Monthly 1:1 Reviews & Happiness Barometer
 - Structured 4-way performance input:
   - Scrum Master guidance
-  - Career Development Lead (CDL) technical coaching
-  - Client / Product Owner satisfaction
+  - Client Delivery Lead (CDL) delivery coaching
+  - Product Owner satisfaction
   - Developer self-reflection
 - Tracks Scrum Master ratings (1-10) and team happiness trends over time.
 

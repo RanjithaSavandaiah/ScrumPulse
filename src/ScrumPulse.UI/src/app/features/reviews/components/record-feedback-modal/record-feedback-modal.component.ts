@@ -44,6 +44,9 @@ export class RecordFeedbackModalComponent implements OnInit {
       case 'Developer': return 'Developer';
       case 'QaEngineer': return 'QA Engineer';
       case 'Cdl': return 'CDL';
+      case 'ProductOwner':
+      case 'ClientStakeholder': return 'Product Owner';
+      case 'AgileCoach': return 'Agile Coach';
       default: return role;
     }
   }

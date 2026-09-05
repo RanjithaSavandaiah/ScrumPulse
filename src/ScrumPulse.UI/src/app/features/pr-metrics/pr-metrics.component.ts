@@ -6,7 +6,7 @@ import { IconComponent } from '../../core/components/icon/icon.component';
 import { DeveloperPrMetrics, PullRequestLog } from '../../core/models/scrum.models';
 
 import { CORE_PIPES } from '../../core/pipes';
-import { cleanName, getInitials } from '../../core/utils/format-utils';
+import { cleanName, getInitials, isDeliveryRole } from '../../core/utils/format-utils';
 
 @Component({
   selector: 'app-pr-metrics',
@@ -36,12 +36,9 @@ export class PrMetricsComponent {
     reviewStatus: 'Approved'
   };
 
-  // Contributing squad developers / engineers (excludes ScrumMaster and CDL)
+  // Contributing squad developers / engineers (Developers and QA Engineers)
   developerMembers = computed(() => {
-    return this.state.squadMembers().filter(m => {
-      const role = (m.role || '').toLowerCase();
-      return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
-    });
+    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
   });
 
   // Filtered PR list

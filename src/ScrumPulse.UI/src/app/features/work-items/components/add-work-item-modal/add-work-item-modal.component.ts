@@ -5,6 +5,7 @@ import { IconComponent, IconName } from '../../../../core/components/icon/icon.c
 import { Sprint, TeamMember, WorkItem } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
 import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estimation-matrix-modal.component';
+import { isDeliveryRole } from '../../../../core/utils/format-utils';
 
 import { CORE_PIPES } from '../../../../core/pipes';
 
@@ -150,10 +151,7 @@ export class AddWorkItemModalComponent implements OnInit {
 
   get teamMembers(): TeamMember[] {
     const list = this.members.length > 0 ? this.members : this.state.squadMembers();
-    return list.filter(m => {
-      const role = (m.role || '').toLowerCase();
-      return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
-    });
+    return list.filter(m => isDeliveryRole(m.role));
   }
 
   itemTypes: { value: number; label: string; icon: IconName; desc: string }[] = [

@@ -94,4 +94,24 @@ public class TeamsControllerTests
         var actionResult = await controller.Join(new JoinTeamRequest("NONEXIST"));
         Assert.IsType<NotFoundObjectResult>(actionResult.Result);
     }
+
+    [Fact]
+    public async Task Create_WhenUserIsDeveloper_ReturnsForbidden()
+    {
+        using var db = CreateInMemoryDbContext();
+        var controller = new TeamsController(db)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+            }
+        };
+        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "Developer";
+
+        var request = new CreateTeamRequest("Unauthorized Squad", "Should fail");
+        var actionResult = await controller.Create(request);
+
+        var objectResult = Assert.IsType<ObjectResult>(actionResult.Result);
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden, objectResult.StatusCode);
+    }
 }

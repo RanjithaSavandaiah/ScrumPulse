@@ -39,10 +39,14 @@ export function getRoleLabel(role?: string | number | null): string {
       return 'QA Engineer';
     case '3':
     case 'Cdl':
-      return 'CDL Lead';
+      return 'CDL';
     case '4':
+    case 'ProductOwner':
     case 'ClientStakeholder':
-      return 'Client / PO';
+      return 'Product Owner';
+    case '5':
+    case 'AgileCoach':
+      return 'Agile Coach';
     default:
       return roleStr;
   }
@@ -61,4 +65,22 @@ export function getBadgeLabel(badge?: string | number | null): string {
   if (b.includes('3') || b.includes('lifesaver') || b.includes('life')) return 'Life Saver';
   if (b.includes('4') || b.includes('speedy') || b.includes('fast')) return 'Speed Demon';
   return String(badge);
+}
+
+/**
+ * Returns true if the given role represents an active engineering/delivery contributor (Developer or QA Engineer).
+ */
+export function isDeliveryRole(role?: string | null): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase().trim();
+  return r === 'developer' || r === 'qaengineer';
+}
+
+/**
+ * Returns true if the given role represents a leadership/facilitation role (Scrum Master, CDL, Agile Coach, Product Owner).
+ */
+export function isLeadershipRole(role?: string | null): boolean {
+  if (!role) return false;
+  const r = role.toLowerCase().trim();
+  return r === 'scrummaster' || r === 'cdl' || r === 'agilecoach' || r === 'productowner' || r === 'clientstakeholder';
 }

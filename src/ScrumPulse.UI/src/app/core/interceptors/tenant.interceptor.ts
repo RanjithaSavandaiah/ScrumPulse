@@ -6,12 +6,11 @@ import { HttpInterceptorFn } from '@angular/common/http';
  */
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
   const teamId = localStorage.getItem('scrumpulse_current_team_id');
-  const role = localStorage.getItem('scrumpulse_current_role') || 'Scrum Master';
-  const roleFormatted = role === 'ScrumMaster' ? 'Scrum Master' : (role === 'QaEngineer' ? 'QA Engineer' : role);
+  const role = localStorage.getItem('scrumpulse_current_role') || 'ScrumMaster';
 
   const headers: Record<string, string> = {
-    'X-User-Role': roleFormatted,
-    'X-User-Name': roleFormatted
+    'X-User-Role': role,
+    'X-User-Name': role
   };
 
   if (teamId && teamId.trim().length > 0) {

@@ -8,6 +8,7 @@ using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Entities;
+using ScrumPulse.Domain.Enums;
 
 /// <summary>
 /// Multi-team tenant management controller enabling squad onboarding,
@@ -42,8 +43,19 @@ public class TeamsController(IAppDbContext db) : BaseApiController
     [HttpPost]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<TeamDto>> Create([FromBody] CreateTeamRequest request, CancellationToken ct = default)
     {
+        if (Request?.Headers != null && Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
+        {
+            var rawRole = roleHeader.ToString().Replace(" ", "");
+            if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
+                role != RoleType.ScrumMaster && role != RoleType.Cdl && role != RoleType.AgileCoach)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Only Scrum Masters can create a new squad." });
+            }
+        }
+
         var slug = GenerateSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
         var existingSlug = await db.Teams.AnyAsync(t => t.Slug == slug, ct);
         if (existingSlug)

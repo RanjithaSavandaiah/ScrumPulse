@@ -16,7 +16,10 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
     public async Task<SprintCapacityDto> CalculateSprintCapacityAsync(Guid sprintId, CancellationToken ct = default)
     {
         var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
-        var membersQuery = db.TeamMembers.Where(teamMember => teamMember.IsActive && teamMember.Role != RoleType.ClientStakeholder);
+        var membersQuery = db.TeamMembers.Where(teamMember => teamMember.IsActive && 
+            teamMember.Role != RoleType.ProductOwner && 
+            teamMember.Role != RoleType.ClientStakeholder && 
+            teamMember.Role != RoleType.AgileCoach);
         List<Domain.Entities.TeamMember> members;
         if (sprint?.TeamId.HasValue == true)
         {

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
 import { Sprint, WorkItem, TeamLeave, TeamMember } from '../../../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
-import { cleanName } from '../../../../core/utils/format-utils';
+import { cleanName, isDeliveryRole } from '../../../../core/utils/format-utils';
 import { DEFAULT_DAILY_WORKING_HOURS, HOURS_PER_STORY_POINT_BENCHMARK } from '../../../../core/constants/scrum.constants';
 
 export interface BurndownDayPoint {
@@ -36,10 +36,7 @@ export class SprintBurndownChartComponent {
   capacityAnalysis = computed(() => {
     const allMembers = (this.members && this.members.length > 0 ? this.members : []).filter(m => (m.isActive ?? true));
     const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
-    const deliveryMembers = allMembers.filter(m => {
-      const r = (m.role || '').toLowerCase();
-      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
-    });
+    const deliveryMembers = allMembers.filter(m => isDeliveryRole(m.role));
     const targetDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
     const memberCount = targetDevs.length;
 

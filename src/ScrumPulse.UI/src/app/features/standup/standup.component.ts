@@ -5,6 +5,7 @@ import { DailyStandup } from '../../core/models/scrum.models';
 import { StandupFeedComponent } from './components/standup-feed/standup-feed.component';
 import { StandupTimerComponent } from './components/standup-timer/standup-timer.component';
 import { LogStandupModalComponent } from './components/log-standup-modal/log-standup-modal.component';
+import { isDeliveryRole } from '../../core/utils/format-utils';
 
 @Component({
   selector: 'app-standup',
@@ -25,10 +26,7 @@ export class StandupComponent implements OnDestroy {
   private timerInterval: any = null;
 
   contributingMembers = computed(() => {
-    return this.state.squadMembers().filter(m => {
-      const role = (m.role || '').toLowerCase();
-      return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
-    });
+    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
   });
 
   openCreateStandup(): void {

@@ -333,7 +333,7 @@ export class ReportExportService {
       'SM Rating (1-5)': r.smRating,
       'Happiness Index (1-10)': r.happinessIndex,
       'Scrum Master Feedback': r.scrumMasterFeedback,
-      'CDL Leadership Feedback': r.cdlFeedback,
+      'CDL Feedback': r.cdlFeedback,
       'Self Reflection': r.selfReflection,
       'Action Items Agreed': r.actionItems,
       'Next Month Goals': r.nextMonthGoals

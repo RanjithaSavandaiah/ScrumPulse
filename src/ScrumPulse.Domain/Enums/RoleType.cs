@@ -6,5 +6,7 @@ public enum RoleType
     Developer = 1,
     QaEngineer = 2,
     Cdl = 3,
-    ClientStakeholder = 4
+    ProductOwner = 4,
+    ClientStakeholder = 4,
+    AgileCoach = 5
 }

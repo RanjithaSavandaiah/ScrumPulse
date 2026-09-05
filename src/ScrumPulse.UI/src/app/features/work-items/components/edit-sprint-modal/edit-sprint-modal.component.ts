@@ -9,6 +9,7 @@ import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estim
 import { computed, signal } from '@angular/core';
 import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
+import { isDeliveryRole } from '../../../../core/utils/format-utils';
 import { DEFAULT_DAILY_WORKING_HOURS, HOURS_PER_POINT_RATIO, DEFAULT_FOCUS_FACTOR } from '../../../../core/constants/scrum.constants';
 
 @Component({
@@ -51,10 +52,7 @@ export class EditSprintModalComponent implements OnInit {
     const all = this.state.squadMembers().filter(m => (m.isActive ?? true));
     const devs = all.filter(m => (m.role || '').toLowerCase() === 'developer');
     if (devs.length > 0) return devs.length;
-    return all.filter(m => {
-      const r = (m.role || '').toLowerCase();
-      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
-    }).length;
+    return all.filter(m => isDeliveryRole(m.role)).length;
   });
 
   get calculatedWorkingDays(): number {
@@ -149,10 +147,7 @@ export class EditSprintModalComponent implements OnInit {
     // Read developer count dynamically from Team Roster
     const allMembers = this.state.squadMembers().filter(m => (m.isActive ?? true));
     const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
-    const deliveryMembers = allMembers.filter(m => {
-      const r = (m.role || '').toLowerCase();
-      return r !== 'clientstakeholder' && r !== 'scrummaster' && r !== 'cdl' && r !== 'sm';
-    });
+    const deliveryMembers = allMembers.filter(m => isDeliveryRole(m.role));
 
     const activeDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
     const memberCount = activeDevs.length;

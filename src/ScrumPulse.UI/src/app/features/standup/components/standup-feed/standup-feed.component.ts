@@ -5,7 +5,7 @@ import { IconComponent } from '../../../../core/components/icon/icon.component';
 import { DailyStandup } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
 import { CORE_PIPES } from '../../../../core/pipes';
-import { cleanName } from '../../../../core/utils/format-utils';
+import { cleanName, isDeliveryRole } from '../../../../core/utils/format-utils';
 
 import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
 
@@ -68,10 +68,7 @@ export class StandupFeedComponent {
 
   // Contributing members for filter
   contributingMembers = computed(() => {
-    return this.state.squadMembers().filter(m => {
-      const role = (m.role || '').toLowerCase();
-      return role !== 'scrummaster' && role !== 'cdl' && role !== 'sm';
-    });
+    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
   });
 
   setPage(page: number): void {

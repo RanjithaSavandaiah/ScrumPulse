@@ -7,6 +7,7 @@ import { IconComponent, IconName } from '../../core/components/icon/icon.compone
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
 import { RoleType, TeamMember } from '../../core/models/scrum.models';
 import { CORE_PIPES } from '../../core/pipes';
+import { isLeadershipRole } from '../../core/utils/format-utils';
 
 @Component({
   selector: 'app-team-roster',
@@ -23,7 +24,7 @@ export class TeamRosterComponent {
 
   developerCount = computed(() => this.state.squadMembers().filter(m => m.role === 'Developer').length);
   qaCount = computed(() => this.state.squadMembers().filter(m => m.role === 'QaEngineer').length);
-  leadershipCount = computed(() => this.state.squadMembers().filter(m => m.role === 'ScrumMaster' || m.role === 'Cdl').length);
+  leadershipCount = computed(() => this.state.squadMembers().filter(m => isLeadershipRole(m.role)).length);
 
   unassignedOrOtherMembers = computed(() => {
     const current = this.state.currentTeam();
@@ -55,8 +56,9 @@ export class TeamRosterComponent {
     { value: 'Developer', label: 'Developer', icon: 'wrench', desc: 'Code implementation, PRs & unit tests' },
     { value: 'QaEngineer', label: 'QA Engineer', icon: 'shield-check', desc: 'Quality gates, test suites & staging verification' },
     { value: 'ScrumMaster', label: 'Scrum Master', icon: 'zap', desc: 'Sprint facilitator & velocity coaching' },
-    { value: 'Cdl', label: 'CDL Lead', icon: 'award', desc: 'Career development leader & mentoring' },
-    { value: 'ClientStakeholder', label: 'Client / PO', icon: 'building', desc: 'Product ownership & business requirements' }
+    { value: 'Cdl', label: 'CDL', icon: 'award', desc: 'Client Delivery Lead — delivery governance & mentoring' },
+    { value: 'ProductOwner', label: 'Product Owner', icon: 'building', desc: 'Product ownership & business requirements' },
+    { value: 'AgileCoach', label: 'Agile Coach', icon: 'target', desc: 'Agile maturity, scaling practices & team coaching' }
   ];
 
   openAddModal(): void {
@@ -83,7 +85,9 @@ export class TeamRosterComponent {
       case 'Developer': return 'var(--accent-primary)';
       case 'QaEngineer': return 'var(--accent-success)';
       case 'Cdl': return 'var(--accent-purple)';
+      case 'ProductOwner':
       case 'ClientStakeholder': return 'var(--accent-secondary)';
+      case 'AgileCoach': return '#ec4899';
       default: return 'var(--text-secondary)';
     }
   }
