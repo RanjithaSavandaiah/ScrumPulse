@@ -1,0 +1,208 @@
+<div class="legal-page">
+  <!-- Top Navigation Bar -->
+  <header class="legal-nav glass-panel">
+    <div class="nav-content">
+      <a routerLink="/" class="nav-brand">
+        <div class="brand-icon">
+          <app-icon name="zap" [size]="20" color="#ffffff"></app-icon>
+        </div>
+        <span class="brand-title">ScrumPulse</span>
+      </a>
+      <div class="nav-actions">
+        <a routerLink="/" class="btn-nav-return">
+          <app-icon name="arrow-right" [size]="14"></app-icon>
+          <span>Back to Dashboard</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="legal-container">
+    <!-- Hero Banner -->
+    <section class="legal-hero">
+      <div class="badge-pill">
+        <app-icon name="shield-check" [size]="14" color="#10b981"></app-icon>
+        <span>Legal & Privacy Compliance</span>
+      </div>
+      <h1 class="hero-title">Privacy <span class="gradient-text">Policy</span></h1>
+      <p class="hero-subtitle">
+        Last updated: {{ lastUpdated }}. This Privacy Policy outlines how ScrumPulse ("we", "our", or "us") collects, uses, and safeguards user information, and details our explicit compliance with Google AdSense, third-party advertising partners, GDPR, and CCPA standards.
+      </p>
+    </section>
+
+    <!-- AdSense Top Banner -->
+    <app-ad-banner [showLabel]="true"></app-ad-banner>
+
+    <!-- Table of Contents -->
+    <nav class="toc-card glass-panel">
+      <h2 class="toc-heading">
+        <app-icon name="file-text" [size]="18" color="var(--accent-secondary)"></app-icon>
+        <span>Policy Contents</span>
+      </h2>
+      <div class="toc-grid">
+        <a href="#section-1" class="toc-item">1. Information We Collect</a>
+        <a href="#section-2" class="toc-item">2. How We Use Information</a>
+        <a href="#section-3" class="toc-item highlight-toc">3. Google AdSense & Advertising Cookies</a>
+        <a href="#section-4" class="toc-item">4. AI Coaching & LLM Telemetry</a>
+        <a href="#section-5" class="toc-item">5. Cookies & Local Storage</a>
+        <a href="#section-6" class="toc-item">6. Security & Data Protection</a>
+        <a href="#section-7" class="toc-item">7. User Rights (GDPR & CCPA)</a>
+        <a href="#section-8" class="toc-item">8. Contact & Publisher Inquiries</a>
+      </div>
+    </nav>
+
+    <div class="legal-sections">
+      <!-- Section 1 -->
+      <section id="section-1" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">01</div>
+          <h2>Information We Collect</h2>
+        </div>
+        <p>When using ScrumPulse, we may collect the following categories of information:</p>
+        <ul class="policy-list">
+          <li><strong>Sprint & Work Item Data:</strong> Agile tickets, story points, cycle times, PR review timestamps, and blocker descriptions submitted by your squads to power the velocity analytics engines.</li>
+          <li><strong>Technical & Device Data:</strong> IP address, browser type, operating system version, referring URLs, device identifiers, and page latency metrics to guarantee platform uptime and security.</li>
+          <li><strong>Role & Session Data:</strong> Selected agile roles (Scrum Master, Developer, QA, CDL, Agile Coach) stored locally in browser session storage for seamless tenant navigation.</li>
+        </ul>
+      </section>
+
+      <!-- Section 2 -->
+      <section id="section-2" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">02</div>
+          <h2>How We Use Your Information</h2>
+        </div>
+        <p>We process collected information strictly for legitimate operational purposes:</p>
+        <ul class="policy-list">
+          <li>To generate real-time sprint burndown projections, blocker SLA warnings, and cycle-time benchmarks.</li>
+          <li>To empower the Microsoft AI Agile Coach with context-aware sprint guidance and blocker triage advice.</li>
+          <li>To defend against denial-of-service, automated scraping, and unauthorized system intrusion via sliding-window rate limiting.</li>
+          <li>To display non-intrusive, relevant advertisements through authorized networks to support free public hosting.</li>
+        </ul>
+      </section>
+
+      <!-- Section 3: Crucial for Google AdSense Approval -->
+      <section id="section-3" class="policy-card glass-panel adsense-focus-card">
+        <div class="section-header">
+          <div class="section-num highlight-num">03</div>
+          <div>
+            <h2>Google AdSense & Third-Party Advertising</h2>
+            <span class="compliance-label">Crucial AdSense Disclosure</span>
+          </div>
+        </div>
+        <p>
+          ScrumPulse partners with <strong>Google AdSense</strong> to display advertisements across our public platform. This advertising revenue enables us to provide agile engineering teams worldwide with free access to high-velocity tools, burndown analytics, and AI coaching.
+        </p>
+
+        <div class="sub-policy-block">
+          <h3>Google DoubleClick DART Cookies</h3>
+          <p>
+            Google is a third-party vendor on our site. Google uses cookies, known as <strong>DART cookies</strong>, to serve ads to visitors based upon their visit to <code>scrumpulse.onrender.com</code> and other websites on the internet.
+          </p>
+          <ul class="policy-list">
+            <li>Google's use of advertising cookies enables it and its certified ad partners to serve ads to our users based on their prior visits to ScrumPulse and other internet websites.</li>
+            <li>Users may opt out of personalized advertising by visiting Google's ad settings.</li>
+          </ul>
+        </div>
+
+        <div class="sub-policy-block">
+          <h3>Third-Party Ad Networks & Web Beacons</h3>
+          <p>
+            Third-party ad servers or ad networks use technologies like cookies, JavaScript, or Web Beacons that are used in their respective advertisements and links that appear on ScrumPulse, which are sent directly to users' browsers. They automatically receive your IP address when this occurs. These technologies are used to measure the effectiveness of their advertising campaigns and/or to personalize the advertising content that you see.
+          </p>
+          <p class="note-box">
+            Please note that ScrumPulse has no direct access to or control over these cookies that are used by third-party advertisers.
+          </p>
+        </div>
+
+        <div class="sub-policy-block">
+          <h3>Opting Out of Personalized Advertising</h3>
+          <p>You can manage and opt out of interest-based advertising at any time through the following official industry resources:</p>
+          <div class="optout-links">
+            <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" class="optout-btn">
+              <app-icon name="external-link" [size]="14"></app-icon>
+              <span>Google Ads Settings (Ads Personalization)</span>
+            </a>
+            <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" class="optout-btn">
+              <app-icon name="external-link" [size]="14"></app-icon>
+              <span>Digital Advertising Alliance (DAA) WebChoices</span>
+            </a>
+            <a href="https://optout.networkadvertising.org/" target="_blank" rel="noopener noreferrer" class="optout-btn">
+              <app-icon name="external-link" [size]="14"></app-icon>
+              <span>Network Advertising Initiative (NAI) Consumer Opt-Out</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4 -->
+      <section id="section-4" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">04</div>
+          <h2>AI Coaching & Large Language Models</h2>
+        </div>
+        <p>
+          ScrumPulse incorporates an intelligent assistant powered by Microsoft AI agent architecture and LLM reasoning. Interactions with the AI Coach are ephemeral and focused strictly on the sprint context provided. We do not use your private enterprise backlog data or internal sprint metrics to train foundational public LLM weights.
+        </p>
+      </section>
+
+      <!-- Section 5 -->
+      <section id="section-5" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">05</div>
+          <h2>Cookies & Local Browser Storage</h2>
+        </div>
+        <p>We use minimal, privacy-centric browser storage mechanisms:</p>
+        <ul class="policy-list">
+          <li><strong>Essential Storage:</strong> Local storage is utilized to persist dark/light theme preferences and squad filters across browser sessions without requiring personal profile logins.</li>
+          <li><strong>Advertising Cookies:</strong> Placed by Google AdSense as outlined in Section 3 above.</li>
+        </ul>
+      </section>
+
+      <!-- Section 6 -->
+      <section id="section-6" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">06</div>
+          <h2>Security & Data Protection</h2>
+        </div>
+        <p>
+          ScrumPulse implements OWASP-recommended security practices, including strict Content Security Policies (CSP), HTTP Strict Transport Security (HSTS), and sliding-window rate limiting to protect all users and service infrastructure from malicious requests.
+        </p>
+      </section>
+
+      <!-- Section 7 -->
+      <section id="section-7" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">07</div>
+          <h2>Your Rights (GDPR, CCPA & Global Inquiries)</h2>
+        </div>
+        <p>Depending on your jurisdiction, you have specific rights concerning your personal data:</p>
+        <ul class="policy-list">
+          <li><strong>Right to Know & Access:</strong> The right to request confirmation of whether your data is being processed and obtain a copy.</li>
+          <li><strong>Right to Erasure / Deletion:</strong> The right to request deletion of any telemetry data collected during your session.</li>
+          <li><strong>Right to Opt-Out of Sale or Sharing:</strong> ScrumPulse does not sell personal data. You may opt out of third-party cookie sharing via the DAA and Google Ad Settings links above.</li>
+        </ul>
+      </section>
+
+      <!-- Section 8 -->
+      <section id="section-8" class="policy-card glass-panel">
+        <div class="section-header">
+          <div class="section-num">08</div>
+          <h2>Contact & Publisher Inquiries</h2>
+        </div>
+        <p>If you have any questions regarding this Privacy Policy, our advertising practices, or wish to submit a privacy request, please contact our publisher team:</p>
+        <div class="contact-box">
+          <p><strong>Platform:</strong> ScrumPulse Enterprise</p>
+          <p><strong>Publisher Lead:</strong> Ranjitha Savandaiah</p>
+          <p><strong>Website:</strong> <a href="https://scrumpulse.onrender.com" target="_blank" rel="noopener noreferrer">https://scrumpulse.onrender.com</a></p>
+          <p><strong>Repository:</strong> <a href="https://github.com/RanjithaSavandaiah/ScrumPulse" target="_blank" rel="noopener noreferrer">github.com/RanjithaSavandaiah/ScrumPulse</a></p>
+        </div>
+      </section>
+    </div>
+
+    <!-- AdSense Bottom Banner -->
+    <app-ad-banner [showLabel]="true"></app-ad-banner>
+  </main>
+
+  <app-footer></app-footer>
+</div>

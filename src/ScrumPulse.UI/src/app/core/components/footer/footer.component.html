@@ -1,0 +1,96 @@
+<footer class="app-footer glass-panel">
+  <div class="footer-container">
+    <div class="footer-top">
+      <!-- Brand & Mission -->
+      <div class="footer-brand-col">
+        <div class="footer-logo">
+          <app-icon name="zap" [size]="20" color="#6366f1"></app-icon>
+          <span class="footer-brand-title">ScrumPulse Enterprise</span>
+        </div>
+        <p class="footer-desc">
+          Next-generation distributed engineering velocity, lifecycle latencies, blocker SLAs, and Microsoft AI Agile Intelligence platform.
+        </p>
+        <div class="compliance-tags">
+          <span class="tag-badge">
+            <app-icon name="shield-check" [size]="12" color="#10b981"></app-icon>
+            AdSense Verified
+          </span>
+          <span class="tag-badge">
+            <app-icon name="shield" [size]="12" color="#6366f1"></app-icon>
+            GDPR & CCPA Compliant
+          </span>
+        </div>
+      </div>
+
+      <!-- Quick Platform Navigation -->
+      <div class="footer-links-col">
+        <h4 class="col-title">Platform Features</h4>
+        <ul class="link-list">
+          <li><a routerLink="/" fragment="standup"><app-icon name="zap" [size]="13"></app-icon> Daily Standup & Timer</a></li>
+          <li><a routerLink="/" fragment="lifecycle"><app-icon name="clock" [size]="13"></app-icon> Work Items & Lifecycle</a></li>
+          <li><a routerLink="/" fragment="pr-metrics"><app-icon name="git-pull-request" [size]="13"></app-icon> Git PRs & Code Review</a></li>
+          <li><a routerLink="/" fragment="ai-coach"><app-icon name="bot" [size]="13"></app-icon> Microsoft AI Agile Coach</a></li>
+          <li><a routerLink="/" fragment="executive"><app-icon name="bar-chart" [size]="13"></app-icon> Executive Reports & Export</a></li>
+        </ul>
+      </div>
+
+      <!-- Legal & AdSense Transparency -->
+      <div class="footer-links-col">
+        <h4 class="col-title">Legal & Trust Center</h4>
+        <ul class="link-list">
+          <li>
+            <a routerLink="/privacy-policy" class="highlight-link">
+              <app-icon name="shield-check" [size]="13"></app-icon> Privacy Policy
+            </a>
+          </li>
+          <li>
+            <a routerLink="/terms" class="highlight-link">
+              <app-icon name="file-text" [size]="13"></app-icon> Terms of Service
+            </a>
+          </li>
+          <li>
+            <a href="/ads.txt" target="_blank" rel="noopener noreferrer">
+              <app-icon name="external-link" [size]="13"></app-icon> Authorized Digital Sellers (ads.txt)
+            </a>
+          </li>
+          <li>
+            <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer">
+              <app-icon name="external-link" [size]="13"></app-icon> Google Ad Settings & Opt-Out
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Creator & Repository -->
+      <div class="footer-links-col">
+        <h4 class="col-title">Connect & Source</h4>
+        <ul class="link-list">
+          <li>
+            <a href="https://github.com/RanjithaSavandaiah/ScrumPulse" target="_blank" rel="noopener noreferrer">
+              <app-icon name="git-branch" [size]="13"></app-icon> GitHub Repository
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/RanjithaSavandaiah" target="_blank" rel="noopener noreferrer">
+              <app-icon name="user" [size]="13"></app-icon> @RanjithaSavandaiah
+            </a>
+          </li>
+          <li>
+            <a href="/healthz" target="_blank" rel="noopener noreferrer">
+              <app-icon name="activity" [size]="13"></app-icon> System Health Monitor
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div class="copyright-text">
+        &copy; {{ currentYear }} ScrumPulse. Developed by <a href="https://github.com/RanjithaSavandaiah" target="_blank" rel="noopener noreferrer">Ranjitha Savandaiah</a>. All rights reserved.
+      </div>
+      <div class="advertising-notice">
+        This site uses Google AdSense and cookies to deliver personalized advertising and analyze traffic in compliance with Google publisher guidelines.
+      </div>
+    </div>
+  </div>
+</footer>

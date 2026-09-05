@@ -1,0 +1,49 @@
+.scrum-ad-container {
+  margin: 1.5rem auto;
+  width: 100%;
+  max-width: 1200px;
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-card, rgba(30, 41, 59, 0.45));
+  border: 1px dashed var(--border-subtle, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.scrum-ad-container:hover {
+  border-color: var(--border-focus, rgba(99, 102, 241, 0.3));
+}
+
+.scrum-ad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+}
+
+.scrum-ad-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+}
+
+.scrum-ad-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted, #64748b);
+}
+
+.scrum-ad-body {
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.adsbygoogle {
+  width: 100%;
+}

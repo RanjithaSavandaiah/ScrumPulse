@@ -1,0 +1,104 @@
+<div class="app-layout">
+  <app-navbar></app-navbar>
+
+  <!-- Main Navigation Tabs -->
+  <div class="tabs-container">
+    <div class="glass-panel tabs-bar">
+      <!-- 1. Daily Standup & Timer (First) -->
+      <button (click)="activeTab.set('standup')" [class.active-tab]="activeTab() === 'standup'" class="tab-btn">
+        <app-icon name="zap" [size]="16"></app-icon> Daily Standup & Timer
+      </button>
+
+      <!-- 2. Work Items & Lifecycle (Second) -->
+      <button (click)="activeTab.set('lifecycle')" [class.active-tab]="activeTab() === 'lifecycle'" class="tab-btn">
+        <app-icon name="clock" [size]="16"></app-icon> Work Items & Lifecycle
+      </button>
+
+      <!-- 3. Git PRs & Code Review (Third) -->
+      <button (click)="activeTab.set('pr-metrics')" [class.active-tab]="activeTab() === 'pr-metrics'" class="tab-btn">
+        <app-icon name="git-pull-request" [size]="16"></app-icon> Git PRs & Code Review
+      </button>
+
+      <!-- 4. Blocker SLA Radar -->
+      <button (click)="activeTab.set('blockers')" [class.active-tab]="activeTab() === 'blockers'" class="tab-btn">
+        <app-icon name="shield-alert" [size]="16"></app-icon> Blocker SLA Radar
+        @if (state.activeBlockersCount() > 0) {
+          <span class="badge-count">{{ state.activeBlockersCount() }}</span>
+        }
+      </button>
+
+      <!-- 5. Leave & Capacity -->
+      <button (click)="activeTab.set('capacity')" [class.active-tab]="activeTab() === 'capacity'" class="tab-btn">
+        <app-icon name="palmtree" [size]="16"></app-icon> Leave & Capacity
+      </button>
+
+      <!-- 6. Team Roster -->
+      <button (click)="activeTab.set('roster')" [class.active-tab]="activeTab() === 'roster'" class="tab-btn">
+        <app-icon name="users" [size]="16"></app-icon> Team Roster
+        <span class="badge-count" style="background: rgba(99, 102, 241, 0.25); color: #818cf8;">{{ state.squadMembers().length }}</span>
+      </button>
+
+      <!-- 7. Monthly 1:1 Reviews -->
+      <button (click)="activeTab.set('monthly-1on1')" [class.active-tab]="activeTab() === 'monthly-1on1'" class="tab-btn">
+        <app-icon name="file-text" [size]="16"></app-icon> Monthly 1:1 Reviews
+      </button>
+
+      <!-- 8. Sprint Retrospective Board -->
+      <button (click)="activeTab.set('retro')" [class.active-tab]="activeTab() === 'retro'" class="tab-btn">
+        <app-icon name="rotate-cw" [size]="16"></app-icon> Retrospective Board
+      </button>
+
+      <!-- 9. Kudos & Recognition Wall -->
+      <button (click)="activeTab.set('kudos')" [class.active-tab]="activeTab() === 'kudos'" class="tab-btn">
+        <app-icon name="award" [size]="16"></app-icon> Appreciation Wall
+      </button>
+
+      <!-- 10. Team Growth & Performance -->
+      <button (click)="activeTab.set('team-performance')" [class.active-tab]="activeTab() === 'team-performance'" class="tab-btn">
+        <app-icon name="trending-up" [size]="16"></app-icon> Team Growth & Performance
+      </button>
+
+      <!-- 11. Tech Debt & Architecture Hub -->
+      <button (click)="activeTab.set('tech-hub')" [class.active-tab]="activeTab() === 'tech-hub'" class="tab-btn">
+        <app-icon name="book-open" [size]="16"></app-icon> Tech Debt & Talks
+      </button>
+
+      <!-- 12. Microsoft AI Coach -->
+      <button (click)="activeTab.set('ai-coach')" [class.active-tab]="activeTab() === 'ai-coach'" class="tab-btn">
+        <app-icon name="bot" [size]="16"></app-icon> Microsoft AI Coach
+      </button>
+
+      <!-- 13. Executive Suite & Export -->
+      <button (click)="activeTab.set('executive')" [class.active-tab]="activeTab() === 'executive'" class="tab-btn">
+        <app-icon name="bar-chart" [size]="16"></app-icon> Executive Suite & Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Content Area With Modern Switch Control Flow -->
+  <main class="app-main-content">
+    @switch (activeTab()) {
+      @case ('standup') { <app-standup></app-standup> }
+      @case ('lifecycle') { <app-work-items></app-work-items> }
+      @case ('pr-metrics') { <app-pr-metrics></app-pr-metrics> }
+      @case ('blockers') { <app-blockers></app-blockers> }
+      @case ('capacity') { <app-capacity></app-capacity> }
+      @case ('roster') { <app-team-roster></app-team-roster> }
+      @case ('monthly-1on1') { <app-reviews></app-reviews> }
+      @case ('retro') { <app-retro></app-retro> }
+      @case ('kudos') { <app-kudos></app-kudos> }
+      @case ('tech-hub') { <app-tech-hub></app-tech-hub> }
+      @case ('team-performance') { <app-team-performance></app-team-performance> }
+      @case ('ai-coach') { <app-ai-coach></app-ai-coach> }
+      @case ('executive') { <app-executive></app-executive> }
+    }
+
+    <!-- Google AdSense Responsive Banner Slot -->
+    <div class="dashboard-ad-wrapper">
+      <app-ad-banner [showLabel]="true"></app-ad-banner>
+    </div>
+  </main>
+
+  <!-- Global Footer -->
+  <app-footer></app-footer>
+</div>

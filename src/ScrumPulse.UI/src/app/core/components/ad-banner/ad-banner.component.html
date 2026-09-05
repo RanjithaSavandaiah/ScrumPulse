@@ -1,0 +1,17 @@
+<div class="scrum-ad-container glass-panel">
+  @if (showLabel) {
+    <div class="scrum-ad-header">
+      <span class="scrum-ad-badge">ADVERTISEMENT</span>
+      <span class="scrum-ad-hint">Sponsored • Google AdSense</span>
+    </div>
+  }
+  <div class="scrum-ad-body">
+    <ins class="adsbygoogle"
+         style="display:block"
+         [attr.data-ad-client]="publisherId"
+         [attr.data-ad-slot]="adSlot || null"
+         [attr.data-ad-format]="adFormat"
+         [attr.data-full-width-responsive]="fullWidthResponsive ? 'true' : 'false'">
+    </ins>
+  </div>
+</div>

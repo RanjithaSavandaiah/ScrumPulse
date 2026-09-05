@@ -25,14 +25,15 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
         // Restrict referrer leakage
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 
-        // Content Security Policy
+        // Content Security Policy (Hardened + Google AdSense Whitelisted)
         headers["Content-Security-Policy"] =
             "default-src 'self'; " +
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://adservice.google.com https://www.googletagservices.com https://tpc.googlesyndication.com; " +
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-            "font-src 'self' https://fonts.gstatic.com; " +
-            "img-src 'self' data: https:; " +
-            "connect-src 'self' https:; " +
+            "font-src 'self' https://fonts.gstatic.com data:; " +
+            "img-src 'self' data: https: https://pagead2.googlesyndication.com; " +
+            "connect-src 'self' https: https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; " +
+            "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com; " +
             "frame-ancestors 'none';";
 
         // Prevent embedding in cross-origin contexts
