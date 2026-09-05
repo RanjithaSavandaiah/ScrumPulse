@@ -407,7 +407,7 @@ public class ControllerTests
         Assert.Equal("Sprint 10", reportDto.SprintName);
 
         var exportResult = await controller.ExportJson();
-        var fileResult = Assert.IsType<FileContentResult>(exportResult);
+        var fileResult = Assert.IsAssignableFrom<FileResult>(exportResult);
         Assert.Equal("application/json", fileResult.ContentType);
     }
 
@@ -455,7 +455,7 @@ public class ControllerTests
 
         var allSprintsResult = await sprintsController.GetAll(Ct);
         var allSprintsOk = Assert.IsType<OkObjectResult>(allSprintsResult.Result);
-        var allSprintsList = Assert.IsAssignableFrom<IEnumerable<Sprint>>(allSprintsOk.Value);
+        var allSprintsList = Assert.IsAssignableFrom<IEnumerable<SprintDto>>(allSprintsOk.Value);
         Assert.Single(allSprintsList);
 
         var membersResult = await membersController.GetAll(ct: Ct);
