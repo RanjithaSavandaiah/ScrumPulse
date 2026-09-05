@@ -8,8 +8,8 @@ using ScrumPulse.Application.Services;
 using ScrumPulse.Domain.Enums;
 
 /// <summary>
-/// Calculates cross-sprint team growth metrics for client-facing performance
-/// presentations in service-based delivery organizations.
+/// Calculates cross sprint team growth metrics for client facing performance
+/// presentations in service based delivery organizations.
 /// Follows clean code principles and provides graceful fallbacks for missing data.
 /// </summary>
 public class TeamPerformanceService(
@@ -308,7 +308,7 @@ public class TeamPerformanceService(
         if (snapshots.Count >= 4)
             highlights.Add(new("trending-up", "Maturity", $"Performance data aggregated across {snapshots.Count} sprints — demonstrating sustained delivery discipline and engineering maturity.", "Positive"));
 
-        // If few highlights, add a growth-focused one
+        // If few highlights, add a growth focused one
         if (highlights.Count < 3 && snapshots.Count >= 2)
         {
             var latest = snapshots[^1];

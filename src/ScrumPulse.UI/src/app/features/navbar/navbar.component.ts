@@ -101,6 +101,7 @@ export class NavbarComponent {
         this.closeSquadModal();
       },
       error: (err) => {
+        console.error('[NavbarComponent] Failed to create squad:', err);
         this.squadError.set(err?.error?.error || err?.message || 'Failed to create squad.');
       }
     });
@@ -118,13 +119,16 @@ export class NavbarComponent {
         this.closeSquadModal();
       },
       error: (err) => {
+        console.error('[NavbarComponent] Failed to join squad:', err);
         this.squadError.set(err?.message || 'Squad not found with this code.');
       }
     });
   }
 
   copySquadCode(code: string): void {
-    navigator.clipboard.writeText(code);
+    navigator.clipboard?.writeText(code).catch(err => {
+      console.warn('[NavbarComponent] Failed to copy squad code to clipboard:', err);
+    });
     this.copySuccess.set(true);
     setTimeout(() => this.copySuccess.set(false), 2000);
   }

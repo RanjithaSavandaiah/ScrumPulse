@@ -11,7 +11,7 @@ using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 
 /// <summary>
-/// Multi-team tenant management controller enabling squad onboarding,
+/// Multi team tenant management controller enabling squad onboarding,
 /// discovery, and context switching across an enterprise.
 /// </summary>
 public class TeamsController(IAppDbContext db) : BaseApiController

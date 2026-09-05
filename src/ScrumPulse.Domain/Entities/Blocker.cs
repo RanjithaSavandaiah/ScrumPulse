@@ -30,8 +30,6 @@ public class Blocker : BaseEntity
     /// <summary>Persisted flag indicating whether SLA was breached at resolution time.</summary>
     public bool WasSlaBreachedOnResolution { get; set; }
 
-    // ── Computed Properties ─────────────────────────────────────────────
-
     public bool IsResolved => ResolvedAtUtc.HasValue;
 
     public double HoursWaiting => Math.Round(

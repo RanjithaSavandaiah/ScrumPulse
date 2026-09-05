@@ -48,7 +48,7 @@ public class EfRepository<T>(AppDbContext db) : IAsyncRepository<T> where T : Ba
     }
 
     /// <summary>
-    /// Soft-delete: marks the entity as deleted without physical removal.
+    /// Soft delete: marks the entity as deleted without physical removal.
     /// The global query filter will exclude it from future queries.
     /// </summary>
     public Task SoftDeleteAsync(T entity, CancellationToken ct = default)

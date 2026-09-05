@@ -14,7 +14,8 @@ using ScrumPulse.Domain.Enums;
 public class WorkItemsController(
     IMediator mediator,
     IIdempotencyStore idempotencyStore,
-    IAppDbContext db
+    IAppDbContext db,
+    ILogger<WorkItemsController>? logger = null
 ) : BaseApiController
 {
     [HttpGet]
@@ -73,7 +74,7 @@ public class WorkItemsController(
 
         await db.SaveChangesAsync(ct);
 
-        // Re-fetch with includes to ensure accurate DTO mapping
+        // Re fetch with includes to ensure accurate DTO mapping
         var updated = await db.WorkItems
             .Include(item => item.Assignee)
             .Include(item => item.PrReviewer)
@@ -107,12 +108,14 @@ public class WorkItemsController(
             var result = await mediator.SendAsync(new AdvanceWorkItemStageCommand(id, request), ct);
             return Ok(result);
         }
-        catch (KeyNotFoundException)
+        catch (KeyNotFoundException ex)
         {
+            logger?.LogWarning(ex, "Work item {Id} not found when advancing stage", id);
             return NotFound();
         }
         catch (InvalidOperationException ex)
         {
+            logger?.LogWarning(ex, "Invalid operation when advancing work item {Id} stage: {Message}", id, ex.Message);
             return BadRequest(new { error = ex.Message });
         }
     }

@@ -40,7 +40,7 @@
   margin: 0;
   font-size: 1.6rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
@@ -256,7 +256,7 @@
 .metric-val {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0.15rem 0;
 }
 
@@ -290,7 +290,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -309,16 +309,16 @@
 }
 
 .report-table th {
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--bg-glass);
   padding: 0.6rem 0.75rem;
   color: var(--text-secondary);
   font-weight: 700;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-glass);
 }
 
 .report-table td {
   padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border-glass);
   color: var(--text-primary);
 }
 
@@ -395,7 +395,7 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -447,7 +447,7 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .ai-exec-sub {
@@ -498,7 +498,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -600,7 +600,7 @@
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .health-subtitle,
@@ -1054,4 +1054,63 @@
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid rgba(245, 158, 11, 0.35);
   color: #fbbf24;
+}
+
+/* Light Theme Styling Overrides */
+[data-theme="light"] .report-table th {
+  background: rgba(0, 0, 0, 0.035);
+  color: #1e293b;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+}
+
+[data-theme="light"] .report-table td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  color: #0f172a;
+}
+
+[data-theme="light"] .cat-pill {
+  background: rgba(0, 0, 0, 0.05);
+  color: #475569;
+}
+
+[data-theme="light"] .mini-kpi {
+  background: rgba(0, 0, 0, 0.025);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .trend-bars-container {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .comparison-studio-card {
+  background: #ffffff;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .compare-delta-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .ai-executive-panel {
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .ai-exec-header {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .btn-refresh-ai {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #475569;
+}
+
+[data-theme="light"] .btn-refresh-ai:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #0f172a;
 }

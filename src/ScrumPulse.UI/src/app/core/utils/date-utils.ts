@@ -209,9 +209,15 @@ export function getCurrentQuarterValue(): string {
 export function getDatePresetRange(days: number): DateRangePreset {
   const end = new Date();
   const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const endY = end.getFullYear();
+  const endM = String(end.getMonth() + 1).padStart(2, '0');
+  const endD = String(end.getDate()).padStart(2, '0');
+  const startY = start.getFullYear();
+  const startM = String(start.getMonth() + 1).padStart(2, '0');
+  const startD = String(start.getDate()).padStart(2, '0');
   return {
-    startDate: start.toISOString().split('T')[0],
-    endDate: end.toISOString().split('T')[0]
+    startDate: `${startY}-${startM}-${startD}`,
+    endDate: `${endY}-${endM}-${endD}`
   };
 }
 
@@ -220,10 +226,12 @@ export function getDatePresetRange(days: number): DateRangePreset {
  */
 export function getThisMonthDateRange(): DateRangePreset {
   const now = new Date();
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
   return {
-    startDate: firstDay.toISOString().split('T')[0],
-    endDate: now.toISOString().split('T')[0]
+    startDate: `${year}-${month}-01`,
+    endDate: `${year}-${month}-${day}`
   };
 }
 

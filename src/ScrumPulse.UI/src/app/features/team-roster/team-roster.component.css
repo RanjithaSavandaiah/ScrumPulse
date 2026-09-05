@@ -42,10 +42,10 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--bg-card);
   border: 1px solid rgba(59, 130, 246, 0.25);
   border-radius: 0.85rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 .squad-info {
@@ -76,7 +76,7 @@
 .active-squad-title {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .squad-tag {
@@ -117,9 +117,9 @@
   padding: 0.45rem 0.85rem;
   font-size: 0.82rem;
   min-width: 260px;
-  background: rgba(30, 41, 59, 0.9);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #fff;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
   border-radius: 0.5rem;
   cursor: pointer;
 }
@@ -212,7 +212,7 @@
   margin: 0 0 0.25rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .role-badge {
@@ -301,9 +301,9 @@
 }
 
 .squad-quick-select {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  color: #fff;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
   border-radius: 0.35rem;
   padding: 0.25rem 0.5rem;
   font-size: 0.76rem;
@@ -343,7 +343,7 @@
 }
 
 .detail-val {
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -435,7 +435,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -573,4 +573,102 @@
   text-align: center;
   gap: 0.75rem;
   color: var(--text-secondary);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] .squad-context-banner {
+  background: #ffffff;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="light"] .squad-icon-badge {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="light"] .active-squad-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .squad-tag {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--accent-primary);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+[data-theme="light"] .squad-desc {
+  color: #475569;
+}
+
+[data-theme="light"] .link-select {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .link-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .stat-box {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .member-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .member-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .member-name {
+  color: #0f172a;
+}
+
+[data-theme="light"] .member-details-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .detail-val {
+  color: #0f172a;
+}
+
+[data-theme="light"] .squad-quick-select {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+[data-theme="light"] .squad-quick-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .card-bottom-meta {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .modal-content {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+}
+
+[data-theme="light"] .role-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .role-card.selected {
+  background: rgba(99, 102, 241, 0.08);
+  color: #0f172a;
 }

@@ -5,8 +5,14 @@ import { HttpInterceptorFn } from '@angular/common/http';
  * to outgoing HTTP requests ensuring squad-level multi-tenant isolation and accurate audit trails.
  */
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
-  const teamId = localStorage.getItem('scrumpulse_current_team_id');
-  const role = localStorage.getItem('scrumpulse_current_role') || 'ScrumMaster';
+  let teamId: string | null = null;
+  let role = 'ScrumMaster';
+  try {
+    teamId = localStorage.getItem('scrumpulse_current_team_id');
+    role = localStorage.getItem('scrumpulse_current_role') || 'ScrumMaster';
+  } catch (err) {
+    console.warn('[tenantInterceptor] Failed to read tenant/role from localStorage:', err);
+  }
 
   const headers: Record<string, string> = {
     'X-User-Role': role,

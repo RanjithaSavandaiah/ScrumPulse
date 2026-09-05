@@ -6,13 +6,11 @@ using ScrumPulse.Domain.Enums;
 using System.Text.Json;
 
 /// <summary>
-/// Centralized, zero-allocation extension methods for entity-to-DTO mapping.
+/// Centralized, zero allocation extension methods for entity to DTO mapping.
 /// Eliminates 40+ duplicate inline mapping blocks across handlers and controllers.
 /// </summary>
 public static class MappingExtensions
 {
-    // ── WorkItem ─────────────────────────────────────────────────────────
-
     public static WorkItemDto ToDto(this WorkItem item) => new(
         item.Id, item.Key, item.Title, item.Description,
         item.Type, item.Status, item.Priority, item.StoryPoints,
@@ -36,8 +34,6 @@ public static class MappingExtensions
     public static IEnumerable<WorkItemDto> ToDtos(this IEnumerable<WorkItem> items) =>
         items.Select(item => item.ToDto());
 
-    // ── Blocker ──────────────────────────────────────────────────────────
-
     public static BlockerDto ToDto(this Blocker blocker) => new(
         blocker.Id, blocker.Title, blocker.Description, blocker.Category,
         blocker.SlaHoursLimit, blocker.WorkItemId, blocker.WorkItem?.Key,
@@ -48,8 +44,6 @@ public static class MappingExtensions
 
     public static IEnumerable<BlockerDto> ToDtos(this IEnumerable<Blocker> blockers) =>
         blockers.Select(blocker => blocker.ToDto());
-
-    // ── DailyStandup ─────────────────────────────────────────────────────
 
     public static DailyStandupDto ToDto(this DailyStandup standup) => new(
         standup.Id, standup.TeamMemberId,
@@ -62,8 +56,6 @@ public static class MappingExtensions
     public static IEnumerable<DailyStandupDto> ToDtos(this IEnumerable<DailyStandup> standups) =>
         standups.Select(standup => standup.ToDto());
 
-    // ── TeamLeave ────────────────────────────────────────────────────────
-
     public static TeamLeaveDto ToDto(this TeamLeave leave) => new(
         leave.Id, leave.TeamMemberId,
         leave.TeamMember?.Name ?? "Member",
@@ -75,8 +67,6 @@ public static class MappingExtensions
 
     public static IEnumerable<TeamLeaveDto> ToDtos(this IEnumerable<TeamLeave> leaves) =>
         leaves.Select(leave => leave.ToDto());
-
-    // ── MonthlyFeedback ──────────────────────────────────────────────────
 
     public static MonthlyFeedbackDto ToDto(this Monthly1on1Feedback feedback) => new(
         feedback.Id, feedback.TeamMemberId,
@@ -91,8 +81,6 @@ public static class MappingExtensions
     public static IEnumerable<MonthlyFeedbackDto> ToDtos(this IEnumerable<Monthly1on1Feedback> feedbacks) =>
         feedbacks.Select(feedback => feedback.ToDto());
 
-    // ── RetroCard ────────────────────────────────────────────────────────
-
     public static RetroCardDto ToDto(this RetroCard card) => new(
         card.Id, card.SprintId, card.Category, card.Content, card.AuthorId,
         card.IsAnonymous ? "Anonymous" : card.Author?.Name,
@@ -103,8 +91,6 @@ public static class MappingExtensions
     public static IEnumerable<RetroCardDto> ToDtos(this IEnumerable<RetroCard> cards) =>
         cards.Select(card => card.ToDto());
 
-    // ── RetroActionItem ──────────────────────────────────────────────────
-
     public static RetroActionItemDto ToDto(this RetroActionItem item) => new(
         item.Id, item.SprintId, item.Title, item.AssigneeId,
         item.Assignee?.Name, item.DueDate, item.IsCompleted
@@ -112,8 +98,6 @@ public static class MappingExtensions
 
     public static IEnumerable<RetroActionItemDto> ToDtos(this IEnumerable<RetroActionItem> items) =>
         items.Select(item => item.ToDto());
-
-    // ── KudosCard ────────────────────────────────────────────────────────
 
     public static KudosDto ToDto(this KudosCard kudos) => new(
         kudos.Id, kudos.SenderId, kudos.Sender?.Name ?? "Teammate",
@@ -125,8 +109,6 @@ public static class MappingExtensions
 
     public static IEnumerable<KudosDto> ToDtos(this IEnumerable<KudosCard> cards) =>
         cards.Select(card => card.ToDto());
-
-    // ── PullRequestReviewLog ─────────────────────────────────────────────
 
     public static PullRequestLogDto ToDto(this PullRequestReviewLog log) => new(
         log.Id, log.WorkItemId, log.WorkItem?.Title,
@@ -142,8 +124,6 @@ public static class MappingExtensions
     public static IEnumerable<PullRequestLogDto> ToDtos(this IEnumerable<PullRequestReviewLog> logs) =>
         logs.Select(log => log.ToDto());
 
-    // ── TechDebtItem (new typed DTOs) ────────────────────────────────────
-
     public static TechDebtItemDto ToDto(this TechDebtItem item) => new(
         item.Id, item.Title, item.Description,
         item.Severity, item.EstimatedHours, item.Status,
@@ -154,8 +134,6 @@ public static class MappingExtensions
     public static IEnumerable<TechDebtItemDto> ToDtos(this IEnumerable<TechDebtItem> items) =>
         items.Select(item => item.ToDto());
 
-    // ── TechTalkLog (new typed DTOs) ─────────────────────────────────────
-
     public static TechTalkLogDto ToDto(this TechTalkLog log) => new(
         log.Id, log.Topic, log.PresenterId,
         log.Presenter?.Name, log.TalkDate,
@@ -164,8 +142,6 @@ public static class MappingExtensions
 
     public static IEnumerable<TechTalkLogDto> ToDtos(this IEnumerable<TechTalkLog> logs) =>
         logs.Select(log => log.ToDto());
-
-    // ── Team ─────────────────────────────────────────────────────────────
 
     public static TeamDto ToDto(this Team team) => new(
         team.Id, team.Name, team.Slug, team.Description,

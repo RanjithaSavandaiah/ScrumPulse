@@ -23,7 +23,7 @@ export class AdBannerComponent implements AfterViewInit {
         const adsbygoogle = (window as any).adsbygoogle || [];
         adsbygoogle.push({});
       } catch (err) {
-        // Silently handled if ad-blocker is active or script still pending
+        console.warn('[AdBannerComponent] Failed to initialize Google AdSense slot:', err);
       }
     }
   }

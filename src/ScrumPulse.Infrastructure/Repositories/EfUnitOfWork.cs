@@ -9,8 +9,8 @@ using ScrumPulse.Infrastructure.Services;
 
 /// <summary>
 /// Unit of Work wrapping EF Core change tracking, repository caching,
-/// and post-commit domain event dispatch.
-/// Does NOT dispose AppDbContext — DI container owns that lifecycle.
+/// and post commit domain event dispatch.
+/// Does NOT dispose AppDbContext DI container owns that lifecycle.
 /// </summary>
 public class EfUnitOfWork : IUnitOfWork
 {
@@ -80,7 +80,7 @@ public class EfUnitOfWork : IUnitOfWork
     }
 
     /// <summary>
-    /// Clears the repository cache. Does NOT dispose the DbContext —
+    /// Clears the repository cache. Does NOT dispose the DbContext
     /// the DI container manages that lifecycle to prevent double-dispose.
     /// </summary>
     public void Dispose()
@@ -88,7 +88,7 @@ public class EfUnitOfWork : IUnitOfWork
         if (_disposed) return;
         _disposed = true;
         _repositories.Clear();
-        // NOTE: Do NOT call _db.Dispose() here — the DI container manages
+        // NOTE: Do NOT call _db.Dispose() here the DI container manages
         // the AppDbContext lifetime (Scoped). Disposing here causes double-dispose
         // when both UoW and DbContext are Scoped registrations.
     }

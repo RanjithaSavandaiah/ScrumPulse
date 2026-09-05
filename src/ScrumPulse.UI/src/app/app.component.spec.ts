@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
-import { ScrumStateService } from './core/services/scrum-state.service';
 
 describe('AppComponent', () => {
   let component: AppComponent;
@@ -9,24 +8,21 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AppComponent, HttpClientTestingModule],
-      providers: [ScrumStateService]
+      imports: [AppComponent],
+      providers: [provideRouter([])]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppComponent);
     component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
-  it('should create the app and initialize default activeTab', () => {
+  it('should create the root AppComponent', () => {
     expect(component).toBeTruthy();
-    expect(component.activeTab()).toBe('lifecycle');
   });
 
-  it('should allow switching tabs', () => {
-    component.activeTab.set('blockers');
-    expect(component.activeTab()).toBe('blockers');
-
-    component.activeTab.set('ai-coach');
-    expect(component.activeTab()).toBe('ai-coach');
+  it('should contain a router outlet for SPA view rendering', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });

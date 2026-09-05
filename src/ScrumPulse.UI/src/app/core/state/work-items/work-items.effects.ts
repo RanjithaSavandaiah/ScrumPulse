@@ -31,7 +31,10 @@ export class WorkItemsEffects {
       mergeMap(({ item }) =>
         this.http.post<WorkItem>(`${this.apiUrl}/workitems`, item).pipe(
           map(created => WorkItemActions.createWorkItemSuccess({ item: created })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[WorkItemsEffects] Failed to create work item:', err);
+            return of();
+          })
         )
       )
     )
@@ -43,7 +46,10 @@ export class WorkItemsEffects {
       mergeMap(({ id, item }) =>
         this.http.put<WorkItem>(`${this.apiUrl}/workitems/${id}`, item).pipe(
           map(updated => WorkItemActions.updateWorkItemSuccess({ item: updated })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[WorkItemsEffects] Failed to update work item:', err);
+            return of();
+          })
         )
       )
     )
@@ -55,7 +61,10 @@ export class WorkItemsEffects {
       mergeMap(({ id }) =>
         this.http.delete(`${this.apiUrl}/workitems/${id}`).pipe(
           map(() => WorkItemActions.deleteWorkItemSuccess({ id })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[WorkItemsEffects] Failed to delete work item:', err);
+            return of();
+          })
         )
       )
     )
@@ -68,7 +77,7 @@ export class WorkItemsEffects {
         this.http.post<WorkItem>(`${this.apiUrl}/workitems/${id}/advance-stage`, { targetStatus }).pipe(
           map(updated => WorkItemActions.advanceWorkItemStageSuccess({ item: updated })),
           catchError(err => {
-            console.error('Failed to advance work item stage:', err);
+            console.error('[WorkItemsEffects] Failed to advance work item stage:', err);
             return of();
           })
         )
@@ -82,7 +91,10 @@ export class WorkItemsEffects {
       mergeMap(({ id, gates }) =>
         this.http.post<WorkItem>(`${this.apiUrl}/workitems/${id}/quality-gates`, gates).pipe(
           map(updated => WorkItemActions.updateQualityGatesSuccess({ item: updated })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[WorkItemsEffects] Failed to update quality gates:', err);
+            return of();
+          })
         )
       )
     )

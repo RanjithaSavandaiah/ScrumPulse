@@ -805,3 +805,75 @@
   .metrics-grid { grid-template-columns: 1fr; }
   .engagement-metrics-row { grid-template-columns: 1fr; }
 }
+
+/* Light Theme Styling */
+[data-theme="light"] .no-data-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 245, 249, 0.9) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .no-data-icon-wrap {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.12));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+}
+
+[data-theme="light"] .no-data-badge {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  color: #a16207;
+}
+
+[data-theme="light"] .no-data-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .no-data-subtitle {
+  color: #475569;
+}
+
+[data-theme="light"] .step-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .step-card:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .step-card h4 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .step-card p {
+  color: #475569;
+}
+
+[data-theme="light"] .btn-goto-lifecycle {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #0f172a;
+}
+
+[data-theme="light"] .btn-goto-lifecycle:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+[data-theme="light"] .hero-grade-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(241, 245, 249, 0.9) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .perf-metric-card,
+[data-theme="light"] .breakdown-card,
+[data-theme="light"] .engagement-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}

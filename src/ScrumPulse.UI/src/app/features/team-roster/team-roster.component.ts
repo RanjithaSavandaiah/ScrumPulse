@@ -115,7 +115,9 @@ export class TeamRosterComponent {
     if (!this.state.canEditOrDelete() || !memberId) return;
     const current = this.state.currentTeam();
     if (!current) return;
-    this.state.assignMemberSquad(memberId, current.id).subscribe();
+    this.state.assignMemberSquad(memberId, current.id).subscribe({
+      error: err => console.error('[TeamRosterComponent] Failed to link member to squad:', err)
+    });
   }
 
   onLinkAllUnassigned(): void {
@@ -125,20 +127,26 @@ export class TeamRosterComponent {
     const toLink = this.unassignedOrOtherMembers();
     if (toLink.length === 0) return;
 
-    forkJoin(toLink.map(m => this.state.assignMemberSquad(m.id, current.id))).subscribe();
+    forkJoin(toLink.map(m => this.state.assignMemberSquad(m.id, current.id))).subscribe({
+      error: err => console.error('[TeamRosterComponent] Failed to link all unassigned members:', err)
+    });
   }
 
   onAssignSquad(memberId: string, event: Event): void {
     if (!this.state.canEditOrDelete()) return;
     const selectEl = event.target as HTMLSelectElement;
     const teamId = selectEl.value ? selectEl.value : null;
-    this.state.assignMemberSquad(memberId, teamId).subscribe();
+    this.state.assignMemberSquad(memberId, teamId).subscribe({
+      error: err => console.error('[TeamRosterComponent] Failed to assign squad for member:', err)
+    });
   }
 
   onAssignSquadId(memberId: string, targetTeamId: string | null): void {
     if (!this.state.canEditOrDelete()) return;
     const teamId = targetTeamId && targetTeamId.trim() ? targetTeamId.trim() : null;
-    this.state.assignMemberSquad(memberId, teamId).subscribe();
+    this.state.assignMemberSquad(memberId, teamId).subscribe({
+      error: err => console.error('[TeamRosterComponent] Failed to assign squad ID for member:', err)
+    });
   }
 
   onSaveMember(): void {

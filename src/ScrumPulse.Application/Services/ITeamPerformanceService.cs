@@ -3,7 +3,7 @@ using ScrumPulse.Application.DTOs;
 
 /// <summary>
 /// Computes aggregated team performance metrics across sprints
-/// for client-facing growth reporting in service-based organizations.
+/// for client facing growth reporting in service based organizations.
 /// </summary>
 public interface ITeamPerformanceService
 {

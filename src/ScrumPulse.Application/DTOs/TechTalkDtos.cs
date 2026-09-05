@@ -2,7 +2,7 @@ namespace ScrumPulse.Application.DTOs;
 
 using System.ComponentModel.DataAnnotations;
 
-/// <summary>Typed response DTO for tech talk logs — replaces anonymous object returns.</summary>
+/// <summary>Typed response DTO for tech talk logs replaces anonymous object returns.</summary>
 public record TechTalkLogDto(
     Guid Id,
     string Topic,
@@ -14,7 +14,7 @@ public record TechTalkLogDto(
     string? SlidesUrl
 );
 
-/// <summary>Request DTO for creating tech talk logs — prevents mass assignment.</summary>
+/// <summary>Request DTO for creating tech talk logs prevents mass assignment.</summary>
 public record CreateTechTalkRequest(
     [Required][StringLength(250, MinimumLength = 3)] string Topic,
     [Required] Guid PresenterId,

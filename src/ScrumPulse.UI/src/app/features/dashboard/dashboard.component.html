@@ -77,21 +77,23 @@
 
   <!-- Content Area With Modern Switch Control Flow -->
   <main class="app-main-content">
-    @switch (activeTab()) {
-      @case ('standup') { <app-standup></app-standup> }
-      @case ('lifecycle') { <app-work-items></app-work-items> }
-      @case ('pr-metrics') { <app-pr-metrics></app-pr-metrics> }
-      @case ('blockers') { <app-blockers></app-blockers> }
-      @case ('capacity') { <app-capacity></app-capacity> }
-      @case ('roster') { <app-team-roster></app-team-roster> }
-      @case ('monthly-1on1') { <app-reviews></app-reviews> }
-      @case ('retro') { <app-retro></app-retro> }
-      @case ('kudos') { <app-kudos></app-kudos> }
-      @case ('tech-hub') { <app-tech-hub></app-tech-hub> }
-      @case ('team-performance') { <app-team-performance></app-team-performance> }
-      @case ('ai-coach') { <app-ai-coach></app-ai-coach> }
-      @case ('executive') { <app-executive></app-executive> }
-    }
+    <div class="tab-content-area">
+      @switch (activeTab()) {
+        @case ('standup') { <app-standup></app-standup> }
+        @case ('lifecycle') { <app-work-items></app-work-items> }
+        @case ('pr-metrics') { <app-pr-metrics></app-pr-metrics> }
+        @case ('blockers') { <app-blockers></app-blockers> }
+        @case ('capacity') { <app-capacity></app-capacity> }
+        @case ('roster') { <app-team-roster></app-team-roster> }
+        @case ('monthly-1on1') { <app-reviews></app-reviews> }
+        @case ('retro') { <app-retro></app-retro> }
+        @case ('kudos') { <app-kudos></app-kudos> }
+        @case ('tech-hub') { <app-tech-hub></app-tech-hub> }
+        @case ('team-performance') { <app-team-performance></app-team-performance> }
+        @case ('ai-coach') { <app-ai-coach></app-ai-coach> }
+        @case ('executive') { <app-executive></app-executive> }
+      }
+    </div>
 
     <!-- Google AdSense Responsive Banner Slot -->
     <div class="dashboard-ad-wrapper">

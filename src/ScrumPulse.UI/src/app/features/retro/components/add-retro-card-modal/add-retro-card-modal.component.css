@@ -6,7 +6,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 999999;
   padding: 1.5rem;
 }
 
@@ -37,7 +37,7 @@
   margin: 0;
   font-size: 1.3rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -200,4 +200,41 @@
   align-items: center;
   gap: 0.5rem;
   background: var(--accent-purple);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] .modal-content {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+}
+
+[data-theme="light"] .modal-header,
+[data-theme="light"] .modal-footer {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .category-card {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .category-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .category-card.selected {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+[data-theme="light"] .interactive-input {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+[data-theme="light"] .preset-chip {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px dashed rgba(0, 0, 0, 0.15);
+  color: #475569;
 }

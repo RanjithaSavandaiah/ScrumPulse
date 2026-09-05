@@ -56,8 +56,17 @@
 .app-main-content {
   flex: 1;
   padding: 0 24px 40px;
+  position: relative;
+  z-index: 10;
+}
+
+.tab-content-area {
+  position: relative;
+  z-index: 20;
 }
 
 .dashboard-ad-wrapper {
   margin-top: 2rem;
+  position: relative;
+  z-index: 1;
 }

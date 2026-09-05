@@ -8,6 +8,8 @@
   border: 1px dashed var(--border-subtle, rgba(255, 255, 255, 0.08));
   overflow: hidden;
   transition: border-color 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .scrum-ad-container:hover {
@@ -46,4 +48,27 @@
 
 .adsbygoogle {
   width: 100%;
+}
+
+/* Light Theme Styling */
+[data-theme="light"] .scrum-ad-container {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .scrum-ad-container:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="light"] .scrum-ad-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .scrum-ad-badge {
+  color: #475569;
+}
+
+[data-theme="light"] .scrum-ad-hint {
+  color: #94a3b8;
 }

@@ -34,7 +34,7 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
         builder.HasIndex(w => w.AssigneeId);
         builder.HasIndex(w => w.CreatedAtUtc);
 
-        // Explicitly ignore non-persisted computed properties
+        // Explicitly ignore non persisted computed properties
         builder.Ignore(w => w.StatusEnteredAtUtc);
         builder.Ignore(w => w.DaysInCurrentStatus);
         builder.Ignore(w => w.PickupLatencyHours);

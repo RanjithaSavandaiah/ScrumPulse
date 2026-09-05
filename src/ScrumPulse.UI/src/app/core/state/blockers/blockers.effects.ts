@@ -30,7 +30,10 @@ export class BlockersEffects {
       mergeMap(({ blocker }) =>
         this.http.post<Blocker>(`${this.apiUrl}/blockers`, blocker).pipe(
           map(created => BlockerActions.createBlockerSuccess({ blocker: created })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[BlockersEffects] Failed to create blocker:', err);
+            return of();
+          })
         )
       )
     )
@@ -42,7 +45,10 @@ export class BlockersEffects {
       mergeMap(({ id, blocker }) =>
         this.http.put<Blocker>(`${this.apiUrl}/blockers/${id}`, blocker).pipe(
           map(updated => BlockerActions.updateBlockerSuccess({ blocker: updated })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[BlockersEffects] Failed to update blocker:', err);
+            return of();
+          })
         )
       )
     )
@@ -54,7 +60,10 @@ export class BlockersEffects {
       mergeMap(({ id }) =>
         this.http.delete(`${this.apiUrl}/blockers/${id}`).pipe(
           map(() => BlockerActions.deleteBlockerSuccess({ id })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[BlockersEffects] Failed to delete blocker:', err);
+            return of();
+          })
         )
       )
     )
@@ -66,7 +75,10 @@ export class BlockersEffects {
       mergeMap(({ id, notes }) =>
         this.http.post<Blocker>(`${this.apiUrl}/blockers/${id}/resolve`, { resolutionNotes: notes || '' }).pipe(
           map(resolved => BlockerActions.resolveBlockerSuccess({ blocker: resolved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[BlockersEffects] Failed to resolve blocker:', err);
+            return of();
+          })
         )
       )
     )

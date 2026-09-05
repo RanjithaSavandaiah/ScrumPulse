@@ -9,6 +9,7 @@ import { appReducers } from '../../core/state';
 describe('PrMetricsComponent', () => {
   let component: PrMetricsComponent;
   let fixture: ComponentFixture<PrMetricsComponent>;
+  let stateService: ScrumStateService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -23,6 +24,7 @@ describe('PrMetricsComponent', () => {
 
     fixture = TestBed.createComponent(PrMetricsComponent);
     component = fixture.componentInstance;
+    stateService = TestBed.inject(ScrumStateService);
     fixture.detectChanges();
   });
 
@@ -42,9 +44,43 @@ describe('PrMetricsComponent', () => {
     expect(component.overallActionabilityRate()).toBe(0);
   });
 
-  it('should toggle log PR modal', () => {
+  it('should open and initialize log PR modal correctly', () => {
     component.openLogPrModal();
     expect(component.showLogPrModal()).toBeTrue();
-    expect(component.newPr.prNumber).toContain('PR-');
+    expect(component.newPr.prNumber).toBe('');
+    expect(component.newPr.reviewStatus).toBe('Approved');
+  });
+
+  it('should dispatch createPullRequestLog on valid save', () => {
+    spyOn(stateService, 'createPullRequestLog');
+
+    component.openLogPrModal();
+    component.newPr.authorId = 'dev-1';
+    component.newPr.prTitle = 'Feature: Add OAuth';
+    component.newPr.prNumber = '#101';
+    component.newPr.totalCommentsCount = 5;
+    component.newPr.actionableCommentsCount = 2;
+
+    component.onSavePrLog();
+
+    expect(stateService.createPullRequestLog).toHaveBeenCalledWith(jasmine.objectContaining({
+      authorId: 'dev-1',
+      prTitle: 'Feature: Add OAuth',
+      prNumber: '#101',
+      totalCommentsCount: 5,
+      actionableCommentsCount: 2
+    }));
+    expect(component.showLogPrModal()).toBeFalse();
+  });
+
+  it('should not dispatch createPullRequestLog if title or author is empty', () => {
+    spyOn(stateService, 'createPullRequestLog');
+
+    component.openLogPrModal();
+    component.newPr.prTitle = '';
+    component.newPr.authorId = '';
+
+    component.onSavePrLog();
+    expect(stateService.createPullRequestLog).not.toHaveBeenCalled();
   });
 });

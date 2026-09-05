@@ -30,7 +30,10 @@ export class KudosEffects {
       mergeMap(({ kudos }) =>
         this.http.post<KudosCard>(`${this.apiUrl}/kudos`, kudos).pipe(
           map(saved => KudosActions.giveKudosSuccess({ kudos: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[KudosEffects] Failed to give kudos:', err);
+            return of();
+          })
         )
       )
     )
@@ -42,7 +45,10 @@ export class KudosEffects {
       mergeMap(({ id, reactionKey }) =>
         this.http.post<KudosCard>(`${this.apiUrl}/kudos/${id}/react`, { reactionType: reactionKey }).pipe(
           map(updated => KudosActions.addKudosReactionSuccess({ kudos: updated })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[KudosEffects] Failed to add kudos reaction:', err);
+            return of();
+          })
         )
       )
     )

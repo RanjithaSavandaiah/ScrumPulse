@@ -30,7 +30,10 @@ export class StandupsEffects {
       mergeMap(({ standup }) =>
         this.http.post<DailyStandup>(`${this.apiUrl}/standups`, standup).pipe(
           map(saved => StandupActions.submitStandupSuccess({ standup: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[StandupsEffects] Failed to submit standup:', err);
+            return of();
+          })
         )
       )
     )
@@ -42,7 +45,10 @@ export class StandupsEffects {
       mergeMap(({ id, standup }) =>
         this.http.put<DailyStandup>(`${this.apiUrl}/standups/${id}`, standup).pipe(
           map(updated => StandupActions.updateStandupSuccess({ standup: updated })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[StandupsEffects] Failed to update standup:', err);
+            return of();
+          })
         )
       )
     )
@@ -54,7 +60,10 @@ export class StandupsEffects {
       mergeMap(({ id }) =>
         this.http.delete(`${this.apiUrl}/standups/${id}`).pipe(
           map(() => StandupActions.deleteStandupSuccess({ id })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[StandupsEffects] Failed to delete standup:', err);
+            return of();
+          })
         )
       )
     )
@@ -66,7 +75,10 @@ export class StandupsEffects {
       mergeMap(() =>
         this.http.delete(`${this.apiUrl}/standups/clear-all`).pipe(
           map(() => StandupActions.clearAllStandupsSuccess()),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[StandupsEffects] Failed to clear all standups:', err);
+            return of();
+          })
         )
       )
     )

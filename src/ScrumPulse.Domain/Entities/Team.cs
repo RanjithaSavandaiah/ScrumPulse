@@ -3,7 +3,7 @@ namespace ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Common;
 
 /// <summary>
-/// Tenant team entity enabling multi-team isolation within an organization.
+/// Tenant team entity enabling multi team isolation within an organization.
 /// Allows multiple scrum squads to manage independent sprints, backlogs, and metrics.
 /// </summary>
 public class Team : BaseEntity

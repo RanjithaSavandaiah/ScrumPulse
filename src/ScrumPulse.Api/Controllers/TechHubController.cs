@@ -11,8 +11,6 @@ using ScrumPulse.Domain.Enums;
 /// <summary>Tech hub controller for tech debt and tech talks with typed DTOs.</summary>
 public class TechHubController(IAppDbContext db) : BaseApiController
 {
-    // ── Tech Debt ────────────────────────────────────────────────────────
-
     [HttpGet("debt")]
     [HttpGet("tech-debt")]
     [ProducesResponseType(typeof(IEnumerable<TechDebtItemDto>), StatusCodes.Status200OK)]
@@ -106,8 +104,6 @@ public class TechHubController(IAppDbContext db) : BaseApiController
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
-
-    // ── Tech Talks ───────────────────────────────────────────────────────
 
     [HttpGet("talks")]
     [HttpGet("tech-talks")]

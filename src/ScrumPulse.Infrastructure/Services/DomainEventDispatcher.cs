@@ -47,7 +47,7 @@ public class DomainEventDispatcher(IServiceProvider serviceProvider, ILogger<Dom
                 logger.LogError(ex,
                     "Domain event handler failed for {EventType} (ID: {EventId})",
                     eventType.Name, domainEvent.EventId);
-                // Don't rethrow — domain event handler failures should not break the primary flow
+                // Don't rethrow domain event handler failures should not break the primary flow
             }
         }
     }

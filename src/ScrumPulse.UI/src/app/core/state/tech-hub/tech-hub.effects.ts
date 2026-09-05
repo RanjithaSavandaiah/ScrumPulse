@@ -17,8 +17,18 @@ export class TechHubEffects {
       ofType(TechHubActions.loadTechHub),
       switchMap(() =>
         forkJoin({
-          techDebt: this.http.get<TechDebtItem[]>(`${this.apiUrl}/techhub/tech-debt`).pipe(catchError(() => of([]))),
-          techTalks: this.http.get<TechTalkLog[]>(`${this.apiUrl}/techhub/tech-talks`).pipe(catchError(() => of([])))
+          techDebt: this.http.get<TechDebtItem[]>(`${this.apiUrl}/techhub/tech-debt`).pipe(
+            catchError(err => {
+              console.error('[TechHubEffects] Failed to load tech debt items:', err);
+              return of([]);
+            })
+          ),
+          techTalks: this.http.get<TechTalkLog[]>(`${this.apiUrl}/techhub/tech-talks`).pipe(
+            catchError(err => {
+              console.error('[TechHubEffects] Failed to load tech talks:', err);
+              return of([]);
+            })
+          )
         }).pipe(
           map(res => TechHubActions.loadTechHubSuccess({ techDebt: res.techDebt, techTalks: res.techTalks })),
           catchError(err => of(TechHubActions.loadTechHubFailure({ error: err.message })))
@@ -33,7 +43,10 @@ export class TechHubEffects {
       mergeMap(({ item }) =>
         this.http.post<TechDebtItem>(`${this.apiUrl}/techhub/tech-debt`, item).pipe(
           map(saved => TechHubActions.createTechDebtSuccess({ item: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to create tech debt:', err);
+            return of();
+          })
         )
       )
     )
@@ -45,7 +58,10 @@ export class TechHubEffects {
       mergeMap(({ id, item }) =>
         this.http.put<TechDebtItem>(`${this.apiUrl}/techhub/tech-debt/${id}`, item).pipe(
           map(saved => TechHubActions.updateTechDebtSuccess({ item: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to update tech debt:', err);
+            return of();
+          })
         )
       )
     )
@@ -57,7 +73,10 @@ export class TechHubEffects {
       mergeMap(({ id }) =>
         this.http.delete(`${this.apiUrl}/techhub/tech-debt/${id}`).pipe(
           map(() => TechHubActions.deleteTechDebtSuccess({ id })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to delete tech debt:', err);
+            return of();
+          })
         )
       )
     )
@@ -69,7 +88,10 @@ export class TechHubEffects {
       mergeMap(({ id, status }) =>
         this.http.post<TechDebtItem>(`${this.apiUrl}/techhub/tech-debt/${id}/resolve`, { status }).pipe(
           map(saved => TechHubActions.resolveTechDebtSuccess({ item: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to resolve tech debt:', err);
+            return of();
+          })
         )
       )
     )
@@ -81,7 +103,10 @@ export class TechHubEffects {
       mergeMap(({ log }) =>
         this.http.post<TechTalkLog>(`${this.apiUrl}/techhub/tech-talks`, log).pipe(
           map(saved => TechHubActions.logTechTalkSuccess({ log: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to log tech talk:', err);
+            return of();
+          })
         )
       )
     )
@@ -93,7 +118,10 @@ export class TechHubEffects {
       mergeMap(({ id, log }) =>
         this.http.put<TechTalkLog>(`${this.apiUrl}/techhub/tech-talks/${id}`, log).pipe(
           map(saved => TechHubActions.updateTechTalkSuccess({ log: saved })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to update tech talk:', err);
+            return of();
+          })
         )
       )
     )
@@ -105,7 +133,10 @@ export class TechHubEffects {
       mergeMap(({ id }) =>
         this.http.delete(`${this.apiUrl}/techhub/tech-talks/${id}`).pipe(
           map(() => TechHubActions.deleteTechTalkSuccess({ id })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[TechHubEffects] Failed to delete tech talk:', err);
+            return of();
+          })
         )
       )
     )

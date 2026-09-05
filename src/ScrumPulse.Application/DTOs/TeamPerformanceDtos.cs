@@ -1,8 +1,8 @@
 namespace ScrumPulse.Application.DTOs;
 
 /// <summary>
-/// Complete team performance summary designed for client-facing presentations
-/// in service-based delivery organizations.
+/// Complete team performance summary designed for client facing presentations
+/// in service based delivery organizations.
 /// </summary>
 public record TeamPerformanceSummaryDto(
     string TeamName,
@@ -17,7 +17,7 @@ public record TeamPerformanceSummaryDto(
     TeamEngagementDto Engagement
 );
 
-/// <summary>Single KPI metric with trend and client-friendly labeling.</summary>
+/// <summary>Single KPI metric with trend and client friendly labeling.</summary>
 public record GrowthMetricDto(
     string MetricName,
     string Category,
@@ -30,7 +30,7 @@ public record GrowthMetricDto(
     string Icon
 );
 
-/// <summary>Per-sprint performance data point for trend visualization.</summary>
+/// <summary>Per sprint performance data point for trend visualization.</summary>
 public record SprintGrowthSnapshotDto(
     Guid SprintId,
     string SprintName,
@@ -46,7 +46,7 @@ public record SprintGrowthSnapshotDto(
     double TeamMoodAvg
 );
 
-/// <summary>Auto-generated client-ready highlight statement.</summary>
+/// <summary>Auto generated client ready highlight statement.</summary>
 public record TeamHighlightDto(
     string Icon,
     string Category,

@@ -7,9 +7,11 @@ using ScrumPulse.Domain.Enums;
 using ScrumPulse.Infrastructure.Persistence.Dialects;
 using System.Text.RegularExpressions;
 
+using Microsoft.Extensions.Logging;
+
 public static class DbInitializer
 {
-    public static async Task EnsureSchemaUpToDateAsync(AppDbContext context)
+    public static async Task EnsureSchemaUpToDateAsync(AppDbContext context, ILogger? logger = null)
     {
         // Only relational databases support raw DDL schema migrations
         if (!context.Database.IsRelational())
@@ -29,7 +31,7 @@ public static class DbInitializer
 
         try
         {
-            // ── Explicit Raw DDL Repair for Critical Tables (TeamLeaves, Teams, etc.) ──
+            // -- Explicit Raw DDL Repair for Critical Tables (TeamLeaves, Teams, etc.) --
             if (dialect is PostgresSchemaDialect)
             {
                 var rawMigrations = new[]
@@ -84,15 +86,19 @@ public static class DbInitializer
                         cmd.CommandText = sql;
                         await cmd.ExecuteNonQueryAsync();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        logger?.LogWarning(ex, "Failed to execute raw migration SQL: {Sql}", sql);
                         try
                         {
                             using var rbCmd = connection.CreateCommand();
                             rbCmd.CommandText = "ROLLBACK;";
                             await rbCmd.ExecuteNonQueryAsync();
                         }
-                        catch { }
+                        catch (Exception rbEx)
+                        {
+                            logger?.LogDebug(rbEx, "Failed to rollback after raw migration error");
+                        }
                     }
                 }
             }
@@ -119,9 +125,9 @@ public static class DbInitializer
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Table check query failed; likely does not exist
+                    logger?.LogDebug(ex, "Table check query failed for {TableName}; likely does not exist yet", tableName);
                 }
 
                 // If table does not exist, create it using dialect initial DDL
@@ -136,8 +142,9 @@ public static class DbInitializer
                             createCmd.CommandText = initialDdl;
                             await createCmd.ExecuteNonQueryAsync();
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            logger?.LogWarning(ex, "Initial table creation DDL failed for {TableName}", tableName);
                             // Table might have been created concurrently
                             if (dialect is PostgresSchemaDialect)
                             {
@@ -147,7 +154,10 @@ public static class DbInitializer
                                     rb.CommandText = "ROLLBACK;";
                                     await rb.ExecuteNonQueryAsync();
                                 }
-                                catch { }
+                                catch (Exception rbEx)
+                                {
+                                    logger?.LogDebug(rbEx, "Failed to rollback after table create failure for {TableName}", tableName);
+                                }
                             }
                         }
 
@@ -166,8 +176,9 @@ public static class DbInitializer
                                 }
                             }
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            logger?.LogDebug(ex, "Verifying columns after table creation failed for {TableName}", tableName);
                             if (dialect is PostgresSchemaDialect)
                             {
                                 try
@@ -176,7 +187,10 @@ public static class DbInitializer
                                     rb.CommandText = "ROLLBACK;";
                                     await rb.ExecuteNonQueryAsync();
                                 }
-                                catch { }
+                                catch (Exception rbEx)
+                                {
+                                    logger?.LogDebug(rbEx, "Failed to rollback after verify failure for {TableName}", tableName);
+                                }
                             }
                         }
                     }
@@ -208,8 +222,9 @@ public static class DbInitializer
                             await alterCmd.ExecuteNonQueryAsync();
                             existingColumns.Add(columnName);
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            logger?.LogDebug(ex, "Adding column {ColumnName} to {TableName} failed; column may already exist", columnName, tableName);
                             // Ignore if column already exists or table cannot be altered
                             if (dialect is PostgresSchemaDialect)
                             {
@@ -219,7 +234,10 @@ public static class DbInitializer
                                     rb.CommandText = "ROLLBACK;";
                                     await rb.ExecuteNonQueryAsync();
                                 }
-                                catch { }
+                                catch (Exception rbEx)
+                                {
+                                    logger?.LogDebug(rbEx, "Failed to rollback after add column failure for {TableName}.{ColumnName}", tableName, columnName);
+                                }
                             }
                         }
                     }
@@ -235,8 +253,9 @@ public static class DbInitializer
                         backfillCmd.CommandText = $"UPDATE \"{tableName}\" SET \"CreatedBy\" = '{fallbackUser}', \"UpdatedBy\" = '{fallbackUser}' WHERE \"CreatedBy\" IS NULL OR \"CreatedBy\" = '';";
                         await backfillCmd.ExecuteNonQueryAsync();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        logger?.LogDebug(ex, "Backfill of audit columns failed for {TableName}", tableName);
                         // Ignore backfill error if table is empty or cannot be updated
                         if (dialect is PostgresSchemaDialect)
                         {
@@ -246,15 +265,18 @@ public static class DbInitializer
                                 rb.CommandText = "ROLLBACK;";
                                 await rb.ExecuteNonQueryAsync();
                             }
-                            catch { }
+                            catch (Exception rbEx)
+                            {
+                                logger?.LogDebug(rbEx, "Failed to rollback after backfill failure for {TableName}", tableName);
+                            }
                         }
                     }
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Table or database initialization error handled gracefully
+            logger?.LogError(ex, "Database schema initialization failed");
         }
         finally
         {
@@ -262,9 +284,9 @@ public static class DbInitializer
         }
     }
 
-    public static async Task SeedAsync(AppDbContext context, bool seedDemoData = false)
+    public static async Task SeedAsync(AppDbContext context, bool seedDemoData = false, ILogger? logger = null)
     {
-        await EnsureSchemaUpToDateAsync(context);
+        await EnsureSchemaUpToDateAsync(context, logger);
 
         // Remove any legacy auto-seeded "Core Engineering Squad"
         var legacyCoreSquads = await context.Teams

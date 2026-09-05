@@ -1,36 +1,86 @@
-# Build & Output
-bin/
-obj/
-dist/
-out/
-publish/
+# ==============================================================================
+# ScrumPulse Git Ignore
+# ==============================================================================
 
-# Node
+# ── .NET & Build Outputs ──────────────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+[Dd]ist/
+[Oo]ut/
+[Pp]ublish/
+Generated_Code/
+
+# ── Frontend Build Artifacts (Angular Lazy Chunks & Source Maps) ──────────────
+# Ignore dynamic lazy chunk files and debug maps in wwwroot (preventing chunk file bloat on GitHub)
+src/ScrumPulse.Api/wwwroot/chunk-*.js
+src/ScrumPulse.Api/wwwroot/*.map
+
+# ── Node & Angular ────────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .angular/
+.npm/
+.yarn/
 
-# IDE & OS
+# ── Testing, Coverage & Reports ───────────────────────────────────────────────
+[Tt]est[Rr]esults/
+test-results/
+coverage/
+*.cobertura.xml
+*.trx
+*.coverage
+*.coveragexml
+
+# ── IDEs, Editors & OS ────────────────────────────────────────────────────────
 .vs/
-.vscode/
+**/.vscode/
 .idea/
-*.user
 *.suo
+*.user
 *.userosscache
 *.sln.docstates
+*.userprefs
 .DS_Store
 Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
 
-# Database & Logs
+# ── Databases, Backups & Dumps ────────────────────────────────────────────────
 *.db
 *.db-shm
 *.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.dmp
+*.dump
+*.crash
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 logs/
 
-# Secrets & Environment
+# ── Secrets, Certificates & Local Environments ───────────────────────────────
 appsettings.Development.json
 appsettings.Local.json
+appsettings*.local.json
 .env
+.env.*
+!.env.example
+secrets.json
+*.pfx
+*.pem
+*.key
+*.cer
+*.crt
+
+# ── Temporary & Scratch Files ─────────────────────────────────────────────────
+*.tmp
+*.temp
+*~
+*.swp
+.system_generated/

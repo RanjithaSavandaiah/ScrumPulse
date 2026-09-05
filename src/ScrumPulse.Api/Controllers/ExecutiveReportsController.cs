@@ -7,9 +7,15 @@ using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Services;
 
+using Microsoft.Extensions.Logging;
+
 [Route("api/[controller]")]
 [Route("api/executive-reports")]
-public class ExecutiveReportsController(IMetricsCalculatorService metricsCalculatorService, IAppDbContext db) : BaseApiController
+public class ExecutiveReportsController(
+    IMetricsCalculatorService metricsCalculatorService,
+    IAppDbContext db,
+    ILogger<ExecutiveReportsController>? logger = null
+) : BaseApiController
 {
     [HttpGet("sprint/{sprintId:guid}")]
     public async Task<ActionResult<ExecutiveReportDto>> GetSprintReport(Guid sprintId, CancellationToken ct = default) =>
@@ -40,6 +46,7 @@ public class ExecutiveReportsController(IMetricsCalculatorService metricsCalcula
         }
         catch (KeyNotFoundException ex)
         {
+            logger?.LogWarning(ex, "Sprint comparison target not found (sprintA={SprintA}, sprintB={SprintB}): {Message}", sprintA, sprintB, ex.Message);
             return NotFound(new { error = ex.Message });
         }
     }

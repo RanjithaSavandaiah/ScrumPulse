@@ -104,7 +104,8 @@ export class SmPinModalComponent implements OnInit {
           this.pin = '';
         }
       },
-      error: () => {
+      error: (err) => {
+        console.error('[SmPinModal] Verification request failed:', err);
         this.isVerifying.set(false);
         this.triggerError('Authentication failed. Server unreachable.');
         this.pin = '';

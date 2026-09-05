@@ -18,7 +18,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // ── Database Provider Configuration ──────────────────────────────
+        // ---- Database Provider Configuration ----
         var databaseProvider = configuration["DatabaseProvider"] ?? "Sqlite";
         var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=ScrumPulse.db";
 
@@ -45,38 +45,38 @@ public static class DependencyInjection
 
         services.AddScoped<IAppDbContext>(serviceProvider => serviceProvider.GetRequiredService<AppDbContext>());
 
-        // ── Core Infrastructure Services ─────────────────────────────────
+        // -- Core Infrastructure Services ---
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<IMetricsCalculatorService, MetricsCalculatorService>();
         services.AddScoped<ITeamPerformanceService, TeamPerformanceService>();
         services.AddScoped(typeof(IAsyncRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
-        // ── Domain Events ────────────────────────────────────────────────
-        // Scoped: dispatcher uses IServiceProvider to resolve handlers per-request
+        // --- Domain Events ----
+        // Scoped: dispatcher uses IServiceProvider to resolve handlers per request
         services.AddScoped<DomainEventDispatcher>();
 
-        // ── Idempotency Store + Background Cleanup ──────────────────────
+        // -- Idempotency Store + Background Cleanup --
         services.AddSingleton<MemoryIdempotencyStore>();
         services.AddSingleton<IIdempotencyStore>(sp => sp.GetRequiredService<MemoryIdempotencyStore>());
         services.AddHostedService<IdempotencyCleanupService>();
 
-        // ── CQRS Mediator ────────────────────────────────────────────────
+        // -- CQRS Mediator --
         services.AddScoped<IMediator, AppMediator>();
 
-        // ── WorkItem Handlers ────────────────────────────────────────────
+        // -- WorkItem Handlers --
         services.AddScoped<IQueryHandler<GetWorkItemsQuery, IEnumerable<WorkItemDto>>, GetWorkItemsQueryHandler>();
         services.AddScoped<ICommandHandler<CreateWorkItemCommand, WorkItemDto>, CreateWorkItemCommandHandler>();
         services.AddScoped<ICommandHandler<AdvanceWorkItemStageCommand, WorkItemDto>, AdvanceWorkItemStageCommandHandler>();
 
-        // ── Blocker Handlers ─────────────────────────────────────────────
+        // -- Blocker Handlers ---
         services.AddScoped<IQueryHandler<GetBlockersQuery, IEnumerable<BlockerDto>>, GetBlockersQueryHandler>();
         services.AddScoped<ICommandHandler<CreateBlockerCommand, BlockerDto>, CreateBlockerCommandHandler>();
         services.AddScoped<ICommandHandler<ResolveBlockerCommand, BlockerDto?>, ResolveBlockerCommandHandler>();
         services.AddScoped<ICommandHandler<UpdateBlockerCommand, BlockerDto?>, UpdateBlockerCommandHandler>();
         services.AddScoped<ICommandHandler<DeleteBlockerCommand, bool>, DeleteBlockerCommandHandler>();
 
-        // ── Saga Orchestration ───────────────────────────────────────────
+        // -- Saga Orchestration --
         services.AddScoped<ValidateQualityGatesStep>();
         services.AddScoped<TransitionWorkItemStatusStep>();
         services.AddScoped<RecalculateSprintVelocityStep>();
@@ -107,8 +107,9 @@ public static class DependencyInjection
 
                 normalized = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[ScrumPulse] Warning: Failed to parse PostgreSQL connection URI: {ex.Message}. Falling back to raw connection string.");
                 normalized = connStr;
             }
         }

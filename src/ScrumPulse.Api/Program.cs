@@ -158,9 +158,10 @@ app.UseRateLimiter();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var dbLogger = scope.ServiceProvider.GetService<ILogger<AppDbContext>>();
     await db.Database.EnsureCreatedAsync();
     var seedDemoData = app.Configuration.GetValue<bool>("SeedDemoData", false);
-    await DbInitializer.SeedAsync(db, seedDemoData);
+    await DbInitializer.SeedAsync(db, seedDemoData, dbLogger);
 }
 
 // ── Swagger ──────────────────────────────────────────────────────────────

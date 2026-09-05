@@ -1,5 +1,6 @@
 namespace ScrumPulse.Application.Sagas.WorkItemCompletion;
 
+using Microsoft.Extensions.Logging;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Mapping;
 using ScrumPulse.Application.Specifications;
@@ -16,7 +17,8 @@ public class WorkItemCompletionSaga(
     TransitionWorkItemStatusStep step2,
     RecalculateSprintVelocityStep step3,
     TriggerMicrosoftAgentAiCoachingStep step4,
-    IUnitOfWork unitOfWork
+    IUnitOfWork unitOfWork,
+    ILogger<WorkItemCompletionSaga>? logger = null
 ) : ISagaOrchestrator<WorkItemCompletionContext, WorkItemDto>
 {
     public async Task<SagaExecutionResult<WorkItemDto>> ExecuteAsync(WorkItemCompletionContext context, CancellationToken ct = default)
@@ -32,6 +34,7 @@ public class WorkItemCompletionSaga(
                 var success = await step.ExecuteAsync(context, ct);
                 if (!success)
                 {
+                    logger?.LogWarning("Saga failed at step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                     await CompensateExecutedStepsAsync(steps, executedSteps, compensatedSteps, context, ct);
                     return new SagaExecutionResult<WorkItemDto>(false, null, $"Saga failed at step: {step.StepName}", executedSteps, compensatedSteps);
                 }
@@ -39,6 +42,7 @@ public class WorkItemCompletionSaga(
             }
             catch (Exception ex)
             {
+                logger?.LogError(ex, "Unhandled exception at saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                 await CompensateExecutedStepsAsync(steps, executedSteps, compensatedSteps, context, ct);
                 return new SagaExecutionResult<WorkItemDto>(false, null, $"Exception at step {step.StepName}: {ex.Message}", executedSteps, compensatedSteps);
             }
@@ -52,7 +56,7 @@ public class WorkItemCompletionSaga(
         return new SagaExecutionResult<WorkItemDto>(true, item.ToDto(), null, executedSteps, compensatedSteps);
     }
 
-    private static async Task CompensateExecutedStepsAsync(
+    private async Task CompensateExecutedStepsAsync(
         List<ISagaStep<WorkItemCompletionContext>> steps,
         List<string> executedSteps,
         List<string> compensatedSteps,
@@ -69,9 +73,10 @@ public class WorkItemCompletionSaga(
                     await step.CompensateAsync(context, ct);
                     compensatedSteps.Add(step.StepName);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Compensation resilience — log but don't throw
+                    // Compensation resilience — log explicitly so failures are visible in telemetry
+                    logger?.LogError(ex, "Failed to compensate saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                 }
             }
         }

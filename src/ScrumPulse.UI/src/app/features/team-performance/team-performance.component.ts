@@ -33,6 +33,7 @@ export class TeamPerformanceComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
+        console.error('[TeamPerformanceComponent] Failed to load performance summary:', err);
         this.error.set(err?.message || 'Unable to load team performance data.');
         this.loading.set(false);
       }

@@ -3,7 +3,7 @@ namespace ScrumPulse.Application.DTOs;
 using System.ComponentModel.DataAnnotations;
 using ScrumPulse.Domain.Enums;
 
-/// <summary>Request DTO for creating sprints — prevents mass assignment of raw Sprint entity.</summary>
+/// <summary>Request DTO for creating sprints, prevents mass assignment of raw Sprint entity.</summary>
 public record CreateSprintRequest(
     [Required][StringLength(100, MinimumLength = 3)] string Name,
     [Required][StringLength(500)] string Goal,
@@ -29,7 +29,7 @@ public record UpdateSprintRequest(
     [Range(1.0, 24.0)] double DailyWorkingHours = 8.5
 );
 
-/// <summary>Request DTO for creating team members — prevents mass assignment.</summary>
+/// <summary>Request DTO for creating team members, prevents mass assignment.</summary>
 public record CreateTeamMemberRequest(
     [Required][StringLength(100, MinimumLength = 2)] string Name,
     [Required][EmailAddress][StringLength(200)] string Email,
@@ -56,7 +56,7 @@ public record UpdateTeamMemberRequest(
 /// <summary>Request DTO for assigning/reassigning a member to a squad.</summary>
 public record AssignMemberSquadRequest(Guid? TeamId);
 
-/// <summary>Response DTO for Sprint — prevents leaking raw domain entities (RowVersion, DomainEvents, etc).</summary>
+/// <summary>Response DTO for Sprint, prevents leaking raw domain entities (RowVersion, DomainEvents, etc).</summary>
 public record SprintDto(
     Guid Id,
     string Name,

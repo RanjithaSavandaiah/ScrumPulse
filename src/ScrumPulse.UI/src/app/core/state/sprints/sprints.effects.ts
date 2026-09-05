@@ -30,7 +30,10 @@ export class SprintsEffects {
       mergeMap(({ sprint }) =>
         this.http.post<Sprint>(`${this.apiUrl}/sprints`, sprint).pipe(
           map(created => SprintActions.createSprintSuccess({ sprint: created })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[SprintsEffects] Failed to create sprint:', err);
+            return of();
+          })
         )
       )
     )
@@ -42,7 +45,10 @@ export class SprintsEffects {
       mergeMap(({ id, sprint }) =>
         this.http.put<Sprint>(`${this.apiUrl}/sprints/${id}`, sprint).pipe(
           map(updated => SprintActions.updateSprintSuccess({ sprint: updated })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[SprintsEffects] Failed to update sprint:', err);
+            return of();
+          })
         )
       )
     )
@@ -54,7 +60,10 @@ export class SprintsEffects {
       mergeMap(({ sprintId }) =>
         this.http.post<Sprint>(`${this.apiUrl}/sprints/${sprintId}/activate`, {}).pipe(
           map(active => SprintActions.activateSprintSuccess({ sprint: active })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[SprintsEffects] Failed to activate sprint:', err);
+            return of();
+          })
         )
       )
     )
@@ -66,7 +75,10 @@ export class SprintsEffects {
       mergeMap(({ sprintId }) =>
         this.http.delete(`${this.apiUrl}/sprints/${sprintId}`).pipe(
           map(() => SprintActions.deleteSprintSuccess({ sprintId })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[SprintsEffects] Failed to delete sprint:', err);
+            return of();
+          })
         )
       )
     )

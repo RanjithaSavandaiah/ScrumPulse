@@ -6,6 +6,14 @@
 **/obj
 **/node_modules
 **/dist
+[Tt]est[Rr]esults
+test-results
+coverage
+src/ScrumPulse.Api/wwwroot/*
+!src/ScrumPulse.Api/wwwroot/.gitkeep
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 *.log
+.system_generated

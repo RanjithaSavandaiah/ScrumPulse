@@ -7,8 +7,8 @@ using ScrumPulse.Application.Services;
 
 /// <summary>
 /// Team performance and growth metrics for client-facing presentations.
-/// Provides aggregated cross-sprint KPIs, auto-generated highlights, and trend data.
-/// Guarded with defensive try-catch error handling to protect against 500 failures.
+/// Provides aggregated cross sprint KPIs, auto-generated highlights, and trend data.
+/// Guarded with defensive try catch error handling to protect against 500 failures.
 /// </summary>
 [Route("api/[controller]")]
 [Route("api/team-performance")]
@@ -49,7 +49,7 @@ public class TeamPerformanceController(
         }
     }
 
-    /// <summary>Client-ready highlight bullet points only.</summary>
+    /// <summary>Client ready highlight bullet points only.</summary>
     [HttpGet("highlights")]
     [ProducesResponseType(typeof(IReadOnlyList<TeamHighlightDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<TeamHighlightDto>>> GetHighlights(
@@ -68,7 +68,7 @@ public class TeamPerformanceController(
         }
     }
 
-    /// <summary>Sprint-by-sprint growth trend data for charts.</summary>
+    /// <summary>Sprint by sprint growth trend data for charts.</summary>
     [HttpGet("growth-trend")]
     [ProducesResponseType(typeof(IReadOnlyList<SprintGrowthSnapshotDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<SprintGrowthSnapshotDto>>> GetGrowthTrend(

@@ -20,8 +20,18 @@ export class RetrosEffects {
         const actionsUrl = sprintId ? `${this.apiUrl}/retrospectives/actions?sprintId=${sprintId}` : `${this.apiUrl}/retrospectives/actions`;
 
         return forkJoin({
-          cards: this.http.get<RetroCard[]>(cardsUrl).pipe(catchError(() => of([]))),
-          actions: this.http.get<RetroActionItem[]>(actionsUrl).pipe(catchError(() => of([])))
+          cards: this.http.get<RetroCard[]>(cardsUrl).pipe(
+            catchError(err => {
+              console.error('[RetrosEffects] Failed to load retro cards:', err);
+              return of([]);
+            })
+          ),
+          actions: this.http.get<RetroActionItem[]>(actionsUrl).pipe(
+            catchError(err => {
+              console.error('[RetrosEffects] Failed to load retro actions:', err);
+              return of([]);
+            })
+          )
         }).pipe(
           map(res => RetroActions.loadRetrosSuccess({ cards: res.cards, actions: res.actions })),
           catchError(err => of(RetroActions.loadRetrosFailure({ error: err.message })))

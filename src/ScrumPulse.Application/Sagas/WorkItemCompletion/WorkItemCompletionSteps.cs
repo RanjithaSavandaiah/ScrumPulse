@@ -25,7 +25,7 @@ public class ValidateQualityGatesStep(IUnitOfWork unitOfWork) : ISagaStep<WorkIt
         // Verify DoR & DoD baseline
         if (!workItem.DorAcceptanceCriteriaDefined || !workItem.DodUnitTestsPassed)
         {
-            // For resilience: auto-satisfy unit tests if staging is requested to progress workflow
+            // For resilience: auto satisfy unit tests if staging is requested to progress workflow
             workItem.DodUnitTestsPassed = true;
         }
 
@@ -35,7 +35,7 @@ public class ValidateQualityGatesStep(IUnitOfWork unitOfWork) : ISagaStep<WorkIt
 
     public Task CompensateAsync(WorkItemCompletionContext context, CancellationToken ct = default)
     {
-        // No side-effects to rollback
+        // No side effects to rollback
         return Task.CompletedTask;
     }
 }

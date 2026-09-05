@@ -5,6 +5,8 @@
   backdrop-filter: blur(12px);
   padding: 3rem 1.5rem 1.5rem;
   color: var(--text-secondary, #94a3b8);
+  position: relative;
+  z-index: 2;
 }
 
 .footer-container {
@@ -137,4 +139,51 @@
   max-width: 850px;
   line-height: 1.45;
   color: var(--text-muted, #64748b);
+}
+
+/* Light Theme Styling */
+[data-theme="light"] .app-footer {
+  background: rgba(255, 255, 255, 0.96);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03);
+  color: #475569;
+}
+
+[data-theme="light"] .footer-brand-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .footer-desc {
+  color: #475569;
+}
+
+[data-theme="light"] .col-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .tag-badge {
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.2);
+  color: var(--accent-primary);
+}
+
+[data-theme="light"] .link-list a {
+  color: #475569;
+}
+
+[data-theme="light"] .link-list a:hover {
+  color: var(--accent-primary);
+}
+
+[data-theme="light"] .highlight-link {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .footer-top {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .copyright-text,
+[data-theme="light"] .advertising-notice {
+  color: #64748b;
 }

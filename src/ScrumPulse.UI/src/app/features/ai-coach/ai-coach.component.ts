@@ -29,7 +29,10 @@ export class AiCoachComponent implements OnInit {
       const members = this.state.squadMembers();
       if (members.length > 0 && !this.selectedMemberId && this.aiTier === 'individual') {
         this.selectedMemberId = members[0].id;
-        this.state.getIndividualAi(members[0].id).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+        this.state.getIndividualAi(members[0].id).subscribe({
+          next: (aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion,
+          error: err => console.error('[AiCoachComponent] Failed to load individual AI suggestions:', err)
+        });
       }
     });
   }
@@ -44,34 +47,58 @@ export class AiCoachComponent implements OnInit {
       const targetId = this.selectedMemberId || this.state.squadMembers()[0]?.id;
       if (targetId) {
         this.selectedMemberId = targetId;
-        this.state.getIndividualAi(targetId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+        this.state.getIndividualAi(targetId).subscribe({
+          next: (aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion,
+          error: err => console.error('[AiCoachComponent] Failed to load individual AI suggestions:', err)
+        });
       }
     } else if (tier === 'project') {
       const targetSprintId = this.selectedSprintId || this.state.activeSprint()?.id || this.state.sprints()[0]?.id;
       if (targetSprintId) {
         this.selectedSprintId = targetSprintId;
-        this.state.getProjectAi(targetSprintId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+        this.state.getProjectAi(targetSprintId).subscribe({
+          next: (aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion,
+          error: err => console.error('[AiCoachComponent] Failed to load project AI suggestions:', err)
+        });
       }
     } else {
-      this.state.getCompanyAi().subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+      this.state.getCompanyAi().subscribe({
+        next: (aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion,
+        error: err => console.error('[AiCoachComponent] Failed to load company AI suggestions:', err)
+      });
     }
   }
 
   onMemberChange(memberId: string): void {
     this.selectedMemberId = memberId;
-    this.state.getIndividualAi(memberId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+    this.state.getIndividualAi(memberId).subscribe({
+      next: (aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion,
+      error: err => console.error('[AiCoachComponent] Failed to load individual AI suggestions for member:', err)
+    });
   }
 
   onSprintChange(sprintId: string): void {
     this.selectedSprintId = sprintId;
-    this.state.getProjectAi(sprintId).subscribe((aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion);
+    this.state.getProjectAi(sprintId).subscribe({
+      next: (aiSuggestion: AiSuggestionResponse) => this.aiData = aiSuggestion,
+      error: err => console.error('[AiCoachComponent] Failed to load project AI suggestions for sprint:', err)
+    });
   }
 
   sendChat(promptMessage: string) {
     this.chatMessages.push({ isUser: true, text: promptMessage });
 
-    this.state.askCopilot(promptMessage, this.state.currentRole()).subscribe((chatResponse: CopilotChatResponse) => {
-      this.chatMessages.push({ isUser: false, text: chatResponse.answer });
+    this.state.askCopilot(promptMessage, this.state.currentRole()).subscribe({
+      next: (chatResponse: CopilotChatResponse) => {
+        this.chatMessages.push({ isUser: false, text: chatResponse.answer });
+      },
+      error: err => {
+        console.error('[AiCoachComponent] Copilot request failed:', err);
+        this.chatMessages.push({
+          isUser: false,
+          text: 'Sorry, I encountered an issue processing your query. Please review the logs.'
+        });
+      }
     });
   }
 }

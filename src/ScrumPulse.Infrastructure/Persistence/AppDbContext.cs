@@ -39,7 +39,7 @@ public class AppDbContext : DbContext, IAppDbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        // ── Global Soft-Delete Query Filter ──────────────────────────────
+        // --- Global Soft Delete Query Filter -----
         // All entities inheriting BaseEntity automatically filter out IsDeleted=true records.
         // Use IgnoreQueryFilters() when you need to include soft-deleted records.
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -57,10 +57,10 @@ public class AppDbContext : DbContext, IAppDbContext
             }
         }
 
-        // ── Concurrency Token Configuration ──────────────────────────────
+        // --- Concurrency Token Configuration --
         // SQLite does not natively support [Timestamp]/rowversion, so we skip
         // concurrency token configuration when using SQLite provider.
-        // For PostgreSQL, the RowVersion is auto-configured via [Timestamp] attribute.
+        // For PostgreSQL, the RowVersion is auto configured via [Timestamp] attribute.
     }
 
     /// <summary>

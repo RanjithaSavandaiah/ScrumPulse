@@ -46,7 +46,10 @@ export class PullRequestsEffects {
       mergeMap(({ request }) =>
         this.http.post<PullRequestLog>(`${this.apiUrl}/pullrequests`, request).pipe(
           map(created => PullRequestActions.createPullRequestLogSuccess({ log: created })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[PullRequestsEffects] Failed to create pull request log:', err);
+            return of();
+          })
         )
       )
     )
@@ -58,7 +61,10 @@ export class PullRequestsEffects {
       mergeMap(({ id }) =>
         this.http.delete(`${this.apiUrl}/pullrequests/${id}`).pipe(
           map(() => PullRequestActions.deletePullRequestLogSuccess({ id })),
-          catchError(() => of())
+          catchError(err => {
+            console.error('[PullRequestsEffects] Failed to delete pull request log:', err);
+            return of();
+          })
         )
       )
     )

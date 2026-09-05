@@ -7,12 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 using ScrumPulse.Application.CQRS;
 
 /// <summary>
-/// High-performance CQRS mediator using compiled expression trees for handler dispatch.
+/// High performance CQRS mediator using compiled expression trees for handler dispatch.
 /// Caches delegate factories per handler type for 10-50x improvement over raw reflection.
 /// </summary>
 public sealed class AppMediator(IServiceProvider serviceProvider) : IMediator
 {
-    // Compiled delegate cache: maps (commandType, responseType) → compiled invoke delegate
+    // Compiled delegate cache: maps (commandType, responseType)-> compiled invoke delegate
     private static readonly ConcurrentDictionary<(Type, Type), Func<object, object, CancellationToken, Task<object>>>
         _handlerDelegateCache = new();
 
@@ -43,7 +43,7 @@ public sealed class AppMediator(IServiceProvider serviceProvider) : IMediator
     }
 
     /// <summary>
-    /// Compiles a strongly-typed delegate for the handler's HandleAsync method.
+    /// Compiles a strongly typed delegate for the handler's HandleAsync method.
     /// This runs once per handler type and the result is cached for all subsequent calls.
     /// </summary>
     private static Func<object, object, CancellationToken, Task<object>> CompileHandlerDelegate(

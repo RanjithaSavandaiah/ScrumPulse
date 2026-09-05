@@ -57,7 +57,7 @@
 .sprint-select {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
   outline: none;
@@ -65,8 +65,8 @@
 }
 
 .sprint-select option {
-  background: #1e293b;
-  color: #fff;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Sprint Chips Bar */
@@ -195,7 +195,7 @@
   font-size: 0.85rem;
   line-height: 1.4;
   margin-bottom: 8px;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .card-footer {
@@ -455,4 +455,51 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] .sprint-dropdown-wrap {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .sprint-select {
+  color: #0f172a;
+}
+
+[data-theme="light"] .sprint-select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="light"] .column-header-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .retro-column {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .sticky-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="light"] .sticky-card:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="light"] .icon-action-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: #475569;
+}
+
+[data-theme="light"] .icon-action-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #0f172a;
 }

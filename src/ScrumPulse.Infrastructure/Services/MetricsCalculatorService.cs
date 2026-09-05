@@ -1,12 +1,13 @@
 namespace ScrumPulse.Infrastructure.Services;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Services;
 using ScrumPulse.Domain.Enums;
 
-public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorService
+public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculatorService>? logger = null) : IMetricsCalculatorService
 {
     // Named constants for capacity calculations
     private const double ScrumMasterCapacityFactor = 0.75;
@@ -48,8 +49,9 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
         {
             leaves = await leavesQuery.ToListAsync(ct);
         }
-        catch
+        catch (Exception ex)
         {
+            logger?.LogError(ex, "Failed to query team leaves for sprint {SprintId} capacity calculation; using empty leaves fallback", sprintId);
             leaves = [];
         }
 
@@ -234,7 +236,7 @@ public class MetricsCalculatorService(IAppDbContext db) : IMetricsCalculatorServ
         int delivered = workItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints);
         int sayDoPercent = committed > 0 ? (int)Math.Min(100, Math.Round((delivered / (double)committed) * 100)) : (workItems.Count > 0 ? 50 : 100);
 
-        // Factor 1: Say-Do Delivery (25%)
+        // Factor 1: Say Do Delivery (25%)
         int sayDoScore = Math.Min(100, (int)(sayDoPercent * 1.0));
         var f1 = new SprintHealthFactorDto(
             "Velocity & Commitment",

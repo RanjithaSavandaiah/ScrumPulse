@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using ScrumPulse.Application.Common.Interfaces;
 
 /// <summary>
-/// In-memory idempotency store with automatic background cleanup of expired entries
+/// In memory idempotency store with automatic background cleanup of expired entries
 /// and maximum capacity enforcement (LRU eviction) to prevent unbounded memory growth.
 /// </summary>
 public sealed class MemoryIdempotencyStore : IIdempotencyStore, IDisposable

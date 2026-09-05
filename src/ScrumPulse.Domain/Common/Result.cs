@@ -1,7 +1,7 @@
 namespace ScrumPulse.Domain.Common;
 
 /// <summary>
-/// Railway-oriented Result monad for explicit success/failure propagation
+/// Railway oriented Result monad for explicit success/failure propagation
 /// without exceptions. Supports error codes, monadic chaining, and validation.
 /// </summary>
 public class Result
@@ -30,7 +30,7 @@ public class Result
     public static Result Ensure(bool condition, string error, string? errorCode = null) =>
         condition ? Success() : Failure(error, errorCode);
 
-    /// <summary>Combines multiple results; returns the first failure or Success if all pass.</summary>
+    /// <summary>Combines multiple results, returns the first failure or Success if all pass.</summary>
     public static Result Combine(params Result[] results)
     {
         foreach (var result in results)

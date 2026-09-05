@@ -59,7 +59,10 @@ export class ExecutiveComponent implements OnInit {
     this.metricsError.set(null);
     this.state.getVelocityTrend(6).subscribe({
       next: (data) => this.velocityTrend.set(data),
-      error: (err) => this.metricsError.set('Unable to load velocity trend: ' + (err?.message || 'Network error'))
+      error: (err) => {
+        console.error('[ExecutiveComponent] Failed to load velocity trend:', err);
+        this.metricsError.set('Unable to load velocity trend: ' + (err?.message || 'Network error'));
+      }
     });
 
     const spId = this.effectiveSprintId();
@@ -70,6 +73,7 @@ export class ExecutiveComponent implements OnInit {
           this.loadingMetrics.set(false);
         },
         error: (err) => {
+          console.error('[ExecutiveComponent] Failed to load sprint health:', err);
           this.metricsError.set('Unable to load sprint health: ' + (err?.message || 'Network error'));
           this.loadingMetrics.set(false);
         }
@@ -86,25 +90,37 @@ export class ExecutiveComponent implements OnInit {
     if (mId !== 'ALL') {
       this.state.getIndividualAi(mId).subscribe({
         next: (data) => { this.aiData.set(data); this.loadingAi.set(false); },
-        error: () => this.loadingAi.set(false)
+        error: (err) => {
+          console.error('[ExecutiveComponent] Failed to load individual AI intelligence:', err);
+          this.loadingAi.set(false);
+        }
       });
     } else if (this.selectedTimeScope() === 'SPRINT') {
       const spId = this.effectiveSprintId();
       if (spId && spId !== 'ALL') {
         this.state.getProjectAi(spId).subscribe({
           next: (data) => { this.aiData.set(data); this.loadingAi.set(false); },
-          error: () => this.loadingAi.set(false)
+          error: (err) => {
+            console.error('[ExecutiveComponent] Failed to load project AI intelligence:', err);
+            this.loadingAi.set(false);
+          }
         });
       } else {
         this.state.getCompanyAi().subscribe({
           next: (data) => { this.aiData.set(data); this.loadingAi.set(false); },
-          error: () => this.loadingAi.set(false)
+          error: (err) => {
+            console.error('[ExecutiveComponent] Failed to load company AI intelligence:', err);
+            this.loadingAi.set(false);
+          }
         });
       }
     } else {
       this.state.getCompanyAi().subscribe({
         next: (data) => { this.aiData.set(data); this.loadingAi.set(false); },
-        error: () => this.loadingAi.set(false)
+        error: (err) => {
+          console.error('[ExecutiveComponent] Failed to load company AI intelligence:', err);
+          this.loadingAi.set(false);
+        }
       });
     }
   }
@@ -238,6 +254,7 @@ export class ExecutiveComponent implements OnInit {
         this.loadingComparison.set(false);
       },
       error: (err) => {
+        console.error('[ExecutiveComponent] Sprint comparison failed:', err);
         this.comparisonError.set(err?.message || 'Unable to compare sprints.');
         this.loadingComparison.set(false);
       }

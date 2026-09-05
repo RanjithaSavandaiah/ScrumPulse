@@ -1,8 +1,8 @@
 namespace ScrumPulse.Api.Middleware;
 
 /// <summary>
-/// Adds OWASP-recommended security headers to all HTTP responses.
-/// Critical for a publicly-hosted site.
+/// Adds OWASP recommended security headers to all HTTP responses.
+/// Critical for a publicly hosted site.
 /// </summary>
 public class SecurityHeadersMiddleware(RequestDelegate next)
 {
@@ -36,7 +36,7 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
             "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net; " +
             "frame-ancestors 'none';";
 
-        // Prevent embedding in cross-origin contexts
+        // Prevent embedding in cross origin contexts
         headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
 
         return next(httpContext);

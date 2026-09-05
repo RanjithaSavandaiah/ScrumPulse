@@ -3,7 +3,7 @@ namespace ScrumPulse.Application.DTOs;
 using System.ComponentModel.DataAnnotations;
 using ScrumPulse.Domain.Enums;
 
-/// <summary>Typed response DTO for tech debt items — replaces anonymous object returns.</summary>
+/// <summary>Typed response DTO for tech debt items replaces anonymous object returns.</summary>
 public record TechDebtItemDto(
     Guid Id,
     string Title,
@@ -17,7 +17,7 @@ public record TechDebtItemDto(
     DateTime CreatedAtUtc
 );
 
-/// <summary>Request DTO for creating/updating tech debt items — prevents mass assignment.</summary>
+/// <summary>Request DTO for creating/updating tech debt items prevents mass assignment.</summary>
 public record CreateTechDebtRequest(
     [Required][StringLength(250, MinimumLength = 3)] string Title,
     [Required][StringLength(2000)] string Description,

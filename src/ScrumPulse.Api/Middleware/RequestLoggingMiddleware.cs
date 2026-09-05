@@ -32,14 +32,14 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
             var level = statusCode >= 500 ? LogLevel.Error : (statusCode >= 400 ? LogLevel.Warning : LogLevel.Information);
 
             logger.Log(level,
-                "{Method} {Path} → {StatusCode} in {ElapsedMs}ms [CID: {CorrelationId}]",
+                "{Method} {Path} -> {StatusCode} in {ElapsedMs}ms [CID: {CorrelationId}]",
                 method, path, statusCode, stopwatch.ElapsedMilliseconds, correlationId);
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
             logger.LogError(ex,
-                "{Method} {Path} → UNHANDLED in {ElapsedMs}ms [CID: {CorrelationId}]",
+                "{Method} {Path} -> UNHANDLED in {ElapsedMs}ms [CID: {CorrelationId}]",
                 method, path, stopwatch.ElapsedMilliseconds, correlationId);
             throw;
         }
