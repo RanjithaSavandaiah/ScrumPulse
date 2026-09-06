@@ -83,20 +83,102 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     await expect(page.locator('.work-item-card', { hasText: updatedTitle })).not.toBeVisible({ timeout: 10000 });
   });
 
-  test('should open sprint modal, modify sprint goal and targets', async ({ page }) => {
-    // Open Create/Edit Sprint modal
+  test('should create sprint, add user story into sprint, edit and delete story, edit sprint goal, and delete sprint', async ({ page }) => {
+    const timestamp = Date.now();
+    const sprintName = `Sprint E2E ${timestamp}`;
+    const sprintGoal = `Comprehensive E2E sprint goal deliverable ${timestamp}`;
+    const updatedSprintGoal = `Updated sprint goal with extended targets ${timestamp}`;
+    const storyTitle = `PBI in Sprint ${timestamp}`;
+    const updatedStoryTitle = `${storyTitle} - Refined`;
+
+    // 1. Open Create Sprint modal
     const sprintModalBtn = page.locator('.section-header button', { hasText: 'Create Sprint' });
     await expect(sprintModalBtn).toBeVisible();
     await sprintModalBtn.click();
 
-    // Verify input fields have id and for association
+    // 2. Verify input fields have id and fill new Sprint details
     await expect(page.locator('#sprintNameInput')).toBeVisible();
     await expect(page.locator('#sprintGoalTextarea')).toBeVisible();
     await expect(page.locator('#sprintStartDateInput')).toBeVisible();
     await expect(page.locator('#sprintEndDateInput')).toBeVisible();
 
-    // Close modal
-    await page.locator('app-edit-sprint-modal .close-btn').click();
+    await page.locator('#sprintNameInput').fill(sprintName);
+    await page.locator('#sprintGoalTextarea').fill(sprintGoal);
+
+    // Save Sprint
+    await page.locator('app-edit-sprint-modal button.btn-primary', { hasText: 'Create Sprint' }).click();
     await expect(page.locator('#sprintNameInput')).not.toBeVisible();
+
+    // 3. Verify sprint chip in quick filter bar
+    const sprintChip = page.locator('.sprint-filter-bar .sprint-chip', { hasText: sprintName });
+    await expect(sprintChip).toBeVisible({ timeout: 10000 });
+    await sprintChip.click();
+
+    // 4. Verify Sprint Goal Banner reflects active selection
+    const goalBanner = page.locator('.sprint-goal-banner');
+    await expect(goalBanner).toBeVisible({ timeout: 10000 });
+    await expect(goalBanner.locator('.sprint-name-chip')).toContainText(sprintName);
+    await expect(goalBanner.locator('.goal-text')).toContainText(sprintGoal);
+
+    // 5. Add User Story into this Sprint
+    const addStoryBtn = page.locator('.section-header button', { hasText: 'Add Story / Bug / PBI' });
+    await expect(addStoryBtn).toBeVisible();
+    await addStoryBtn.click();
+
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+    await page.locator('.type-card', { hasText: 'User Story' }).click();
+    await page.locator('#workItemTitleInput').fill(storyTitle);
+    await page.locator('#workItemDescTextarea').fill('PBI created specifically inside newly provisioned sprint.');
+    await page.locator('.points-selector .point-btn', { hasText: '8' }).click();
+    await page.locator('#workItemHoursInput').fill('16');
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible();
+
+    // Verify story appears on board under this sprint
+    const storyCard = page.locator('.work-item-card', { hasText: storyTitle });
+    await expect(storyCard).toBeVisible({ timeout: 10000 });
+    await expect(storyCard.locator('.pts-badge')).toContainText('8 Pts');
+
+    // 6. Edit User Story
+    await storyCard.locator('button.btn-edit').click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+    await page.locator('#workItemTitleInput').fill(updatedStoryTitle);
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible();
+
+    // Verify updated title
+    const updatedStoryCard = page.locator('.work-item-card', { hasText: updatedStoryTitle });
+    await expect(updatedStoryCard).toBeVisible({ timeout: 10000 });
+
+    // 7. Delete User Story
+    await updatedStoryCard.locator('button.btn-edit').click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+    await page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible();
+    await expect(page.locator('.work-item-card', { hasText: updatedStoryTitle })).not.toBeVisible({ timeout: 10000 });
+
+    // 8. Edit Sprint Goal
+    await goalBanner.locator('.btn-edit-goal').click();
+    await expect(page.locator('#sprintGoalTextarea')).toBeVisible();
+    await page.locator('#sprintGoalTextarea').fill(updatedSprintGoal);
+    await page.locator('app-edit-sprint-modal button.btn-primary', { hasText: 'Save Sprint & Goal' }).click();
+    await expect(page.locator('#sprintGoalTextarea')).not.toBeVisible();
+
+    // Verify updated goal banner
+    await expect(goalBanner.locator('.goal-text')).toContainText(updatedSprintGoal);
+
+    // 9. Delete Sprint
+    await goalBanner.locator('.btn-edit-goal').click();
+    await expect(page.locator('#sprintNameInput')).toBeVisible();
+    await page.locator('app-edit-sprint-modal button.btn-danger', { hasText: 'Delete Sprint' }).click();
+
+    // Confirm in deletion modal
+    const confirmModal = page.locator('app-confirm-modal .modal-box');
+    await expect(confirmModal).toBeVisible();
+    await confirmModal.locator('button.btn-confirm-action', { hasText: 'Delete Sprint' }).click();
+    await expect(confirmModal).not.toBeVisible();
+
+    // 10. Verify sprint chip is gone
+    await expect(sprintChip).not.toBeVisible({ timeout: 10000 });
   });
 });
