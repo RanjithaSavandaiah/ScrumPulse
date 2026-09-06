@@ -36,9 +36,9 @@ When logging a blocker, team members assign one of four structured root causes:
 ### Real-Time Waiting Counter & Radar
 - **Live Elapsed Time**: Counters continuously tick up in hours and minutes from the moment a blocker is created.
 - **SLA Breach Threshold (>8 Hours)**:
-  - When a blocker remains unresolved for more than 8 working hours, it breaches the squad SLA.
-  - The blocker card pulses in bold red on the radar dashboard.
-  - Escalation alerts are surfaced on the Executive Dashboard for Delivery Leads and Scrum Masters to intervene immediately.
+- When a blocker remains unresolved for more than 8 working hours, it breaches the squad SLA.
+- The blocker card pulses in bold red on the radar dashboard.
+- Escalation alerts are surfaced on the Executive Dashboard for Delivery Leads and Scrum Masters to intervene immediately.
 
 ### Blocker Resolution & Post-Mortem Tracking
 Resolving a blocker captures the exact resolution duration and notes, feeding the multi-sprint delivery maturity telemetry to identify chronic squad impediments.

@@ -1,91 +1,68 @@
 # System Architecture
 
-ScrumPulse is engineered as an enterprise-grade, clean-architecture application. It couples a modular .NET 10 ASP.NET Core Web API backend with an Angular 18 reactive single-page frontend, persistent storage via Entity Framework Core 10, and an intelligent coaching copilot driven by Microsoft Agent Framework.
+ScrumPulse is structured as a Clean Architecture solution with a .NET 10 ASP.NET Core backend and an Angular 18 single-page frontend.
 
 ---
 
-## Architectural Layers
+## Project Structure & Dependencies
 
-The backend follows Uncle Bob's Clean Architecture pattern with clear inversion of control:
+The backend projects strictly enforce inward dependency flow:
 
 ```
-                  ┌───────────────────────────────┐
-                  │        ScrumPulse.Api         │
-                  │ (Controllers, Middleware, Host)│
-                  └───────────────┬───────────────┘
-                                  │
-                  ┌───────────────▼───────────────┐
-                  │    ScrumPulse.Application     │
-                  │ (Use Cases, CQRS, DTOs, Sagas)│
-                  └───────┬───────────────┬───────┘
-                          │               │
-         ┌────────────────▼─────┐   ┌─────▼────────────────┐
-         │  ScrumPulse.Domain   │   │   ScrumPulse.AI      │
-         │ (Entities, Enums,    │   │ (Microsoft Agent     │
-         │  Domain Events)      │   │  Framework, Copilot) │
-         └────────────────▲─────┘   └──────────────────────┘
-                          │
-         ┌────────────────┴───────────────┐
-         │   ScrumPulse.Infrastructure   │
-         │ (EF Core, AppDbContext, Seed)  │
-         └────────────────────────────────┘
+src/
+├── ScrumPulse.Domain/ # Core entities, enums, value objects (no external deps)
+├── ScrumPulse.Application/ # CQRS use cases, DTOs, interfaces, validation rules
+├── ScrumPulse.Infrastructure/ # EF Core AppDbContext, migrations, repos, seed data
+├── ScrumPulse.AI/ # Microsoft Agent Framework service & prompt pipelines
+├── ScrumPulse.Api/ # Web API host, middleware, routing, wwwroot SPA host
+└── ScrumPulse.UI/ # Angular 18 SPA (standalone components, NgRx store)
 ```
 
-### 1. `ScrumPulse.Domain` (Core)
-- Holds pure domain models, business logic invariants, and enums without any external framework dependencies.
-- Key Domain Entities:
-  - `Team` / `TeamMember` / `UserRole`
-  - `Sprint` / `WorkItem` / `WorkItemStage`
-  - `DailyStandup` / `MoodRating`
-  - `PullRequestMetric` / `PrComment`
-  - `Blocker` / `BlockerRootCause`
-  - `LeaveEntry` / `CapacityCalculation`
-  - `MonthlyReview` / `ReviewDimension`
-  - `RetroCard` / `RetroColumn` / `RetroVote`
-  - `AppreciationBadge` / `KudosCard`
-  - `TechDebtItem` / `TechTalk`
+Dependency relationships:
+- `ScrumPulse.Domain`: Has zero project dependencies. Contains entities (`Team`, `WorkItem`, `Sprint`, `Blocker`, etc.) and domain constants.
+- `ScrumPulse.Application`: References `Domain`. Contains application service contracts, request/response models, and business logic.
+- `ScrumPulse.Infrastructure`: References `Application` and `Domain`. Implements database persistence via EF Core 10, migrations, and seed logic.
+- `ScrumPulse.AI`: References `Application` and `Domain`. Implements LLM orchestration via Microsoft Agent Framework.
+- `ScrumPulse.Api`: References `Infrastructure`, `Application`, and `AI`. Configures middleware, DI container, HTTP endpoints, rate limiters, and serves static frontend assets.
 
-### 2. `ScrumPulse.Application` (Use Cases)
-- Coordinates business transactions, data validation, and application workflows.
-- Contains DTO models, mapping logic, service interfaces (`IStandupService`, `IWorkItemService`, `ICapacityCalculator`, `IExecutiveReporter`), and domain event handlers.
-- Enforces multi-tenant squad partitioning through the current execution context (`TeamId`).
+---
 
-### 3. `ScrumPulse.Infrastructure` (Data & Persistence)
-- Implements repository interfaces and encapsulates `AppDbContext` built on Entity Framework Core 10.
-- Supports dual database providers:
-  - **PostgreSQL**: Production-grade relational database with connection pooling and schema migrations.
-  - **SQLite**: Local developer convenience database requiring zero external infrastructure.
-  - **InMemory**: Ultra-fast isolated state provider for xUnit unit/integration tests.
-- Configures Global Query Filters:
-  ```csharp
-  modelBuilder.Entity<WorkItem>().HasQueryFilter(w => w.TeamId == _currentTenant.TeamId);
-  ```
+## Data Layer & Multi-Tenancy
 
-### 4. `ScrumPulse.AI` (Agentic Intelligence)
-- Integrates with Microsoft Agent Framework and Azure OpenAI / Semantic Kernel.
-- Provides context-aware agile coaching prompts, sprint risk prediction, automated retro synthesis, and the interactive ScrumPulse Copilot Agile Chat.
+### Storage Providers
+- **Development**: SQLite (`Data Source=ScrumPulse.db`). Requires no external daemon; `DbInitializer.cs` runs migrations and seeds demo data on boot if empty.
+- **Production**: PostgreSQL. Configured via `ConnectionStrings:DefaultConnection` or `DATABASE_URL`.
+- **Testing**: EF Core InMemory provider for isolated xUnit runs.
 
-### 5. `ScrumPulse.Api` (Presentation & Gateway)
-- ASP.NET Core Web API with strongly-typed endpoint routing.
-- Configures security headers middleware, global exception handlers, sliding-window rate limiters, and CORS policies.
-- Serves pre-built Angular static assets in production (`wwwroot`).
+### Tenant Isolation via Global Query Filters
+All team-scoped entities inherit a common `TeamId` property. Multi-tenancy is enforced at the DbContext level using EF Core Global Query Filters:
+
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+ base.OnModelCreating(modelBuilder);
+
+ // Global query filter ensures queries are scoped to the active squad
+ modelBuilder.Entity<WorkItem>()
+ .HasQueryFilter(w => w.TeamId == _currentTenant.TeamId);
+
+ modelBuilder.Entity<DailyStandup>()
+ .HasQueryFilter(s => s.TeamId == _currentTenant.TeamId);
+
+ modelBuilder.Entity<Blocker>()
+ .HasQueryFilter(b => b.TeamId == _currentTenant.TeamId);
+}
+```
+
+The active squad is passed in incoming HTTP requests via the `X-Team-Id` header and resolved in DI by `TenantContextMiddleware`.
 
 ---
 
 ## Frontend Architecture (Angular 18)
 
-The frontend is built using modern Angular 18 best practices:
-- **Standalone Components**: Eliminates legacy NgModules for faster lazy loading and tree-shaking.
-- **Signals**: Fine-grained reactive state tracking for high-frequency UI components (e.g., 2-minute speaker timer countdown).
-- **NgRx Store & Effects**: Predictable unidirectional data flow for enterprise squad state, cached telemetry, and offline tolerance.
-- **Vanilla Responsive CSS**: Eliminates heavy utility CSS frameworks, providing handcrafted glassmorphic design and dark-mode aesthetics.
-
----
-
-## Multi-Tenant Data Isolation
-
-ScrumPulse enforces logical multi-tenancy at the squad level:
-1. Every squad receives a unique `TeamId` GUID.
-2. The user's active squad is tracked in local state and forwarded via standard request headers (`X-Team-Id`).
-3. Entity Framework Core applies global query filters automatically to prevent cross-squad data contamination.
-4. Switching squads re-hydrates the NgRx store with the target squad's partition.
+The frontend is located at `src/ScrumPulse.UI`:
+- **Standalone Components**: No `NgModule` boilerplate. Each feature component explicitly imports its required Angular directives.
+- **Angular Signals**: Used for fast, reactive UI components (e.g., the 2-minute speaker countdown timer, live blocker timers) to prevent unnecessary change-detection cycles.
+- **NgRx Store & Effects**: Used for squad-wide data that requires caching across tabs: work items, capacity logs, active sprint metadata, and current squad context.
+- **Styling**: Handcrafted responsive CSS without Tailwind. Uses CSS custom properties (`--bg-primary`, `--accent-color`, etc.) for consistent dark/light styling.
+- **Production Delivery**: In Docker/production, Angular builds to `src/ScrumPulse.Api/wwwroot`, where ASP.NET Core serves `index.html` with SPA fallback routing.

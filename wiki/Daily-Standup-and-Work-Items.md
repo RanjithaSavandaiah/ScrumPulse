@@ -14,13 +14,13 @@ Every squad member can submit their daily log answering three focused questions:
 2. **Today**: What will you commit to completing today?
 3. **Blockers**: Are there any impediments or dependencies stopping you?
 
-Additionally, submissions capture a **Mood Index** from 1 to 5 (😞 to 🤩). Aggregated mood scores generate the squad daily morale index visible in the Executive Suite.
+Additionally, submissions capture a **Mood Index** from 1 to 5 (1 to 5). Aggregated mood scores generate the squad daily morale index visible in the Executive Suite.
 
 ### 2-Minute Round-Robin Speaker Timer
 For teams conducting live syncs, ScrumPulse includes a real-time speaker clock:
 - **Duration**: Preset to 120 seconds (2 minutes) per speaker.
 - **Controls**: Interactive Start, Pause, Reset, and Next Speaker buttons.
-- **Visual Telemetry**: Smooth circular progress ring with color transitions (Green &rarr; Amber at 30s remaining &rarr; Red pulse upon expiration).
+- **Visual Telemetry**: Smooth circular progress ring with color transitions (Green -> Amber at 30s remaining -> Red pulse upon expiration).
 - **Squad Roster Queue**: Automatically cycles through all present squad members.
 
 ---
@@ -30,7 +30,7 @@ For teams conducting live syncs, ScrumPulse includes a real-time speaker clock:
 ScrumPulse replaces generic 3-column boards with a granular 7-stage micro-pipeline that surfaces invisible development bottlenecks:
 
 ```
-[Backlog] ──► [InProgress] ──► [PrCreated] ──► [PrApproved] ──► [Merged] ──► [InQa] ──► [Done]
+[Backlog] -> [InProgress] -> [PrCreated] -> [PrApproved] -> [Merged] -> [InQa] -> [Done]
 ```
 
 ### Stage Definitions & Responsibilities
@@ -51,4 +51,4 @@ For every transition, ScrumPulse automatically logs timestamps and calculates el
 - **Review Latency**: Time waiting in `PrCreated` before approval and merge.
 - **QA Verification Latency**: Time between `Merged` and `Done`.
 
-This telemetry pinpoints where work gets stuck—whether in code review queues or testing environments.
+This telemetry pinpoints where work gets stuck - whether in code review queues or testing environments.

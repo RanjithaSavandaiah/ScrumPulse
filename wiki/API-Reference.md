@@ -47,7 +47,7 @@ The ScrumPulse RESTful Web API exposes strongly typed JSON endpoints under `/api
 | `GET` | `/api/workitems` | Lists all work items within the current sprint. |
 | `POST` | `/api/workitems` | Creates a new user story, task, or bug ticket. |
 | `PUT` | `/api/workitems/{id}` | Updates work item details, story points, or assignee. |
-| `PATCH` | `/api/workitems/{id}/stage` | Transitions a work item across the 7 stages (`Backlog` &rarr; `Done`). |
+| `PATCH` | `/api/workitems/{id}/stage` | Transitions a work item across the 7 stages (`Backlog` -> `Done`). |
 | `DELETE` | `/api/workitems/{id}` | Deletes a work item (requires SM role). |
 
 ---
@@ -57,7 +57,7 @@ The ScrumPulse RESTful Web API exposes strongly typed JSON endpoints under `/api
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/api/standups/today` | Retrieves all submitted standup logs for the squad today. |
-| `POST` | `/api/standups` | Submits a daily standup (Yesterday, Today, Blockers, Mood rating 1–5). |
+| `POST` | `/api/standups` | Submits a daily standup (Yesterday, Today, Blockers, Mood rating 1-5). |
 | `GET` | `/api/standups/history` | Returns historical standup logs with date-range filtering. |
 
 ---
@@ -102,7 +102,7 @@ The ScrumPulse RESTful Web API exposes strongly typed JSON endpoints under `/api
 | `GET` | `/api/kudos` | Retrieves appreciation cards with live emoji reaction counts. |
 | `POST` | `/api/kudos` | Posts a new peer appreciation card with a badge. |
 | `POST` | `/api/kudos/{id}/react` | Adds an emoji reaction to a kudos card. |
-| `GET` | `/api/monthlyfeedback` | Retrieves 360° monthly review coaching entries and happiness dials. |
+| `GET` | `/api/monthlyfeedback` | Retrieves 360-degree monthly review coaching entries and happiness dials. |
 | `POST` | `/api/monthlyfeedback` | Submits monthly feedback across SM, CDL, Client, and self-review. |
 
 ---

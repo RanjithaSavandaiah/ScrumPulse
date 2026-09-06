@@ -1,8 +1,6 @@
 # ScrumPulse
 
-An enterprise-grade agile delivery intelligence and engineering velocity platform built for distributed scrum teams, technical leads, and delivery managers in client engagements.
-
-ScrumPulse connects granular engineering metrics (micro-stage cycle times, PR turnaround, blocker SLAs, standup logs) with delivery governance (sprint predictability, capacity forecasting factoring in leave, team growth trends, and client-ready reporting).
+ScrumPulse is an engineering telemetry and sprint tracking application for scrum teams and delivery leads. It tracks work item cycle times across micro-stages, pull request review turnaround, blocker SLAs, daily standups, and squad capacity to produce delivery metrics and sprint health reports.
 
 ---
 
@@ -14,14 +12,14 @@ ScrumPulse connects granular engineering metrics (micro-stage cycle times, PR tu
 - [Project Structure](#project-structure)
 - [Security Architecture & Role-Based Access Control (RBAC)](#security-architecture--role-based-access-control-rbac)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
+- [Prerequisites](#prerequisites)
+- [Backend Setup](#backend-setup)
+- [Frontend Setup](#frontend-setup)
 - [Configuration & Environment Variables](#configuration--environment-variables)
 - [Testing Architecture (3-Tier Matrix)](#testing-architecture-3-tier-matrix)
-  - [Backend Tests (.NET 10 / xUnit)](#backend-tests-net-10--xunit)
-  - [Frontend Unit Tests (Angular 18 / Karma)](#frontend-unit-tests-angular-18--karma)
-  - [End-to-End Test Suite (Playwright)](#end-to-end-test-suite-playwright)
+- [Backend Tests (.NET 10 / xUnit)](#backend-tests-net-10--xunit)
+- [Frontend Unit Tests (Angular 18 / Karma)](#frontend-unit-tests-angular-18--karma)
+- [End-to-End Test Suite (Playwright)](#end-to-end-test-suite-playwright)
 - [CI/CD Pipeline Architecture](#cicd-pipeline-architecture)
 - [Production Deployment & Docker](#production-deployment--docker)
 - [API Overview](#api-overview)
@@ -35,12 +33,12 @@ ScrumPulse provides 13 dedicated feature tabs plus multi-squad navigation:
 | Tab # | Feature Module | Core Capabilities & Governance | E2E Spec |
 | :---: | :--- | :--- | :--- |
 | **1** | **Daily Standup & Timer** | Asynchronous 3-question submissions (Yesterday, Today, Blockers), mood indexing (1-5), and a 2-minute round-robin speaker clock with start/pause/reset controls. | `standup-crud-timer.spec.ts` |
-| **2** | **Work Items & Lifecycle** | 7-stage micro-pipeline (`Backlog` &rarr; `InProgress` &rarr; `PrCreated` &rarr; `PrApproved` &rarr; `Merged` &rarr; `InQa` &rarr; `Done`) with DoR/DoD quality gate checklists and automatic latency telemetry. | `work-items-crud.spec.ts`, `advanced-workflows-edge-cases.spec.ts` |
+| **2** | **Work Items & Lifecycle** | 7-stage micro-pipeline (`Backlog` -> `InProgress` -> `PrCreated` -> `PrApproved` -> `Merged` -> `InQa` -> `Done`) with DoR/DoD quality gate checklists and automatic latency telemetry. | `work-items-crud.spec.ts`, `advanced-workflows-edge-cases.spec.ts` |
 | **3** | **Git PRs & Code Review** | Pull request review logs, actionable vs. total review comment ratios, turnaround metrics, and individual developer scorecards. | `pr-metrics.spec.ts` |
 | **4** | **Blocker SLA Radar** | Real-time waiting-time counters, root-cause categorization (`ClientClarification`, `TechLeadArchitecture`, `EnvironmentAccess`, `ThirdPartyApi`), and SLA breach alert radar (>8 hours). | `blockers-crud.spec.ts`, `advanced-workflows-edge-cases.spec.ts` |
 | **5** | **Leave & Capacity** | Multi-member leave calendar supporting full-day and half-day bookings; working-day math recalculates net squad focus hours and recommended story point commitments. | `team-capacity-crud.spec.ts` |
 | **6** | **Team Roster** | Squad member directory with role assignments (`ScrumMaster`, `Developer`, `QaEngineer`, `Cdl`, `ProductOwner`, `ClientStakeholder`, `AgileCoach`), avatar selection, and active WIP limit governance. | `team-capacity-crud.spec.ts` |
-| **7** | **Monthly 1:1 Reviews** | 360° feedback capturing SM guidance, CDL coaching, Client inputs, and self-reflection alongside happiness dials and rating metrics. | `monthly-reviews-crud.spec.ts` |
+| **7** | **Monthly 1:1 Reviews** | 360-degree feedback capturing SM guidance, CDL coaching, Client inputs, and self-reflection alongside happiness dials and rating metrics. | `monthly-reviews-crud.spec.ts` |
 | **8** | **Retrospective Board** | 4-column retrospective board (`Went Well`, `Didn't Go Well`, `Ideas`, `Action Items`) with anonymous card posting, peer upvoting, and tracked action item checklists. | `kudos-retro-crud.spec.ts` |
 | **9** | **Appreciation Wall** | Peer recognition cards with custom appreciation badges (`ProblemSolver`, `TeamPlayer`, `GoalCrusher`, `QualityGuardian`, `InnovationStar`, `ClientShoutout`) and live emoji reaction counters. | `kudos-retro-crud.spec.ts` |
 | **10** | **Team Growth & Performance** | Multi-sprint delivery maturity telemetry, say-do predictability ratios, defect leakage reduction tracking, and automated performance letter grade badges (`A+`, `A`, `B+`, etc.). | `team-performance.spec.ts` |
@@ -71,29 +69,29 @@ The solution follows Clean Architecture principles:
 
 ```
 ScrumPulse.Domain
-  └── Entities, Enums, Value Objects, Domain Events, BaseEntity
+ └── Entities, Enums, Value Objects, Domain Events, BaseEntity
 
 ScrumPulse.Application
-  └── Request/Response DTOs, CQRS Handlers, Sagas, Interfaces, Mapping
+ └── Request/Response DTOs, CQRS Handlers, Sagas, Interfaces, Mapping
 
 ScrumPulse.Infrastructure
-  └── EF Core AppDbContext, Repositories, Migrations, Seed Data, Services
+ └── EF Core AppDbContext, Repositories, Migrations, Seed Data, Services
 
 ScrumPulse.AI
-  └── Microsoft Agent Framework integration, Prompt strategies, Coaches
+ └── Microsoft Agent Framework integration, Prompt strategies, Coaches
 
 ScrumPulse.Api
-  └── ASP.NET Core Controllers, Rate Limiting, Compression, Swagger, SPA Host
+ └── ASP.NET Core Controllers, Rate Limiting, Compression, Swagger, SPA Host
 
 ScrumPulse.UI
-  └── Angular 18 Standalone Application (served via API wwwroot in production)
+ └── Angular 18 Standalone Application (served via API wwwroot in production)
 ```
 
 ---
 
 ## Security Architecture & Role-Based Access Control (RBAC)
 
-ScrumPulse implements enterprise defense-in-depth security across every layer:
+The application implements the following security controls:
 
 ### 1. Role-Based Access Control (RBAC) & PIN Security
 - **Developer Role (Default)**: Team members can submit daily standups, log PR reviews, create work items, post kudos, and participate in retrospectives.
@@ -126,22 +124,22 @@ Configured via `SecurityHeadersMiddleware` on every response:
 
 ```
 c:\ScrumPulse/
-├── ScrumPulse.slnx                 # .NET solution file (modern XML format)
-├── Dockerfile                      # Multi-stage production container build
-├── render.yaml                     # Render.com deployment blueprint
+├── ScrumPulse.slnx # .NET solution file (modern XML format)
+├── Dockerfile # Multi-stage production container build
+├── render.yaml # Render.com deployment blueprint
 ├── src/
-│   ├── ScrumPulse.Domain/          # Core domain models, enums, domain events
-│   ├── ScrumPulse.Application/     # Use cases, interfaces, DTOs, CQRS, sagas
-│   ├── ScrumPulse.Infrastructure/  # Persistence, AppDbContext, Seed Data
-│   ├── ScrumPulse.AI/              # Microsoft Agent Framework service
-│   ├── ScrumPulse.Api/             # Web API host, middleware, controllers, wwwroot
-│   └── ScrumPulse.UI/              # Angular 18 frontend
-│       ├── e2e/                    # Playwright end-to-end test suites (30 tests)
-│       └── src/app/
-│           ├── core/               # State (NgRx), services, models, components
-│           └── features/           # Standup, Sprint Board, Blockers, Capacity, etc.
+│ ├── ScrumPulse.Domain/ # Core domain models, enums, domain events
+│ ├── ScrumPulse.Application/ # Use cases, interfaces, DTOs, CQRS, sagas
+│ ├── ScrumPulse.Infrastructure/ # Persistence, AppDbContext, Seed Data
+│ ├── ScrumPulse.AI/ # Microsoft Agent Framework service
+│ ├── ScrumPulse.Api/ # Web API host, middleware, controllers, wwwroot
+│ └── ScrumPulse.UI/ # Angular 18 frontend
+│ ├── e2e/ # Playwright end-to-end test suites (30 tests)
+│ └── src/app/
+│ ├── core/ # State (NgRx), services, models, components
+│ └── features/ # Standup, Sprint Board, Blockers, Capacity, etc.
 └── tests/
-    └── ScrumPulse.Tests/           # Unit, integration, architecture, controller tests (93 tests)
+ └── ScrumPulse.Tests/ # Unit, integration, architecture, controller tests (93 tests)
 ```
 
 ---
@@ -156,38 +154,38 @@ c:\ScrumPulse/
 ### Backend Setup
 
 1. Restore dependencies and build the solution:
-   ```bash
-   dotnet build ScrumPulse.slnx
-   ```
+ ```bash
+ dotnet build ScrumPulse.slnx
+ ```
 
 2. Run the API project:
-   ```bash
-   dotnet run --project src/ScrumPulse.Api
-   ```
+ ```bash
+ dotnet run --project src/ScrumPulse.Api
+ ```
 
 3. The API will start on:
-   - HTTP: `http://localhost:5000`
-   - HTTPS: `https://localhost:5001`
-   - Interactive Swagger docs: `http://localhost:5000/swagger`
+- HTTP: `http://localhost:5000`
+- HTTPS: `https://localhost:5001`
+- Interactive Swagger docs: `http://localhost:5000/swagger`
 
 > **Note on Initial Run:** By default, the app uses SQLite (`ScrumPulse.db`). On first boot, `DbInitializer` automatically creates the schema and seeds multi-sprint demonstration data so the platform is immediately functional.
 
 ### Frontend Setup
 
 1. Navigate to the UI project directory:
-   ```bash
-   cd src/ScrumPulse.UI
-   ```
+ ```bash
+ cd src/ScrumPulse.UI
+ ```
 
 2. Install npm packages:
-   ```bash
-   npm install --legacy-peer-deps
-   ```
+ ```bash
+ npm install --legacy-peer-deps
+ ```
 
 3. Start the Angular development server:
-   ```bash
-   npm start
-   ```
+ ```bash
+ npm start
+ ```
 
 4. Open `http://localhost:4200` in your browser.
 
@@ -212,10 +210,10 @@ ScrumPulse enforces quality across three automated testing tiers:
 
 ```mermaid
 graph LR
-    A[Backend Tests<br/>93 Passed / 0 Warnings] --> D[Quality Gate]
-    B[Frontend Unit Tests<br/>259 Passed / 0 Errors] --> D
-    C[Playwright E2E Suite<br/>30 Passed / 100% Green] --> D
-    D --> E[Render Continuous Deployment]
+ A[Backend Tests<br/>93 Passed / 0 Warnings] --> D[Quality Gate]
+ B[Frontend Unit Tests<br/>259 Passed / 0 Errors] --> D
+ C[Playwright E2E Suite<br/>30 Passed / 100% Green] --> D
+ D --> E[Render Continuous Deployment]
 ```
 
 ### Backend Tests (.NET 10 / xUnit)
@@ -250,26 +248,26 @@ The GitHub Actions workflow (`.github/workflows/ci.yml`) runs 4 automated jobs o
 
 ```mermaid
 graph TD
-    A[Push to main / PR] --> B[1. Backend Tests & Quality Gate]
-    A --> C[2. Frontend Unit Tests & Console Sentinel]
-    B --> D[3. E2E Runtime & Zero Console Error Sentinel]
-    C --> D
-    D --> E[4. Continuous Deployment to Render]
+ A[Push to main / PR] --> B[1. Backend Tests & Quality Gate]
+ A --> C[2. Frontend Unit Tests & Console Sentinel]
+ B --> D[3. E2E Runtime & Zero Console Error Sentinel]
+ C --> D
+ D --> E[4. Continuous Deployment to Render]
 ```
 
 1. **Backend Tests & Quality Gate**:
-   - Compiles solution with strict `/warnaserror`.
-   - Executes all 93 backend unit and integration tests.
-   - Verifies zero vulnerable NuGet packages via `dotnet list package --vulnerable --include-transitive`.
+- Compiles solution with strict `/warnaserror`.
+- Executes all 93 backend unit and integration tests.
+- Verifies zero vulnerable NuGet packages via `dotnet list package --vulnerable --include-transitive`.
 2. **Frontend Unit Tests & Console Sentinel**:
-   - Compiles Angular application bundle.
-   - Executes all 259 Jasmine/Karma unit tests.
+- Compiles Angular application bundle.
+- Executes all 259 Jasmine/Karma unit tests.
 3. **E2E Runtime & Zero Console Error Sentinel**:
-   - Boots the .NET 10 API with the compiled Angular SPA.
-   - Executes all 30 Playwright tests on headless Chromium.
-   - Asserts zero console errors or warnings across all views.
+- Boots the .NET 10 API with the compiled Angular SPA.
+- Executes all 30 Playwright tests on headless Chromium.
+- Asserts zero console errors or warnings across all views.
 4. **Continuous Deployment to Render (Free)**:
-   - Triggers production deploy hook to rollout changes to `https://scrumpulse.onrender.com`.
+- Triggers production deploy hook to rollout changes to `https://scrumpulse.onrender.com`.
 
 ---
 
@@ -310,7 +308,7 @@ All API endpoints follow RESTful conventions under the `/api/` prefix with Swagg
 | `/api/standups` | `GET`, `POST`, `PUT`, `DELETE` | Asynchronous standup submissions and squad history |
 | `/api/team-performance/summary` | `GET` | Multi-sprint growth trends, delivery highlights, and velocity |
 | `/api/executive-reports/sprint/{id}/health` | `GET` | 6-dimension sprint health composite radar |
-| `/api/monthly-feedback` | `GET`, `POST`, `PUT`, `DELETE` | 360° monthly review records with ratings and AI synthesis |
+| `/api/monthly-feedback` | `GET`, `POST`, `PUT`, `DELETE` | 360-degree monthly review records with ratings and AI synthesis |
 | `/api/retrospectives` | `GET`, `POST`, `DELETE` | Retrospective cards, upvoting, and action items |
 | `/api/kudos` | `GET`, `POST` | Peer recognition cards and emoji reactions |
 | `/api/pull-requests` | `GET`, `POST`, `DELETE` | PR turnaround metrics and review comment analysis |

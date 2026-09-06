@@ -4,11 +4,11 @@ Engineering excellence relies on psychological safety, constructive feedback loo
 
 ---
 
-## Feature Module 7: Monthly 1:1 Reviews & 360° Coaching
+## Feature Module 7: Monthly 1:1 Reviews & 360-degree Coaching
 
 ScrumPulse modernizes developer performance reviews into continuous, multi-dimensional coaching conversations.
 
-### 360° Feedback Dimensions
+### 360-degree Feedback Dimensions
 Each monthly check-in synthesizes feedback across key stakeholders:
 1. **Scrum Master Guidance**: Feedback on agile discipline, standup quality, blocker communication, and collaboration.
 2. **Client Delivery Lead (CDL) Coaching**: Alignment with client business objectives, domain leadership, and technical excellence.
@@ -16,7 +16,7 @@ Each monthly check-in synthesizes feedback across key stakeholders:
 4. **Self-Reflection**: The developer's own assessment of their wins, obstacles, and growth goals.
 
 ### Happiness Dial & Growth Metrics
-- **Interactive Happiness Dial**: Developers rate their overall work satisfaction on a visual circular dial (1–10).
+- **Interactive Happiness Dial**: Developers rate their overall work satisfaction on a visual circular dial (1-10).
 - **Competency Heatmaps**: Tracks growth across coding, architecture, testing, communication, and mentoring over time.
 
 ---
@@ -44,12 +44,12 @@ Recognizing peer contributions elevates morale and strengthens cross-functional 
 
 ### Recognition Badges
 Team members award custom recognition cards with specific badges:
-- 💡 **ProblemSolver**: For untangling complex technical bugs or architectural knots.
-- 🤝 **TeamPlayer**: For pairing, unblocking teammates, and stepping up under pressure.
-- 🎯 **GoalCrusher**: For delivering high-impact features ahead of schedule.
-- 🛡️ **QualityGuardian**: For writing stellar tests, catching critical defects, and guarding production stability.
-- ⭐ **InnovationStar**: For introducing tools, automation, or creative ideas that speed up the team.
-- 🌟 **ClientShoutout**: For exceptional stakeholder communication and client delight.
+- **ProblemSolver**: For untangling complex technical bugs or architectural knots.
+- **TeamPlayer**: For pairing, unblocking teammates, and stepping up under pressure.
+- **GoalCrusher**: For delivering high-impact features ahead of schedule.
+- **QualityGuardian**: For writing stellar tests, catching critical defects, and guarding production stability.
+- **InnovationStar**: For introducing tools, automation, or creative ideas that speed up the team.
+- **ClientShoutout**: For exceptional stakeholder communication and client delight.
 
-### Interactive Emoji Reactions
-Kudos cards feature real-time emoji reactions (🔥, 🚀, ❤️, 👏, 🎉) allowing the entire team to celebrate wins collectively.
+### Peer Reactions
+Kudos cards feature real-time reaction counters allowing the entire team to celebrate wins collectively.

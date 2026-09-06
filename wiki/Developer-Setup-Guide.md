@@ -30,40 +30,40 @@ cd ScrumPulse
 ## 3. Backend Setup (.NET 10)
 
 1. **Restore dependencies**:
-   ```bash
-   dotnet restore ScrumPulse.slnx
-   ```
+ ```bash
+ dotnet restore ScrumPulse.slnx
+ ```
 
 2. **Build the solution with warning-as-error verification**:
-   ```bash
-   dotnet build ScrumPulse.slnx -c Debug
-   ```
+ ```bash
+ dotnet build ScrumPulse.slnx -c Debug
+ ```
 
 3. **Run the API server**:
-   ```bash
-   dotnet run --project src/ScrumPulse.Api
-   ```
-   The backend API will start on `http://localhost:5000` (or `https://localhost:5001`), seeding sample squad data automatically via SQLite if no PostgreSQL instance is configured.
+ ```bash
+ dotnet run --project src/ScrumPulse.Api
+ ```
+ The backend API will start on `http://localhost:5000` (or `https://localhost:5001`), seeding sample squad data automatically via SQLite if no PostgreSQL instance is configured.
 
 ---
 
 ## 4. Frontend Setup (Angular 18)
 
 1. **Navigate to the UI directory**:
-   ```bash
-   cd src/ScrumPulse.UI
-   ```
+ ```bash
+ cd src/ScrumPulse.UI
+ ```
 
 2. **Install frontend dependencies**:
-   ```bash
-   npm ci --legacy-peer-deps
-   ```
+ ```bash
+ npm ci --legacy-peer-deps
+ ```
 
 3. **Start the Angular development server**:
-   ```bash
-   npm start
-   ```
-   The single-page application will be accessible at `http://localhost:4200`. Requests to `/api/*` are automatically proxied to `http://localhost:5000`.
+ ```bash
+ npm start
+ ```
+ The single-page application will be accessible at `http://localhost:4200`. Requests to `/api/*` are automatically proxied to `http://localhost:5000`.
 
 ---
 

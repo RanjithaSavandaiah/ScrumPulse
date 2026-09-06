@@ -11,12 +11,14 @@ Sprint commitment failures frequently stem from static velocity assumptions that
 ### Multi-Member Leave Calendar
 - Squad members book planned absences directly within the calendar.
 - Supports **Full-Day** and **Half-Day** bookings.
-- Automatically accounts for squad-specific working days (Monday–Friday) and official regional holidays.
+- Automatically accounts for squad-specific working days (Monday-Friday) and official regional holidays.
 
 ### Net Focus Hours Formula
 ScrumPulse calculates available capacity at both the individual and squad levels:
 
-$$\text{Net Focus Hours} = (\text{Working Days} - \text{Leave Days}) \times \text{Daily Productive Hours} \times \text{Ceremony Friction Factor}$$
+```
+Net Focus Hours = (Working Days - Leave Days) * Daily Productive Hours * Ceremony Friction Factor
+```
 
 - **Daily Productive Hours**: Standardized to 6 hours/day (factoring in context switching and operational tasks).
 - **Ceremony Friction Factor**: Automatically subtracts time reserved for Sprint Planning, Daily Standup, Review, and Retrospectives.

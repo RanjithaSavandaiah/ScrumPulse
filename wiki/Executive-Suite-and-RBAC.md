@@ -9,16 +9,16 @@ This guide covers ScrumPulse's executive delivery governance, multi-format expor
 Delivery Managers, Client Partners, and CTOs require synthesized visibility without getting lost in granular daily tickets. The Executive Suite provides strategic governance.
 
 ### Composite 6-Dimension Sprint Health Score
-ScrumPulse synthesizes six vital signs into an aggregate sprint health index (0–100):
+ScrumPulse synthesizes six vital signs into an aggregate sprint health index (0-100):
 
 | Dimension | Weight | Target Threshold |
 | :--- | :---: | :--- |
-| **1. Sprint Predictability (Say-Do)** | 25% | $\ge 85\%$ of committed points delivered |
-| **2. Blocker SLA Adherence** | 20% | $< 8\text{ hours}$ average resolution time |
-| **3. PR Turnaround Velocity** | 15% | $< 24\text{ hours}$ average review turnaround |
-| **4. Defect Leakage Rate** | 15% | $< 3\%$ defect ratio during QA |
-| **5. Squad Morale / Happiness** | 15% | $\ge 4.0 / 5.0$ daily standup mood rating |
-| **6. Capacity Utilization** | 10% | $85\% - 95\%$ net focus hour commitment |
+| **1. Sprint Predictability (Say-Do)** | 25% | >= 85% of committed points delivered |
+| **2. Blocker SLA Adherence** | 20% | < 8 hours average resolution time |
+| **3. PR Turnaround Velocity** | 15% | < 24 hours average review turnaround |
+| **4. Defect Leakage Rate** | 15% | < 3% defect ratio during QA |
+| **5. Squad Morale / Happiness** | 15% | >= 4.0 / 5.0 daily standup mood rating |
+| **6. Capacity Utilization** | 10% | 85% - 95% net focus hour commitment |
 
 ### Duration Filters
 Telemetry can be filtered across multiple time windows:
@@ -44,7 +44,7 @@ Enterprise engineering organizations rarely operate with a single team. ScrumPul
 - Switching updates the client-side `TeamId` header and re-hydrates the NgRx store.
 
 ### Squad Creation & Join Codes
-- **Creation**: Authenticated Scrum Masters can spawn new squads with custom naming, sprint cadence (1–4 weeks), and initial roster members.
+- **Creation**: Authenticated Scrum Masters can spawn new squads with custom naming, sprint cadence (1-4 weeks), and initial roster members.
 - **Join Codes**: Squads can generate secure, expiring join codes allowing new developers to onboard into the squad with appropriate default permissions.
 
 ### Scrum Master PIN Boundary

@@ -9,14 +9,14 @@ This guide details ScrumPulse's long-term performance analytics, technical debt 
 ScrumPulse tracks team delivery maturity over multiple sprints to provide actionable, trend-based governance rather than isolated snapshot metrics.
 
 ### Key Maturity Metrics
-- **Say-Do Predictability Ratio**: Percentage of story points completed vs. committed at sprint planning. Healthy teams consistently target 85%–100%.
+- **Say-Do Predictability Ratio**: Percentage of story points completed vs. committed at sprint planning. Healthy teams consistently target 85%-100%.
 - **Defect Leakage Rate**: Number of bugs identified in `InQa` or production per 100 story points delivered.
 - **Velocity Stability Index**: Standard deviation of sprint velocity across the last 6 sprints.
 - **Automated Letter Grade Badges**:
-  - **`A+`**: >95% Say-Do, <2% Defect Leakage, zero blocker SLA breaches.
-  - **`A`**: 85%–94% Say-Do, <5% Defect Leakage.
-  - **`B+` / `B`**: 75%–84% Say-Do with minor delivery deviations.
-  - **`C` / `D`**: Chronic over-commitment or high defect rates requiring retrospection.
+- **`A+`**: >95% Say-Do, <2% Defect Leakage, zero blocker SLA breaches.
+- **`A`**: 85%-94% Say-Do, <5% Defect Leakage.
+- **`B+` / `B`**: 75%-84% Say-Do with minor delivery deviations.
+- **`C` / `D`**: Chronic over-commitment or high defect rates requiring retrospection.
 
 ---
 
@@ -43,6 +43,6 @@ Powered by the **Microsoft Agent Framework** and Azure OpenAI, ScrumPulse provid
 1. **Developer 1:1 Coaching Prompts**: Provides personalized reflection questions for developers based on recent PR review latency and standup blockers.
 2. **Sprint Risk Radar Synthesis**: Analyzes current work item micro-pipeline stages, remaining days, and blocker history to synthesize executive sprint risk summaries.
 3. **Interactive Copilot Agile Chat**:
-   - Natural language conversational assistant embedded within the UI.
-   - Answers questions like: *"Which squad members are overloaded this sprint?"*, *"What was our average PR review turnaround over the last 3 sprints?"*, and *"Draft a retrospective agenda focusing on our third-party API blockers."*
-   - Protected by token-bucket rate limiting and contextual data privacy guards.
+- Natural language conversational assistant embedded within the UI.
+- Answers questions like: *"Which squad members are overloaded this sprint?"*, *"What was our average PR review turnaround over the last 3 sprints?"*, and *"Draft a retrospective agenda focusing on our third-party API blockers."*
+- Protected by token-bucket rate limiting and contextual data privacy guards.

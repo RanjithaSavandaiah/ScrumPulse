@@ -58,7 +58,7 @@ To guard against Denial of Service (DoS) and API abuse, ScrumPulse uses partitio
 ## 4. Injection & Sanitization Safeguards
 
 - **SQL Injection**: 100% of database interactions use Entity Framework Core parameterized LINQ queries. Raw unescaped SQL strings are strictly prohibited in the codebase.
-- **Cross-Site Scripting (XSS)**: Angular’s contextual DOM sanitization automatically neutralizes malicious script payloads in templates. Markdown and rich-text rendering is passed through `DOMPurify`.
+- **Cross-Site Scripting (XSS)**: Angular's contextual DOM sanitization automatically neutralizes malicious script payloads in templates. Markdown and rich-text rendering is passed through `DOMPurify`.
 - **Dependency Auditing**: The CI/CD pipeline enforces `dotnet list package --vulnerable --include-transitive` and `npm audit` on every pull request and push to `main`. Zero known vulnerabilities are permitted.
 
 ---
@@ -70,4 +70,4 @@ ScrumPulse maintains an official security policy located at [`.github/SECURITY.m
 Researchers can report vulnerabilities via:
 - **GitHub Private Vulnerability Reporting** via the repository Security tab.
 - **Email**: `lsranjitha@gmail.com` with subject `[SECURITY] ScrumPulse Vulnerability Report`.
-- **Response SLAs**: Initial response within 24–48 hours; triage within 3 business days; emergency patches within 7–14 days.
+- **Response SLAs**: Initial response within 24-48 hours; triage within 3 business days; emergency patches within 7-14 days.
