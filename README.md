@@ -118,6 +118,7 @@ Configured via `SecurityHeadersMiddleware` on every response:
 - **SQL Injection**: 100% Entity Framework Core parameterized LINQ queries.
 - **XSS Sanitization**: Angular built-in contextual DOM escaping plus DOMPurify for HTML/markdown rendering.
 - **Dependency Vulnerability Scanning**: Continuous verification via `dotnet list package --vulnerable --include-transitive` (0 vulnerable packages).
+- **Security Policy & Vulnerability Disclosure**: Detailed reporting procedures and SLA guidelines documented in [.github/SECURITY.md](.github/SECURITY.md).
 
 ---
 
