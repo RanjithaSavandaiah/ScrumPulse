@@ -193,7 +193,7 @@
                 </span>
               </td>
               <td>
-                <button (click)="onDeletePr(pr.id)" class="delete-pr-btn" title="Remove Log">&times;</button>
+                <button (click)="onDeletePr(pr.id)" class="delete-pr-btn btn-delete-pr" title="Remove Log">&times;</button>
               </td>
             </tr>
           } @empty {
@@ -226,8 +226,8 @@
         <div class="modal-body">
           <div class="split-controls">
             <div class="control-col">
-              <label class="input-label">PR Author (Developer)</label>
-              <select [(ngModel)]="newPr.authorId" class="interactive-input">
+              <label for="prAuthorSelect" class="input-label">PR Author (Developer)</label>
+              <select id="prAuthorSelect" name="prAuthorSelect" [(ngModel)]="newPr.authorId" class="interactive-input">
                 @for (member of developerMembers(); track member.id) {
                   <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
                 }
@@ -235,8 +235,8 @@
             </div>
 
             <div class="control-col">
-              <label class="input-label">Sprint Board</label>
-              <select [(ngModel)]="newPr.sprintId" class="interactive-input">
+              <label for="prSprintModalSelect" class="input-label">Sprint Board</label>
+              <select id="prSprintModalSelect" name="prSprintModalSelect" [(ngModel)]="newPr.sprintId" class="interactive-input">
                 <option value="">Unassigned Sprint</option>
                 @for (sprint of state.sprints(); track sprint.id) {
                   <option [value]="sprint.id">{{ sprint.name }}</option>
@@ -246,30 +246,32 @@
           </div>
 
           <div class="form-group">
-            <label class="input-label">PR Identifier</label>
-            <input [(ngModel)]="newPr.prNumber" placeholder="e.g. PR-713" class="interactive-input" />
+            <label for="prNumberInput" class="input-label">PR Identifier</label>
+            <input id="prNumberInput" name="prNumberInput" [(ngModel)]="newPr.prNumber" placeholder="e.g. PR-713" class="interactive-input" />
           </div>
 
           <div class="form-group">
-            <label class="input-label">PR Title & Deliverable</label>
-            <input [(ngModel)]="newPr.prTitle" placeholder="e.g. Implement Webhook Retries & Idempotency Key" class="interactive-input" />
+            <label for="prTitleInput" class="input-label">PR Title & Deliverable</label>
+            <input id="prTitleInput" name="prTitleInput" [(ngModel)]="newPr.prTitle" placeholder="e.g. Implement Webhook Retries & Idempotency Key" class="interactive-input" />
           </div>
 
           <div class="split-controls">
             <div class="control-col">
-              <label class="input-label">Total Review Comments Received</label>
-              <input type="number" min="0" max="100" [(ngModel)]="newPr.totalCommentsCount" class="interactive-input" />
+              <label for="prTotalCommentsInput" class="input-label">Total Review Comments Received</label>
+              <input id="prTotalCommentsInput" name="prTotalCommentsInput" type="number" min="0" max="100" [(ngModel)]="newPr.totalCommentsCount" class="interactive-input" />
             </div>
 
             <div class="control-col">
-              <label class="input-label">Actionable Review Comments</label>
-              <input type="number" min="0" [max]="newPr.totalCommentsCount" [(ngModel)]="newPr.actionableCommentsCount" class="interactive-input" />
+              <label for="prActionableCommentsInput" class="input-label">Actionable Review Comments</label>
+              <input id="prActionableCommentsInput" name="prActionableCommentsInput" type="number" min="0" [max]="newPr.totalCommentsCount" [(ngModel)]="newPr.actionableCommentsCount" class="interactive-input" />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="input-label">Review Summary & Key Takeaways</label>
+            <label for="prReviewSummaryTextarea" class="input-label">Review Summary & Key Takeaways</label>
             <textarea
+              id="prReviewSummaryTextarea"
+              name="prReviewSummaryTextarea"
               [(ngModel)]="newPr.reviewSummary"
               placeholder="e.g. Suggested moving DB call out of loop, added cancellation token handling, unit test edge cases."
               class="interactive-input"
@@ -279,8 +281,8 @@
 
           <div class="split-controls">
             <div class="control-col">
-              <label class="input-label">PR Status</label>
-              <select [(ngModel)]="newPr.reviewStatus" class="interactive-input">
+              <label for="prReviewStatusSelect" class="input-label">PR Status</label>
+              <select id="prReviewStatusSelect" name="prReviewStatusSelect" [(ngModel)]="newPr.reviewStatus" class="interactive-input">
                 <option value="Approved">Approved</option>
                 <option value="Merged">Merged</option>
                 <option value="ChangesRequested">Changes Requested</option>
@@ -292,7 +294,7 @@
 
         <div class="modal-footer">
           <button (click)="showLogPrModal.set(false)" class="btn-secondary">Cancel</button>
-          <button (click)="onSavePrLog()" [disabled]="!newPr.prTitle.trim() || !newPr.authorId" class="btn-primary btn-save">
+          <button (click)="onSavePrLog()" [disabled]="!newPr.prTitle.trim() || !newPr.authorId" class="btn-primary btn-save btn-save-pr">
             <app-icon name="check" [size]="16"></app-icon> Save PR Review Log
           </button>
         </div>
