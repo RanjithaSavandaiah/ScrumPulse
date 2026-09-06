@@ -18,7 +18,7 @@
 
   <!-- Chat Input -->
   <div class="chat-input-row">
-    <input [(ngModel)]="inputText" (keyup.enter)="onSend()" placeholder="Ask AI coach..." class="chat-input" />
+    <input id="copilotChatInput" name="copilotChatInput" [(ngModel)]="inputText" (keyup.enter)="onSend()" placeholder="Ask AI coach..." class="chat-input" aria-label="Ask AI coach" />
     <button (click)="onSend()" class="btn-primary btn-send">
       <app-icon name="send" [size]="14"></app-icon> Send
     </button>

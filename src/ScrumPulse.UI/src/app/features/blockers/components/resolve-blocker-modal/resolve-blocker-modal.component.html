@@ -26,8 +26,10 @@
 
       <!-- Resolution Notes Input -->
       <div class="form-group">
-        <label class="input-label">Resolution Actions & Notes</label>
+        <label for="resolutionNotesTextarea" class="input-label">Resolution Actions & Notes</label>
         <textarea
+          id="resolutionNotesTextarea"
+          name="resolutionNotesTextarea"
           [(ngModel)]="notes"
           placeholder="Describe how this blocker was unblocked (e.g. Received connection string from DevOps and verified access)..."
           class="interactive-input"

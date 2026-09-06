@@ -17,8 +17,9 @@
       <!-- Sprint Name & Status -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Sprint Board Name <span class="required-star">*</span></label>
+          <label for="sprintNameInput" class="form-label">Sprint Board Name <span class="required-star">*</span></label>
           <input
+            id="sprintNameInput"
             type="text"
             [(ngModel)]="name"
             name="name"
@@ -32,7 +33,7 @@
           <label class="form-label">Active Status</label>
           <div class="toggle-row">
             <label class="switch-container">
-              <input type="checkbox" [(ngModel)]="isActive" name="isActive" />
+              <input id="sprintActiveCheckbox" type="checkbox" [(ngModel)]="isActive" name="isActive" />
               <span class="slider"></span>
             </label>
             <span class="toggle-txt">{{ isActive ? 'Set as Active Sprint' : 'Draft / Completed' }}</span>
@@ -43,13 +44,14 @@
       <!-- Sprint Goal (Prominent) -->
       <div class="form-group full-width">
         <div class="goal-label-row">
-          <label class="form-label">
+          <label for="sprintGoalTextarea" class="form-label">
             <app-icon name="target" [size]="15" color="var(--accent-warning)"></app-icon>
             <strong>Sprint Goal & Value Proposition</strong> <span class="required-star">*</span>
           </label>
           <span class="goal-hint">Clearly articulates the core business deliverable for this sprint</span>
         </div>
         <textarea
+          id="sprintGoalTextarea"
           [(ngModel)]="goal"
           name="goal"
           rows="3"
@@ -62,8 +64,9 @@
       <!-- Timeline Dates -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Sprint Start Date</label>
+          <label for="sprintStartDateInput" class="form-label">Sprint Start Date</label>
           <input
+            id="sprintStartDateInput"
             type="date"
             [(ngModel)]="startDate"
             (ngModelChange)="onStartDateChange()"
@@ -74,8 +77,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Sprint End Date (Target)</label>
+          <label for="sprintEndDateInput" class="form-label">Sprint End Date (Target)</label>
           <input
+            id="sprintEndDateInput"
             type="date"
             [(ngModel)]="endDate"
             name="endDate"
@@ -103,7 +107,7 @@
 
         <div class="form-group">
           <div class="label-with-presets">
-            <label class="form-label">Working & Leave Hours / Day</label>
+            <label for="sprintDailyHoursInput" class="form-label">Working & Leave Hours / Day</label>
             <div class="hours-presets-pill-group">
               <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 8.0" (click)="setDailyHours(8.0)">8.0h</button>
               <button type="button" class="preset-pill" [class.active]="dailyWorkingHours === 8.5" (click)="setDailyHours(8.5)">8.5h</button>
@@ -112,6 +116,7 @@
           </div>
           <div class="hours-input-container">
             <input
+              id="sprintDailyHoursInput"
               type="number"
               step="0.5"
               min="1"
@@ -172,8 +177,9 @@
             @if (targetMode === 'storyPoints') {
               <div class="input-with-live-conv">
                 <div class="form-group flex-1">
-                  <label class="form-label-mini">Committed Story Points</label>
+                  <label for="committedStoryPointsInput" class="form-label-mini">Committed Story Points</label>
                   <input
+                    id="committedStoryPointsInput"
                     type="number"
                     [(ngModel)]="committedStoryPoints"
                     (ngModelChange)="onPointsChange()"
@@ -194,8 +200,9 @@
               <!-- Hours Input Mode -->
               <div class="input-with-live-conv">
                 <div class="form-group flex-1">
-                  <label class="form-label-mini">Committed Team Workload (Hours)</label>
+                  <label for="committedHoursInput" class="form-label-mini">Committed Team Workload (Hours)</label>
                   <input
+                    id="committedHoursInput"
                     type="number"
                     [(ngModel)]="committedHours"
                     (ngModelChange)="onHoursChange()"

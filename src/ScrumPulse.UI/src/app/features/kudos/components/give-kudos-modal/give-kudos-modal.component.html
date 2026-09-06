@@ -15,8 +15,8 @@
       <!-- Sender & Receiver Row -->
       <div class="form-row split-controls">
         <div class="control-col">
-          <label class="input-label">Kudos From (Sender)</label>
-          <select [(ngModel)]="kudos.senderId" class="interactive-input">
+          <label for="kudosSenderSelect" class="input-label">Kudos From (Sender)</label>
+          <select id="kudosSenderSelect" name="kudosSenderSelect" [(ngModel)]="kudos.senderId" class="interactive-input">
             <option value="" disabled>-- Select Who Is Giving Kudos --</option>
             @for (member of teamMembers; track member.id) {
               <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
@@ -24,8 +24,8 @@
           </select>
         </div>
         <div class="control-col">
-          <label class="input-label">Recognize Teammate (Recipient)</label>
-          <select [(ngModel)]="kudos.receiverId" class="interactive-input">
+          <label for="kudosReceiverSelect" class="input-label">Recognize Teammate (Recipient)</label>
+          <select id="kudosReceiverSelect" name="kudosReceiverSelect" [(ngModel)]="kudos.receiverId" class="interactive-input">
             <option value="" disabled>-- Choose Teammate to Appreciate --</option>
             @for (member of teamMembers; track member.id) {
               <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
@@ -73,7 +73,7 @@
 
       <!-- Preset Appreciation Messages -->
       <div class="form-group">
-        <label class="input-label">Quick Appreciation Presets</label>
+        <label for="kudosMessageTextarea" class="input-label">Quick Appreciation Presets & Note</label>
         <div class="preset-chips">
           @for (preset of presets; track preset) {
             <button type="button" (click)="setPreset(preset)" class="preset-chip">
@@ -82,6 +82,8 @@
           }
         </div>
         <textarea
+          id="kudosMessageTextarea"
+          name="kudosMessageTextarea"
           [(ngModel)]="kudos.message"
           placeholder="Personal appreciation note..."
           class="interactive-input"

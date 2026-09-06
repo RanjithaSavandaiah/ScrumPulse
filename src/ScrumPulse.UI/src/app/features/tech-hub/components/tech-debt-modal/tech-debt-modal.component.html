@@ -16,8 +16,9 @@
     <form (ngSubmit)="onSubmit()" class="modal-body form-grid">
       <!-- Title -->
       <div class="form-group full-width">
-        <label class="form-label">Debt Title & Scope <span class="required-star">*</span></label>
+        <label for="techDebtTitleInput" class="form-label">Debt Title & Scope <span class="required-star">*</span></label>
         <input
+          id="techDebtTitleInput"
           type="text"
           [(ngModel)]="title"
           name="title"
@@ -30,8 +31,8 @@
       <!-- Severity & Estimated Hours -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Severity Level</label>
-          <select [(ngModel)]="severity" name="severity" class="interactive-input">
+          <label for="techDebtSeveritySelect" class="form-label">Severity Level</label>
+          <select id="techDebtSeveritySelect" [(ngModel)]="severity" name="severity" class="interactive-input">
             @for (s of severities; track s.value) {
               <option [value]="s.value">{{ s.label }}</option>
             }
@@ -39,8 +40,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Estimated Hours (h)</label>
+          <label for="techDebtHoursInput" class="form-label">Estimated Hours (h)</label>
           <input
+            id="techDebtHoursInput"
             type="number"
             [(ngModel)]="estimatedHours"
             name="estimatedHours"
@@ -54,8 +56,8 @@
       <!-- Status & Assigned Developer -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Debt Status</label>
-          <select [(ngModel)]="status" name="status" class="interactive-input">
+          <label for="techDebtStatusSelect" class="form-label">Debt Status</label>
+          <select id="techDebtStatusSelect" [(ngModel)]="status" name="status" class="interactive-input">
             @for (st of statuses; track st.value) {
               <option [value]="st.value">{{ st.label }}</option>
             }
@@ -63,8 +65,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Assigned Developer / Owner</label>
-          <select [(ngModel)]="assigneeId" name="assigneeId" class="interactive-input">
+          <label for="techDebtAssigneeSelect" class="form-label">Assigned Developer / Owner</label>
+          <select id="techDebtAssigneeSelect" [(ngModel)]="assigneeId" name="assigneeId" class="interactive-input">
             <option value="">Unassigned (Squad Backlog)</option>
             @for (m of state.squadMembers(); track m.id) {
               <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
@@ -75,8 +77,8 @@
 
       <!-- Target Payoff Sprint -->
       <div class="form-group full-width">
-        <label class="form-label">Target Payoff Sprint</label>
-        <select [(ngModel)]="payoffSprintId" name="payoffSprintId" class="interactive-input">
+        <label for="techDebtPayoffSprintSelect" class="form-label">Target Payoff Sprint</label>
+        <select id="techDebtPayoffSprintSelect" [(ngModel)]="payoffSprintId" name="payoffSprintId" class="interactive-input">
           <option value="">Unassigned Backlog (No specific sprint planned yet)</option>
           @for (sp of state.sprints(); track sp.id) {
             <option [value]="sp.id">{{ sp.name }} {{ sp.isActive ? '(Active Sprint)' : '' }}</option>
@@ -87,8 +89,9 @@
 
       <!-- Description / Context -->
       <div class="form-group full-width">
-        <label class="form-label">Description & Architecture Notes</label>
+        <label for="techDebtDescriptionTextarea" class="form-label">Description & Architecture Notes</label>
         <textarea
+          id="techDebtDescriptionTextarea"
           [(ngModel)]="description"
           name="description"
           rows="4"

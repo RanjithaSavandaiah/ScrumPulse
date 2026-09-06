@@ -16,6 +16,7 @@
         <label for="sprintSelect" class="filter-label">Sprint:</label>
         <select
           id="sprintSelect"
+          name="sprintSelect"
           [ngModel]="selectedSprintId()"
           (ngModelChange)="selectedSprintId.set($event)"
           class="assignee-filter-select"
@@ -35,6 +36,7 @@
         <label for="assigneeFilter" class="filter-label">Assignee:</label>
         <select
           id="assigneeFilter"
+          name="assigneeFilter"
           [ngModel]="selectedAssigneeId()"
           (ngModelChange)="selectedAssigneeId.set($event)"
           class="assignee-filter-select"

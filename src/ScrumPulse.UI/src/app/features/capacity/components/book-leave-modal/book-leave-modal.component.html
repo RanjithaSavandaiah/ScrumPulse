@@ -14,8 +14,8 @@
     <div class="modal-body">
       <!-- Member Selection with Dropdown & Quick Chips -->
       <div class="form-group">
-        <label class="input-label">Select Team Member</label>
-        <select [(ngModel)]="leave.teamMemberId" class="interactive-input member-select">
+        <label for="leaveMemberSelect" class="input-label">Select Team Member</label>
+        <select id="leaveMemberSelect" name="leaveMemberSelect" [(ngModel)]="leave.teamMemberId" class="interactive-input member-select">
           <option value="" disabled>-- Choose Team Member --</option>
           @for (member of teamMembers; track member.id) {
             <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
@@ -79,8 +79,10 @@
       <div class="form-group">
         <div class="split-controls">
           <div class="control-col">
-            <label class="input-label">Start Date</label>
+            <label for="leaveStartDateInput" class="input-label">Start Date</label>
             <input
+              id="leaveStartDateInput"
+              name="leaveStartDateInput"
               type="date"
               [(ngModel)]="leave.startDate"
               (ngModelChange)="onStartDateChange()"
@@ -88,8 +90,10 @@
             />
           </div>
           <div class="control-col">
-            <label class="input-label">End Date</label>
+            <label for="leaveEndDateInput" class="input-label">End Date</label>
             <input
+              id="leaveEndDateInput"
+              name="leaveEndDateInput"
               type="date"
               [(ngModel)]="leave.endDate"
               (ngModelChange)="onEndDateChange()"

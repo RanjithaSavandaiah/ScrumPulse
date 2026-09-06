@@ -16,8 +16,9 @@
     <form (ngSubmit)="onSubmit()" class="modal-body form-grid">
       <!-- Topic -->
       <div class="form-group full-width">
-        <label class="form-label">Session Topic & Theme <span class="required-star">*</span></label>
+        <label for="techTalkTopicInput" class="form-label">Session Topic & Theme <span class="required-star">*</span></label>
         <input
+          id="techTalkTopicInput"
           type="text"
           [(ngModel)]="topic"
           name="topic"
@@ -30,8 +31,8 @@
       <!-- Presenter & Date -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Presenter / Speaker <span class="required-star">*</span></label>
-          <select [(ngModel)]="presenterId" name="presenterId" required class="interactive-input">
+          <label for="techTalkPresenterSelect" class="form-label">Presenter / Speaker <span class="required-star">*</span></label>
+          <select id="techTalkPresenterSelect" [(ngModel)]="presenterId" name="presenterId" required class="interactive-input">
             @for (m of state.squadMembers(); track m.id) {
               <option [value]="m.id">{{ m.name | cleanName }} ({{ m.role | roleLabel }})</option>
             }
@@ -39,8 +40,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Session Date</label>
+          <label for="techTalkDateInput" class="form-label">Session Date</label>
           <input
+            id="techTalkDateInput"
             type="date"
             [(ngModel)]="talkDate"
             name="talkDate"
@@ -53,8 +55,8 @@
       <!-- Duration & Slides/Recording URL -->
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Duration</label>
-          <select [(ngModel)]="durationMinutes" name="durationMinutes" class="interactive-input">
+          <label for="techTalkDurationSelect" class="form-label">Duration</label>
+          <select id="techTalkDurationSelect" [(ngModel)]="durationMinutes" name="durationMinutes" class="interactive-input">
             @for (d of durations; track d.value) {
               <option [value]="d.value">{{ d.label }}</option>
             }
@@ -62,8 +64,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Slides / Recording URL (Optional)</label>
+          <label for="techTalkSlidesUrlInput" class="form-label">Slides / Recording URL (Optional)</label>
           <input
+            id="techTalkSlidesUrlInput"
             type="url"
             [(ngModel)]="slidesUrl"
             name="slidesUrl"
@@ -75,8 +78,9 @@
 
       <!-- Key Takeaways -->
       <div class="form-group full-width">
-        <label class="form-label">Key Takeaways & Team Action Items</label>
+        <label for="techTalkTakeawaysTextarea" class="form-label">Key Takeaways & Team Action Items</label>
         <textarea
+          id="techTalkTakeawaysTextarea"
           [(ngModel)]="keyTakeaways"
           name="keyTakeaways"
           rows="4"

@@ -16,8 +16,8 @@
     <div class="modal-body">
       <!-- Member Selector Dropdown & Chips -->
       <div class="form-group">
-        <label class="input-label">Select Team Member</label>
-        <select [(ngModel)]="standup.teamMemberId" class="interactive-input member-select">
+        <label for="standupMemberSelect" class="input-label">Select Team Member</label>
+        <select id="standupMemberSelect" name="standupMemberSelect" [(ngModel)]="standup.teamMemberId" class="interactive-input member-select">
           <option value="" disabled>-- Choose Team Member --</option>
           @for (member of teamMembers; track member.id) {
             <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
@@ -60,7 +60,7 @@
 
       <!-- Yesterday's Progress -->
       <div class="form-group">
-        <label class="input-label">What did you accomplish yesterday?</label>
+        <label for="standupYesterdaySummary" class="input-label">What did you accomplish yesterday?</label>
         <div class="quick-chips">
           @for (preset of yesterdayPresets; track preset) {
             <button type="button" (click)="appendYesterday(preset)" class="preset-chip">
@@ -69,6 +69,8 @@
           }
         </div>
         <textarea
+          id="standupYesterdaySummary"
+          name="standupYesterdaySummary"
           [(ngModel)]="standup.yesterdaySummary"
           placeholder="Click quick presets above or type details..."
           class="interactive-input"
@@ -78,7 +80,7 @@
 
       <!-- Today's Commitment -->
       <div class="form-group">
-        <label class="input-label">What are you committing to today?</label>
+        <label for="standupTodayPlan" class="input-label">What are you committing to today?</label>
         <div class="quick-chips">
           @for (preset of todayPresets; track preset) {
             <button type="button" (click)="appendToday(preset)" class="preset-chip">
@@ -87,6 +89,8 @@
           }
         </div>
         <textarea
+          id="standupTodayPlan"
+          name="standupTodayPlan"
           [(ngModel)]="standup.todayPlan"
           placeholder="Click quick presets above or type details..."
           class="interactive-input"
@@ -96,7 +100,7 @@
 
       <!-- Blockers & Dependencies -->
       <div class="form-group">
-        <label class="input-label">Any blockers or dependencies?</label>
+        <label for="standupBlockersText" class="input-label">Any blockers or dependencies?</label>
         <div class="quick-chips">
           @for (preset of blockerPresets; track preset) {
             <button type="button" (click)="setBlocker(preset)" class="preset-chip blocker-chip">
@@ -105,6 +109,8 @@
           }
         </div>
         <input
+          id="standupBlockersText"
+          name="standupBlockersText"
           [(ngModel)]="standup.blockersText"
           placeholder="e.g. None or specify blocker..."
           class="interactive-input"

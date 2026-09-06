@@ -22,8 +22,8 @@
     <!-- Multi-Squad Tenant Switcher -->
     <div class="role-selector squad-selector">
       <app-icon name="users" [size]="14" color="var(--accent-secondary)"></app-icon>
-      <span class="role-label">Squad:</span>
-      <select [value]="state.currentTeam()?.id || ''" (change)="onSquadChange($event)" class="role-select" data-testid="squad-select" title="Switch squad tenant">
+      <label for="squadSelect" class="role-label">Squad:</label>
+      <select id="squadSelect" name="squadSelect" [value]="state.currentTeam()?.id || ''" (change)="onSquadChange($event)" class="role-select" data-testid="squad-select" title="Switch squad tenant">
         <option value="">All Squads (Default)</option>
         @for (team of state.teams(); track team.id) {
           <option [value]="team.id">{{ team.name }}</option>
@@ -41,8 +41,8 @@
 
     <div class="role-selector">
       <app-icon name="user" [size]="14" color="var(--text-secondary)"></app-icon>
-      <span class="role-label">Role:</span>
-      <select [value]="state.currentRole()" (change)="onRoleChange($event)" class="role-select" data-testid="role-select">
+      <label for="roleSelect" class="role-label">Role:</label>
+      <select id="roleSelect" name="roleSelect" [value]="state.currentRole()" (change)="onRoleChange($event)" class="role-select" data-testid="role-select">
         <option value="ScrumMaster">Scrum Master</option>
         <option value="Developer">Developer</option>
         <option value="QaEngineer">QA Engineer</option>
@@ -113,8 +113,10 @@
         @if (state.canEditOrDelete()) {
         <div class="modal-body">
           <div class="form-group">
-            <label>Squad Name *</label>
+            <label for="newSquadNameInput">Squad Name *</label>
             <input
+              id="newSquadNameInput"
+              name="newSquadNameInput"
               type="text"
               [ngModel]="newSquadName()"
               (ngModelChange)="newSquadName.set($event)"
@@ -124,8 +126,10 @@
           </div>
 
           <div class="form-group">
-            <label>Description (Optional)</label>
+            <label for="newSquadDescInput">Description (Optional)</label>
             <textarea
+              id="newSquadDescInput"
+              name="newSquadDescInput"
               [ngModel]="newSquadDesc()"
               (ngModelChange)="newSquadDesc.set($event)"
               placeholder="Brief summary of squad purpose, client focus, or domain"
@@ -170,8 +174,10 @@
       } @else {
         <div class="modal-body">
           <div class="form-group">
-            <label>Squad Join Code *</label>
+            <label for="joinCodeInputField">Squad Join Code *</label>
             <input
+              id="joinCodeInputField"
+              name="joinCodeInputField"
               type="text"
               [ngModel]="joinCodeInput()"
               (ngModelChange)="joinCodeInput.set($event.toUpperCase())"

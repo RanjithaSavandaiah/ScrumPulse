@@ -40,10 +40,10 @@
     <div class="filter-controls-bar">
       <!-- 1. Member Selector -->
       <div class="filter-group">
-        <label class="filter-label">
+        <label for="execMemberSelect" class="filter-label">
           <app-icon name="user" [size]="14"></app-icon> Target Member
         </label>
-        <select [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="control-select">
+        <select id="execMemberSelect" name="execMemberSelect" [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event)" class="control-select">
           <option value="ALL">Entire Squad / All Developers</option>
           @for (member of state.squadMembers(); track member.id) {
             <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
@@ -103,8 +103,8 @@
       <!-- 3. Dynamic Sub-Period Selector -->
       @if (selectedTimeScope() === 'SPRINT') {
         <div class="filter-group animate-fade-in">
-          <label class="filter-label">Select Sprint Board</label>
-          <select [ngModel]="effectiveSprintId()" (ngModelChange)="selectedSprintId.set($event)" class="control-select">
+          <label for="execSprintSelect" class="filter-label">Select Sprint Board</label>
+          <select id="execSprintSelect" name="execSprintSelect" [ngModel]="effectiveSprintId()" (ngModelChange)="selectedSprintId.set($event)" class="control-select">
             <option value="ALL">All Sprints Combined</option>
             @for (sprint of state.sprints(); track sprint.id) {
               <option [value]="sprint.id">{{ sprint.name }} {{ sprint.isActive ? '(Active)' : '' }}</option>
@@ -115,8 +115,8 @@
 
       @if (selectedTimeScope() === 'MONTH') {
         <div class="filter-group animate-fade-in">
-          <label class="filter-label">Select Month</label>
-          <select [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)" class="control-select">
+          <label for="execMonthSelect" class="filter-label">Select Month</label>
+          <select id="execMonthSelect" name="execMonthSelect" [ngModel]="selectedMonth()" (ngModelChange)="selectedMonth.set($event)" class="control-select">
             @for (m of monthsList; track m.value) {
               <option [value]="m.value">{{ m.label }}</option>
             }
@@ -126,8 +126,8 @@
 
       @if (selectedTimeScope() === 'QUARTER') {
         <div class="filter-group animate-fade-in">
-          <label class="filter-label">Select Quarter</label>
-          <select [ngModel]="selectedQuarter()" (ngModelChange)="selectedQuarter.set($event)" class="control-select">
+          <label for="execQuarterSelect" class="filter-label">Select Quarter</label>
+          <select id="execQuarterSelect" name="execQuarterSelect" [ngModel]="selectedQuarter()" (ngModelChange)="selectedQuarter.set($event)" class="control-select">
             @for (q of quartersList; track q.value) {
               <option [value]="q.value">{{ q.label }}</option>
             }
@@ -137,9 +137,11 @@
 
       @if (selectedTimeScope() === 'CUSTOM') {
         <div class="filter-group animate-fade-in custom-range-group">
-          <label class="filter-label">Custom Date Horizon</label>
+          <label for="execStartDateInput" class="filter-label">Custom Date Horizon</label>
           <div class="custom-inputs-flex">
             <input
+              id="execStartDateInput"
+              name="execStartDateInput"
               type="date"
               [ngModel]="startDate()"
               (ngModelChange)="startDate.set($event)"
@@ -147,6 +149,8 @@
             />
             <span class="range-to-txt">to</span>
             <input
+              id="execEndDateInput"
+              name="execEndDateInput"
               type="date"
               [ngModel]="endDate()"
               (ngModelChange)="endDate.set($event)"

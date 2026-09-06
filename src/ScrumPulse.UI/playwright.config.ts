@@ -23,13 +23,14 @@ export default defineConfig({
   ],
   webServer: {
     command: 'dotnet run --project ../ScrumPulse.Api/ScrumPulse.Api.csproj',
-    url: 'http://localhost:8080/health',
+    url: 'http://localhost:8080/healthz',
     reuseExistingServer: true,
     timeout: 120 * 1000,
     env: {
       PORT: '8080',
       ASPNETCORE_ENVIRONMENT: 'Development',
-      SeedDemoData: 'true'
+      SeedDemoData: 'true',
+      SM_PIN: '1234'
     }
   },
 });

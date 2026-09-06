@@ -36,8 +36,8 @@
       <div class="form-group">
         <div class="author-row">
           <div class="author-select-col">
-            <label class="input-label">Author</label>
-            <select [(ngModel)]="card.authorId" [disabled]="card.isAnonymous" class="interactive-input">
+            <label for="retroAuthorSelect" class="input-label">Author</label>
+            <select id="retroAuthorSelect" name="retroAuthorSelect" [(ngModel)]="card.authorId" [disabled]="card.isAnonymous" class="interactive-input">
               <option value="">Select Author</option>
               @for (member of members; track member.id) {
                 <option [value]="member.id">{{ member.name }} ({{ getRoleLabel(member.role) }})</option>
@@ -45,7 +45,7 @@
             </select>
           </div>
           <label class="anon-checkbox">
-            <input type="checkbox" [(ngModel)]="card.isAnonymous" />
+            <input id="retroAnonymousCheckbox" name="retroAnonymousCheckbox" type="checkbox" [(ngModel)]="card.isAnonymous" />
             <span>Post Anonymously</span>
           </label>
         </div>
@@ -65,8 +65,10 @@
 
       <!-- Note Content -->
       <div class="form-group">
-        <label class="input-label">Perspective / Insight</label>
+        <label for="retroContentTextarea" class="input-label">Perspective / Insight</label>
         <textarea
+          id="retroContentTextarea"
+          name="retroContentTextarea"
           [(ngModel)]="card.content"
           placeholder="Share constructive insights or proposals for continuous team improvement..."
           class="interactive-input"

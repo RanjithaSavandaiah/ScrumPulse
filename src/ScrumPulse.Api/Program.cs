@@ -28,6 +28,7 @@ if (!File.Exists(Path.Combine(wwwrootPath, "index.html")))
     {
         Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
         Path.Combine(Directory.GetCurrentDirectory(), "src", "ScrumPulse.Api", "wwwroot"),
+        Path.Combine(Directory.GetCurrentDirectory(), "..", "ScrumPulse.Api", "wwwroot"),
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "wwwroot")
     };
     foreach (var candidate in candidates)
@@ -205,6 +206,7 @@ app.UseAuthorization();
 
 // -- Health Probes --
 app.MapHealthChecks("/healthz");
+app.MapHealthChecks("/health");
 
 // -- Map Controllers with global rate limiting --
 app.MapControllers().RequireRateLimiting("global");

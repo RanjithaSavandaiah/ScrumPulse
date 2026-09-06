@@ -120,7 +120,8 @@ export class WorkItemsComponent {
       const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
       items = items.filter(item =>
         (item.teamId && item.teamId.toLowerCase().trim() === current.id.toLowerCase().trim()) ||
-        (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim()))
+        (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim())) ||
+        (!item.assigneeId)
       );
     }
 
@@ -148,7 +149,8 @@ export class WorkItemsComponent {
       const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
       items = items.filter(item =>
         (item.teamId && item.teamId.toLowerCase().trim() === current.id.toLowerCase().trim()) ||
-        (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim()))
+        (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim())) ||
+        (!item.assigneeId)
       );
     }
 

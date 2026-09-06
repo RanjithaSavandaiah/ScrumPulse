@@ -7,15 +7,15 @@
     <p class="modal-subtitle">Enforce Definition of Ready & Definition of Done verification</p>
 
     <h4 class="gate-section-title dor-title">Definition of Ready (DoR)</h4>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dorAcceptanceCriteriaDefined" /> Acceptance Criteria clearly defined</label>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dorDependenciesIdentified" /> Cross-team dependencies identified</label>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dorWireframeAvailable" /> Wireframe / Architecture diagram attached</label>
+    <label class="gate-checkbox"><input id="gateDorAcceptanceCriteria" name="dorAcceptanceCriteriaDefined" type="checkbox" [(ngModel)]="item.dorAcceptanceCriteriaDefined" /> Acceptance Criteria clearly defined</label>
+    <label class="gate-checkbox"><input id="gateDorDependencies" name="dorDependenciesIdentified" type="checkbox" [(ngModel)]="item.dorDependenciesIdentified" /> Cross-team dependencies identified</label>
+    <label class="gate-checkbox"><input id="gateDorWireframe" name="dorWireframeAvailable" type="checkbox" [(ngModel)]="item.dorWireframeAvailable" /> Wireframe / Architecture diagram attached</label>
 
     <h4 class="gate-section-title dod-title">Definition of Done (DoD)</h4>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodUnitTestsPassed" /> Automated unit & integration tests passing</label>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodPeerReviewCompleted" /> Peer code review completed & approved</label>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodMergedToMaster" /> Merged to master branch</label>
-    <label class="gate-checkbox"><input type="checkbox" [(ngModel)]="item.dodStagingVerified" /> QA tested & verified on Staging</label>
+    <label class="gate-checkbox"><input id="gateDodUnitTests" name="dodUnitTestsPassed" type="checkbox" [(ngModel)]="item.dodUnitTestsPassed" /> Automated unit & integration tests passing</label>
+    <label class="gate-checkbox"><input id="gateDodPeerReview" name="dodPeerReviewCompleted" type="checkbox" [(ngModel)]="item.dodPeerReviewCompleted" /> Peer code review completed & approved</label>
+    <label class="gate-checkbox"><input id="gateDodMergedMaster" name="dodMergedToMaster" type="checkbox" [(ngModel)]="item.dodMergedToMaster" /> Merged to master branch</label>
+    <label class="gate-checkbox"><input id="gateDodStagingVerified" name="dodStagingVerified" type="checkbox" [(ngModel)]="item.dodStagingVerified" /> QA tested & verified on Staging</label>
 
     <div class="modal-actions">
       <button (click)="close.emit()" class="btn-secondary">Cancel</button>

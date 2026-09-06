@@ -45,8 +45,10 @@
 
       <!-- Blocker Title & Description -->
       <div class="form-group">
-        <label class="input-label">Blocker Summary</label>
+        <label for="blockerSummaryInput" class="input-label">Blocker Summary</label>
         <input
+          id="blockerSummaryInput"
+          name="blockerSummaryInput"
           [(ngModel)]="blocker.title"
           placeholder="e.g. Waiting on DB credentials..."
           class="interactive-input"
@@ -54,8 +56,10 @@
       </div>
 
       <div class="form-group">
-        <label class="input-label">Context & Impact on Sprint Goal</label>
+        <label for="blockerContextTextarea" class="input-label">Context & Impact on Sprint Goal</label>
         <textarea
+          id="blockerContextTextarea"
+          name="blockerContextTextarea"
           [(ngModel)]="blocker.description"
           placeholder="Explain what is blocked and who is needed..."
           class="interactive-input"

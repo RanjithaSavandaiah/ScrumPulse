@@ -15,8 +15,8 @@
       <!-- Member & Month Datepicker Row -->
       <div class="form-row split-controls">
         <div class="control-col">
-          <label class="input-label">Select Team Member</label>
-          <select [(ngModel)]="feedback.teamMemberId" class="interactive-input">
+          <label for="reviewMemberSelect" class="input-label">Select Team Member</label>
+          <select id="reviewMemberSelect" name="reviewMemberSelect" [(ngModel)]="feedback.teamMemberId" class="interactive-input">
             <option value="" disabled>-- Choose Team Member --</option>
             @for (member of teamMembers; track member.id) {
               <option [value]="member.id">{{ member.name }} ({{ getRoleLabel(member.role) }})</option>
@@ -24,8 +24,10 @@
           </select>
         </div>
         <div class="control-col">
-          <label class="input-label">Review Period (Month & Year)</label>
+          <label for="reviewMonthPickerInput" class="input-label">Review Period (Month & Year)</label>
           <input
+            id="reviewMonthPickerInput"
+            name="reviewMonthPickerInput"
             type="month"
             [(ngModel)]="feedback.monthYear"
             class="interactive-input month-picker"
@@ -72,7 +74,7 @@
 
       <!-- Quadrant 1: Scrum Master Feedback -->
       <div class="form-group">
-        <label class="input-label">1. Scrum Master Feedback & Flow Coaching</label>
+        <label for="feedbackSmTextarea" class="input-label">1. Scrum Master Feedback & Flow Coaching</label>
         <div class="preset-chips">
           @for (preset of smPresets; track preset) {
             <button type="button" (click)="setSmFeedback(preset)" class="preset-chip">
@@ -80,12 +82,12 @@
             </button>
           }
         </div>
-        <textarea [(ngModel)]="feedback.scrumMasterFeedback" placeholder="Feedback on agile delivery and team collaboration..." class="interactive-input" rows="2"></textarea>
+        <textarea id="feedbackSmTextarea" name="feedbackSmTextarea" [(ngModel)]="feedback.scrumMasterFeedback" placeholder="Feedback on agile delivery and team collaboration..." class="interactive-input" rows="2"></textarea>
       </div>
 
       <!-- Quadrant 2: CDL Feedback -->
       <div class="form-group">
-        <label class="input-label">2. CDL Delivery & Competency Feedback</label>
+        <label for="feedbackCdlTextarea" class="input-label">2. CDL Delivery & Competency Feedback</label>
         <div class="preset-chips">
           @for (preset of cdlPresets; track preset) {
             <button type="button" (click)="setCdlFeedback(preset)" class="preset-chip">
@@ -93,12 +95,12 @@
             </button>
           }
         </div>
-        <textarea [(ngModel)]="feedback.cdlFeedback" placeholder="Feedback on technical milestones and growth..." class="interactive-input" rows="2"></textarea>
+        <textarea id="feedbackCdlTextarea" name="feedbackCdlTextarea" [(ngModel)]="feedback.cdlFeedback" placeholder="Feedback on technical milestones and growth..." class="interactive-input" rows="2"></textarea>
       </div>
 
       <!-- Quadrant 3: Client Feedback -->
       <div class="form-group">
-        <label class="input-label">3. Client Perception & Onshore Alignment</label>
+        <label for="feedbackClientTextarea" class="input-label">3. Client Perception & Onshore Alignment</label>
         <div class="preset-chips">
           @for (preset of clientPresets; track preset) {
             <button type="button" (click)="setClientFeedback(preset)" class="preset-chip">
@@ -106,12 +108,12 @@
             </button>
           }
         </div>
-        <textarea [(ngModel)]="feedback.clientFeedback" placeholder="Feedback from client demo and feature delivery..." class="interactive-input" rows="2"></textarea>
+        <textarea id="feedbackClientTextarea" name="feedbackClientTextarea" [(ngModel)]="feedback.clientFeedback" placeholder="Feedback from client demo and feature delivery..." class="interactive-input" rows="2"></textarea>
       </div>
 
       <!-- Quadrant 4: Self Reflection -->
       <div class="form-group">
-        <label class="input-label">4. Developer Self-Reflection</label>
+        <label for="feedbackSelfTextarea" class="input-label">4. Developer Self-Reflection</label>
         <div class="preset-chips">
           @for (preset of selfPresets; track preset) {
             <button type="button" (click)="setSelfReflection(preset)" class="preset-chip">
@@ -119,7 +121,7 @@
             </button>
           }
         </div>
-        <textarea [(ngModel)]="feedback.selfReflection" placeholder="Self-reflection on goals, velocity and learnings..." class="interactive-input" rows="2"></textarea>
+        <textarea id="feedbackSelfTextarea" name="feedbackSelfTextarea" [(ngModel)]="feedback.selfReflection" placeholder="Self-reflection on goals, velocity and learnings..." class="interactive-input" rows="2"></textarea>
       </div>
     </div>
 

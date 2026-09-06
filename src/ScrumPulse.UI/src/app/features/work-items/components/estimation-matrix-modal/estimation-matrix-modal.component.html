@@ -48,9 +48,11 @@
           @if (calculatorMode === 'hoursToPoints') {
             <div class="sandbox-grid">
               <div class="sandbox-input-col">
-                <label class="sandbox-label">Estimated Work Hours</label>
+                <label for="matrixInputHours" class="sandbox-label">Estimated Work Hours</label>
                 <div class="input-with-suffix">
                   <input
+                    id="matrixInputHours"
+                    name="matrixInputHours"
                     type="number"
                     min="0.5"
                     max="100"

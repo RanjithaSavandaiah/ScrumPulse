@@ -20,10 +20,24 @@ export class AdBannerComponent implements AfterViewInit {
   ngAfterViewInit(): void {
     if (isPlatformBrowser(this.platformId)) {
       try {
-        const adsbygoogle = (window as any).adsbygoogle || [];
-        adsbygoogle.push({});
-      } catch (err) {
-        console.warn('[AdBannerComponent] Failed to initialize Google AdSense slot:', err);
+        const isTestEnv = typeof window !== 'undefined' && ((window as any).__karma__ || (window as any).jasmine);
+        if (!isTestEnv && !document.getElementById('adsbygoogle-script')) {
+          const script = document.createElement('script');
+          script.id = 'adsbygoogle-script';
+          script.async = true;
+          script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${this.publisherId}`;
+          script.crossOrigin = 'anonymous';
+          document.head.appendChild(script);
+        }
+        try {
+          const adsbygoogle = (window as any).adsbygoogle || [];
+          adsbygoogle.push({});
+          (window as any).adsbygoogle = adsbygoogle;
+        } catch (pushError) {
+          console.info('[AdBannerComponent] Note: Ad slot push skipped or already filled:', pushError);
+        }
+      } catch (initError) {
+        console.info('[AdBannerComponent] Note: AdSense initialization bypassed or blocked by client:', initError);
       }
     }
   }

@@ -14,8 +14,8 @@
       <!-- Target Sprint & Category Row -->
       <div class="split-controls">
         <div class="control-col">
-          <label class="input-label">Target Sprint Board</label>
-          <select [(ngModel)]="item.sprintId" class="interactive-input">
+          <label for="targetSprintBoardSelect" class="input-label">Target Sprint Board</label>
+          <select id="targetSprintBoardSelect" name="targetSprintBoardSelect" [(ngModel)]="item.sprintId" class="interactive-input">
             @for (sprint of availableSprints; track sprint.id) {
               <option [value]="sprint.id">
                 {{ sprint.name }} {{ sprint.isActive ? '(Active)' : '' }}
@@ -47,8 +47,10 @@
       <!-- Title & Assignee in Split Row -->
       <div class="split-controls">
         <div class="control-col">
-          <label class="input-label">Title & Intent</label>
+          <label for="workItemTitleInput" class="input-label">Title & Intent</label>
           <input
+            id="workItemTitleInput"
+            name="workItemTitleInput"
             [(ngModel)]="item.title"
             placeholder="e.g. Build OAuth Flow..."
             class="interactive-input"
@@ -56,8 +58,8 @@
         </div>
 
         <div class="control-col">
-          <label class="input-label">Assignee / Owner</label>
-          <select [(ngModel)]="item.assigneeId" class="interactive-input">
+          <label for="workItemAssigneeSelect" class="input-label">Assignee / Owner</label>
+          <select id="workItemAssigneeSelect" name="workItemAssigneeSelect" [(ngModel)]="item.assigneeId" class="interactive-input">
             <option value="">Unassigned</option>
             @for (member of teamMembers; track member.id) {
               <option [value]="member.id">{{ member.name | cleanName }} ({{ member.role | roleLabel }})</option>
@@ -68,8 +70,10 @@
 
       <!-- Description -->
       <div class="form-group">
-        <label class="input-label">Description</label>
+        <label for="workItemDescTextarea" class="input-label">Description</label>
         <textarea
+          id="workItemDescTextarea"
+          name="workItemDescTextarea"
           [(ngModel)]="item.description"
           placeholder="Describe the user story, bug reproduction, or technical objective..."
           class="interactive-input"
@@ -79,8 +83,10 @@
 
       <!-- Acceptance Criteria (DoR) -->
       <div class="form-group">
-        <label class="input-label">Acceptance Criteria</label>
+        <label for="workItemDoRTextarea" class="input-label">Acceptance Criteria</label>
         <textarea
+          id="workItemDoRTextarea"
+          name="workItemDoRTextarea"
           [(ngModel)]="item.acceptanceCriteria"
           placeholder="Given / When / Then criteria required for Definition of Ready (DoR)..."
           class="interactive-input"
@@ -123,9 +129,11 @@
         </div>
 
         <div class="control-col">
-          <label class="input-label">Hour Estimation (Hours)</label>
+          <label for="workItemHoursInput" class="input-label">Hour Estimation (Hours)</label>
           <div class="hours-input-wrapper">
             <input
+              id="workItemHoursInput"
+              name="workItemHoursInput"
               type="number"
               min="0"
               max="500"

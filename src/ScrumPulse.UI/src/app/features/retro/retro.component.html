@@ -15,6 +15,7 @@
         <label for="sprintSelect" class="sprint-label">Board / Sprint:</label>
         <select
           id="sprintSelect"
+          name="sprintSelect"
           [ngModel]="selectedSprintId()"
           (ngModelChange)="selectedSprintId.set($event)"
           class="sprint-select"
@@ -223,8 +224,10 @@
 
         <div class="modal-body">
           <div class="form-group">
-            <label class="input-label">Action Item Description *</label>
+            <label for="retroActionTitleInput" class="input-label">Action Item Description *</label>
             <input
+              id="retroActionTitleInput"
+              name="retroActionTitleInput"
               [(ngModel)]="actionForm.title"
               placeholder="e.g. Setup Playwright regression test suite scaffold in CI pipeline"
               class="interactive-input"
@@ -234,8 +237,8 @@
 
           <div class="split-controls">
             <div class="control-col">
-              <label class="input-label">Assigned Owner</label>
-              <select [(ngModel)]="actionForm.assigneeId" class="interactive-input">
+              <label for="retroActionAssigneeSelect" class="input-label">Assigned Owner</label>
+              <select id="retroActionAssigneeSelect" name="retroActionAssigneeSelect" [(ngModel)]="actionForm.assigneeId" class="interactive-input">
                 <option value="">Unassigned (Squad)</option>
                 @for (member of state.squadMembers(); track member.id) {
                   <option [value]="member.id">{{ member.name }} ({{ member.role }})</option>
@@ -243,15 +246,15 @@
               </select>
             </div>
             <div class="control-col">
-              <label class="input-label">Target Completion Date</label>
-              <input type="date" [(ngModel)]="actionForm.dueDate" class="interactive-input date-input" />
+              <label for="retroActionDueDateInput" class="input-label">Target Completion Date</label>
+              <input id="retroActionDueDateInput" name="retroActionDueDateInput" type="date" [(ngModel)]="actionForm.dueDate" class="interactive-input date-input" />
             </div>
           </div>
 
           @if (editingAction()) {
             <div class="form-group">
               <label class="active-checkbox-label">
-                <input type="checkbox" [(ngModel)]="actionForm.isCompleted" />
+                <input id="retroActionCompletedCheckbox" name="retroActionCompletedCheckbox" type="checkbox" [(ngModel)]="actionForm.isCompleted" />
                 <span>Mark Action Item as Completed</span>
               </label>
             </div>
