@@ -21,9 +21,8 @@ export class AdBannerComponent implements AfterViewInit {
     if (isPlatformBrowser(this.platformId)) {
       try {
         const isTestEnv = typeof window !== 'undefined' && ((window as any).__karma__ || (window as any).jasmine);
-        if (!isTestEnv && !document.getElementById('adsbygoogle-script')) {
+        if (!isTestEnv && !document.querySelector('script[src*="adsbygoogle.js"]')) {
           const script = document.createElement('script');
-          script.id = 'adsbygoogle-script';
           script.async = true;
           script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${this.publisherId}`;
           script.crossOrigin = 'anonymous';
@@ -31,11 +30,7 @@ export class AdBannerComponent implements AfterViewInit {
         }
         try {
           const adsbygoogle = (window as any).adsbygoogle || [];
-          if (adsbygoogle.pauseAdRequests !== 1) {
-            adsbygoogle.push({});
-          } else {
-            console.info('[AdBannerComponent] Ad requests paused awaiting site approval; unfilled ad placeholder deferred.');
-          }
+          adsbygoogle.push({});
           (window as any).adsbygoogle = adsbygoogle;
         } catch (pushError) {
           console.info('[AdBannerComponent] Note: Ad slot push skipped or already filled:', pushError);
