@@ -40,7 +40,7 @@ try {
 
     Push-Location $tempDir
     & git config user.name "Ranjitha Savandaiah"
-    & git config user.email "r.savandaiah@devon.nl"
+    & git config user.email "lsranjitha@gmail.com"
     & git add -A
     
     $status = & git status --porcelain

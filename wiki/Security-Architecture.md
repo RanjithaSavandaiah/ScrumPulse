@@ -69,5 +69,5 @@ ScrumPulse maintains an official security policy located at [`.github/SECURITY.m
 
 Researchers can report vulnerabilities via:
 - **GitHub Private Vulnerability Reporting** via the repository Security tab.
-- **Email**: `r.savandaiah@devon.nl` with subject `[SECURITY] ScrumPulse Vulnerability Report`.
+- **Email**: `lsranjitha@gmail.com` with subject `[SECURITY] ScrumPulse Vulnerability Report`.
 - **Response SLAs**: Initial response within 24–48 hours; triage within 3 business days; emergency patches within 7–14 days.

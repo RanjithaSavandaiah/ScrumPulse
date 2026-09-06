@@ -30,7 +30,7 @@ The fastest and most secure method to disclose a vulnerability is via GitHub:
 
 ### Alternative Channel: Direct Email
 If you are unable to use GitHub Private Vulnerability Reporting, you may report findings via email:
-- **Contact**: Ranjitha Savandaiah (`r.savandaiah@devon.nl`)
+- **Contact**: Ranjitha Savandaiah (`lsranjitha@gmail.com`)
 - **Subject**: `[SECURITY] ScrumPulse Vulnerability Report - <Brief Description>`
 - Please include your PGP public key if you wish to receive encrypted communications.
 
