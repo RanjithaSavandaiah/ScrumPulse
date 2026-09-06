@@ -47,7 +47,7 @@ export class EditSprintModalComponent implements OnInit {
   dailyWorkingHours: number = DEFAULT_DAILY_WORKING_HOURS;
   committedStoryPoints: number = 0;
   committedHours: number = 0;
-  hoursPerPointRatio: number = 6;
+  hoursPerPointRatio: number = DEFAULT_DAILY_WORKING_HOURS;
   targetMode: 'storyPoints' | 'hours' = 'storyPoints';
   isActive: boolean = true;
   showMatrixModal: boolean = false;
@@ -97,23 +97,39 @@ export class EditSprintModalComponent implements OnInit {
       this.startDate = this.sprint.startDate ? new Date(this.sprint.startDate).toISOString().split('T')[0] : this.startDate;
       this.endDate = this.sprint.endDate ? new Date(this.sprint.endDate).toISOString().split('T')[0] : this.endDate;
       this.dailyWorkingHours = this.sprint.dailyWorkingHours || DEFAULT_DAILY_WORKING_HOURS;
+      this.hoursPerPointRatio = this.dailyWorkingHours;
       this.committedStoryPoints = this.sprint.committedStoryPoints || 0;
       this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
       this.isActive = this.sprint.isActive ?? true;
     } else {
       this.dailyWorkingHours = DEFAULT_DAILY_WORKING_HOURS;
+      this.hoursPerPointRatio = this.dailyWorkingHours;
       this.committedHours = Math.round(this.committedStoryPoints * this.hoursPerPointRatio);
     }
   }
 
   setDailyHours(hours: number): void {
     this.dailyWorkingHours = hours;
+    this.hoursPerPointRatio = hours;
+    if (this.targetMode === 'storyPoints') {
+      this.onPointsChange();
+    } else {
+      this.onHoursChange();
+    }
     if (this.capacityCalculationSummary) {
       this.autoCalculateFromCapacity();
     }
   }
 
   onDailyHoursChange(): void {
+    if (this.dailyWorkingHours > 0) {
+      this.hoursPerPointRatio = this.dailyWorkingHours;
+      if (this.targetMode === 'storyPoints') {
+        this.onPointsChange();
+      } else {
+        this.onHoursChange();
+      }
+    }
     if (this.capacityCalculationSummary) {
       this.autoCalculateFromCapacity();
     }

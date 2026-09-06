@@ -66,11 +66,23 @@ test.describe('Daily Standup Feed, CRUD & Co-Located Timer', () => {
     // Verify updated plan in feed
     await expect(card).toContainText(updatedPlan);
 
-    // 5. Delete Standup via Confirm Modal
+    // 5. Delete Standup via Confirm Modal with Cancel Safeguard
     const deleteBtn = card.locator('.delete-btn');
     await expect(deleteBtn).toBeVisible();
     await deleteBtn.click();
 
+    const confirmModal = page.locator('app-confirm-modal .modal-box');
+    await expect(confirmModal).toBeVisible();
+    await expect(confirmModal).toContainText('Delete Standup Log');
+
+    // Cancel safeguard: update stays in feed
+    await confirmModal.locator('.btn-secondary').click();
+    await expect(confirmModal).not.toBeVisible({ timeout: 5000 });
+    await expect(card).toBeVisible();
+
+    // Confirm deletion
+    await deleteBtn.click();
+    await expect(confirmModal).toBeVisible();
     const confirmBtn = page.locator('.btn-confirm-action', { hasText: 'Delete Update' });
     await expect(confirmBtn).toBeVisible();
     await confirmBtn.click();

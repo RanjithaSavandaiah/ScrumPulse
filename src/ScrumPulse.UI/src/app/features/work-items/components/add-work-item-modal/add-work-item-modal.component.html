@@ -217,6 +217,7 @@
   <app-estimation-matrix-modal
     [initialPoints]="item.storyPoints"
     [initialHours]="item.estimatedHours"
+    [dailyWorkingHours]="state.activeSprint()?.dailyWorkingHours"
     [isSelectionMode]="true"
     (selectEstimation)="onApplyMatrixEstimation($event)"
     (close)="showMatrixModal = false"

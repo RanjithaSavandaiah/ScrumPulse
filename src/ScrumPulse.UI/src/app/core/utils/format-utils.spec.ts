@@ -54,6 +54,10 @@ describe('format-utils', () => {
       expect(getBadgeLabel(null)).toBe('Kudos');
       expect(getBadgeLabel('ProblemSolver')).toBe('Problem Solver');
       expect(getBadgeLabel('TeamPlayer')).toBe('Team Player');
+      expect(getBadgeLabel('GoalCrusher')).toBe('Goal Crusher');
+      expect(getBadgeLabel('QualityGuardian')).toBe('Quality Guardian');
+      expect(getBadgeLabel('InnovationStar')).toBe('Innovation Star');
+      expect(getBadgeLabel('ClientShoutout')).toBe('Client Shoutout');
       expect(getBadgeLabel('Innovator')).toBe('Innovator');
       expect(getBadgeLabel('LifeSaver')).toBe('Life Saver');
       expect(getBadgeLabel('Speedy')).toBe('Speed Demon');

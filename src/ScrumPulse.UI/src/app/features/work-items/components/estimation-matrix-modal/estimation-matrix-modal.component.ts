@@ -1,7 +1,9 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
+import { ScrumStateService } from '../../../../core/services/scrum-state.service';
+import { DEFAULT_DAILY_WORKING_HOURS } from '../../../../core/constants/scrum.constants';
 
 export interface FibonacciGuideItem {
   points: number;
@@ -26,15 +28,48 @@ export interface FibonacciGuideItem {
 export class EstimationMatrixModalComponent implements OnInit {
   @Input() initialHours?: number | null = null;
   @Input() initialPoints?: number | null = null;
+
+  private _dailyWorkingHours?: number | null = null;
+  private cdr = inject(ChangeDetectorRef);
+
+  @Input()
+  get dailyWorkingHours(): number | null | undefined {
+    return this._dailyWorkingHours;
+  }
+  set dailyWorkingHours(value: number | null | undefined) {
+    this._dailyWorkingHours = value;
+    this.cdr.markForCheck();
+  }
+
   @Input() isSelectionMode: boolean = false;
   @Output() close = new EventEmitter<void>();
   @Output() selectEstimation = new EventEmitter<{ points: number; hours: number }>();
+
+  state = inject(ScrumStateService);
 
   // Interactive Sandbox
   calculatorMode: 'hoursToPoints' | 'pointsToHours' = 'hoursToPoints';
   inputHours: number = 8;
   selectedPoint: number = 3;
-  conversionRatio: number = 8.0; // Benchmark hours per story point
+
+  get benchmarkHours(): number {
+    if (this.dailyWorkingHours !== undefined && this.dailyWorkingHours !== null && this.dailyWorkingHours > 0) {
+      return this.dailyWorkingHours;
+    }
+    const sprintHours = this.state.activeSprint()?.dailyWorkingHours;
+    if (sprintHours && sprintHours > 0) {
+      return sprintHours;
+    }
+    return DEFAULT_DAILY_WORKING_HOURS;
+  }
+
+  get benchmarkHoursFormatted(): string {
+    return Number(this.benchmarkHours).toFixed(1);
+  }
+
+  get conversionRatio(): number {
+    return this.benchmarkHours;
+  }
 
   ngOnInit(): void {
     if (this.initialHours !== undefined && this.initialHours !== null && this.initialHours > 0) {

@@ -148,12 +148,6 @@ export class BookLeaveModalComponent implements OnInit {
     }
   }
 
-  onEndDateChange(): void {
-    if (this.leave.endDate && this.leave.endDate < this.leave.startDate) {
-      this.leave.endDate = this.leave.startDate;
-    }
-  }
-
   applyHalfDay(slot: 'FirstHalf' | 'SecondHalf'): void {
     this.onSelectSlot(slot);
     this.leave.endDate = this.leave.startDate;

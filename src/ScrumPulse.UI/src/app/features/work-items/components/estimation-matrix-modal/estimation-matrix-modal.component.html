@@ -182,10 +182,10 @@
             <h5>Sprint Commitment Formula</h5>
           </div>
           <p class="formula-box">
-            <code>Committed SP = (Net Team Hours &times; 0.70) &divide; 8.0 hrs/pt</code>
+            <code>Committed SP = (Net Team Hours &times; 0.70) &divide; {{ benchmarkHoursFormatted }} hrs/pt</code>
           </p>
           <span class="info-desc">
-            Deduct planned leaves from gross capacity, multiply by 70% productive focus factor (accounting for standups, reviews & testing), and divide by team hour/point benchmark.
+            Deduct planned leaves from gross capacity, multiply by 70% productive focus factor (accounting for standups, reviews & testing), and divide by team hour/point benchmark ({{ benchmarkHoursFormatted }} hrs/day configured for sprint).
           </span>
         </div>
 

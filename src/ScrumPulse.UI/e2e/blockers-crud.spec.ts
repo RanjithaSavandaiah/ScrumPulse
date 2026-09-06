@@ -21,11 +21,11 @@ test.describe('Blocker SLA Radar End-to-End Lifecycle', () => {
 
     await expect(page.locator('#blockerSummaryInput')).toBeVisible();
 
-    // 2. Select Category & SLA
-    const categoryCard = page.locator('.category-card').first();
-    if (await categoryCard.isVisible()) {
-      await categoryCard.click();
-    }
+    // 2. Select Environment & Access Category explicitly & 4h SLA
+    const categoryCard = page.locator('app-add-blocker-modal .category-card', { hasText: 'Environment & Access' });
+    await expect(categoryCard).toBeVisible();
+    await categoryCard.click();
+    await expect(categoryCard).toHaveClass(/selected/);
 
     await page.locator('#blockerSummaryInput').fill(blockerTitle);
     await page.locator('#blockerContextTextarea').fill(blockerDesc);
@@ -39,9 +39,10 @@ test.describe('Blocker SLA Radar End-to-End Lifecycle', () => {
     await page.locator('app-add-blocker-modal .btn-save').click();
     await expect(page.locator('#blockerSummaryInput')).not.toBeVisible({ timeout: 5000 });
 
-    // 3. Verify Blocker Card on Radar
+    // 3. Verify Blocker Card on Radar with Category Badge
     const card = page.locator('app-blocker-card', { hasText: blockerTitle });
     await expect(card).toBeVisible({ timeout: 10000 });
+    await expect(card.locator('.category-badge')).toContainText(/Environment/i);
     await expect(card.locator('.blocker-desc')).toContainText(blockerDesc);
 
     // 4. Edit Blocker
@@ -71,11 +72,23 @@ test.describe('Blocker SLA Radar End-to-End Lifecycle', () => {
     // Verify card is now marked Resolved
     await expect(updatedCard.locator('.status-badge')).toContainText('Resolved');
 
-    // 6. Delete Blocker via Confirmation Modal
+    // 6. Delete Blocker via Confirmation Modal with Cancel Safeguard
     const deleteBtn = updatedCard.locator('.delete-btn');
     await expect(deleteBtn).toBeVisible();
     await deleteBtn.click();
 
+    const confirmModal = page.locator('app-confirm-modal .modal-box');
+    await expect(confirmModal).toBeVisible();
+    await expect(confirmModal).toContainText('Delete Blocker');
+
+    // Cancel safeguard: blocker remains intact
+    await confirmModal.locator('.btn-secondary').click();
+    await expect(confirmModal).not.toBeVisible({ timeout: 5000 });
+    await expect(updatedCard).toBeVisible();
+
+    // Confirm deletion
+    await deleteBtn.click();
+    await expect(confirmModal).toBeVisible();
     const confirmBtn = page.locator('.btn-confirm-action', { hasText: 'Delete Blocker' });
     await expect(confirmBtn).toBeVisible();
     await confirmBtn.click();

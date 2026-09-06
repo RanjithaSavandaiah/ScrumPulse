@@ -73,13 +73,22 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     const updatedCard = page.locator('.work-item-card', { hasText: updatedTitle });
     await expect(updatedCard).toBeVisible({ timeout: 10000 });
 
-    // 7. Delete Story
+    // 7. Delete Story with Cancel Safeguard
     await updatedCard.locator('button.btn-edit').click();
     await expect(page.locator('#workItemTitleInput')).toBeVisible();
     await page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
 
-    // Confirm deletion in app-confirm-modal
+    // Confirm modal opens
     const confirmDeleteModal = page.locator('app-add-work-item-modal app-confirm-modal .modal-box');
+    await expect(confirmDeleteModal).toBeVisible();
+
+    // Cancel safeguard: story edit modal remains open and card is not deleted
+    await confirmDeleteModal.locator('.btn-secondary').click();
+    await expect(confirmDeleteModal).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // Re-trigger delete and confirm
+    await page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
     await expect(confirmDeleteModal).toBeVisible();
     await confirmDeleteModal.locator('button.btn-confirm-action', { hasText: 'Delete Story' }).click();
 
@@ -181,7 +190,7 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     // Verify updated goal banner
     await expect(goalBanner.locator('.goal-text')).toContainText(updatedSprintGoal);
 
-    // 9. Delete Sprint
+    // 9. Delete Sprint with Cancel Safeguard
     await goalBanner.locator('.btn-edit-goal').click();
     await expect(page.locator('#sprintNameInput')).toBeVisible();
     await page.locator('app-edit-sprint-modal button.btn-danger', { hasText: 'Delete Sprint' }).click();
@@ -189,10 +198,166 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     // Confirm in deletion modal
     const confirmModal = page.locator('app-confirm-modal .modal-box');
     await expect(confirmModal).toBeVisible();
+
+    // Cancel safeguard: sprint remains active
+    await confirmModal.locator('.btn-secondary').click();
+    await expect(confirmModal).not.toBeVisible({ timeout: 5000 });
+    await expect(sprintChip).toBeVisible();
+
+    // Re-trigger delete and confirm
+    await page.locator('app-edit-sprint-modal button.btn-danger', { hasText: 'Delete Sprint' }).click();
+    await expect(confirmModal).toBeVisible();
     await confirmModal.locator('button.btn-confirm-action', { hasText: 'Delete Sprint' }).click();
     await expect(confirmModal).not.toBeVisible();
 
     // 10. Verify sprint chip is gone
     await expect(sprintChip).not.toBeVisible({ timeout: 10000 });
+  });
+
+  test('should enforce sprint date range validation where end date must be on or after start date', async ({ page }) => {
+    // 1. Open Create Sprint modal
+    const sprintModalBtn = page.locator('.section-header button', { hasText: 'Create Sprint' });
+    await expect(sprintModalBtn).toBeVisible();
+    await sprintModalBtn.click();
+
+    await expect(page.locator('#sprintNameInput')).toBeVisible();
+
+    // 2. Set invalid dates: End Date before Start Date
+    await page.locator('#sprintNameInput').fill('Invalid Date Sprint Boundary Test');
+    await page.locator('#sprintGoalTextarea').fill('Verify sprint date range validation banner');
+    await page.locator('#sprintStartDateInput').fill('2026-12-15');
+    await page.locator('#sprintEndDateInput').fill('2026-12-05');
+
+    // 3. Assert date validation banner appears
+    const dateBanner = page.locator('app-edit-sprint-modal .date-validation-banner');
+    await expect(dateBanner).toBeVisible({ timeout: 5000 });
+    await expect(dateBanner).toContainText('Sprint End Date must be on or after Sprint Start Date');
+
+    // 4. Assert Create Sprint button is disabled
+    const createBtn = page.locator('app-edit-sprint-modal button.btn-primary');
+    await expect(createBtn).toBeDisabled();
+
+    // 5. Correct the End Date
+    await page.locator('#sprintEndDateInput').fill('2026-12-25');
+    await expect(dateBanner).not.toBeVisible({ timeout: 5000 });
+    await expect(createBtn).toBeEnabled();
+
+    // 6. Close modal without saving
+    await page.locator('app-edit-sprint-modal .close-btn').click();
+    await expect(page.locator('#sprintNameInput')).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('should create Bug work item assigned to a specific team member, verify type pill and assignee, and delete', async ({ page }) => {
+    const timestamp = Date.now();
+    const bugTitle = `Critical Token Expiry Defect ${timestamp}`;
+
+    // 1. Open Add Work Item modal
+    const addBtn = page.locator('.section-header button', { hasText: 'Add Story / Bug / PBI' });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // 2. Select Bug Fix category card explicitly
+    const bugCard = page.locator('app-add-work-item-modal .type-card', { hasText: 'Bug Fix' });
+    await expect(bugCard).toBeVisible();
+    await bugCard.click();
+    await expect(bugCard).toHaveClass(/selected/);
+
+    // 3. Fill Title & Description
+    await page.locator('#workItemTitleInput').fill(bugTitle);
+    await page.locator('#workItemDescTextarea').fill('Session invalidates unexpectedly during active API request.');
+
+    // 4. Select Assignee (select first available squad member)
+    const assigneeSelect = page.locator('#workItemAssigneeSelect');
+    const options = await assigneeSelect.locator('option').all();
+    let assignedMemberName = '';
+    if (options.length > 1) {
+      const val = await options[1].getAttribute('value');
+      const text = await options[1].textContent();
+      assignedMemberName = text ? text.split('(')[0].trim() : '';
+      if (val) await assigneeSelect.selectOption(val);
+    }
+
+    // Save
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible({ timeout: 5000 });
+
+    // 5. Verify created work item card
+    const card = page.locator('.work-item-card', { hasText: bugTitle });
+    await expect(card).toBeVisible({ timeout: 10000 });
+
+    // Verify type badge renders Bug and NOT User Story
+    const typeBadge = card.locator('.header-left .glass-badge').first();
+    await expect(typeBadge).toContainText(/Bug/i);
+    await expect(typeBadge).not.toContainText('UserStory');
+
+    // Verify assigned member name
+    if (assignedMemberName) {
+      await expect(card.locator('.assignee-text')).toContainText(assignedMemberName);
+    }
+
+    // 6. Delete Bug
+    await card.locator('button.btn-edit').click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+    await page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
+
+    const confirmModal = page.locator('app-add-work-item-modal app-confirm-modal .modal-box');
+    await expect(confirmModal).toBeVisible();
+    await confirmModal.locator('button.btn-confirm-action', { hasText: 'Delete Story' }).click();
+
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.work-item-card', { hasText: bugTitle })).not.toBeVisible({ timeout: 10000 });
+  });
+
+  test('should dynamically adapt Sprint Commitment Formula in estimation guide when SM configures daily working hours (8.5h vs 8.0h vs 9.0h)', async ({ page }) => {
+    // 1. Open Create Sprint modal
+    const sprintModalBtn = page.locator('.section-header button', { hasText: 'Create Sprint' });
+    await expect(sprintModalBtn).toBeVisible();
+    await sprintModalBtn.click();
+
+    await expect(page.locator('#sprintNameInput')).toBeVisible();
+
+    // 2. Default is 8.5h standard
+    const guideBtn = page.locator('app-edit-sprint-modal .btn-guide-link');
+    await expect(guideBtn).toBeVisible();
+    await guideBtn.click();
+
+    // Verify Fibonacci Matrix Guide modal is open
+    const matrixModal = page.locator('app-estimation-matrix-modal .modal-box');
+    await expect(matrixModal).toBeVisible();
+
+    // Verify formula card has 8.5 hrs/pt
+    const formulaBox = matrixModal.locator('.formula-box code');
+    await expect(formulaBox).toContainText('8.5 hrs/pt');
+
+    // Close guide
+    await matrixModal.locator('.close-btn').click();
+    await expect(matrixModal).not.toBeVisible({ timeout: 5000 });
+
+    // 3. Switch to 8.0h preset pill
+    await page.locator('app-edit-sprint-modal .preset-pill', { hasText: '8.0h' }).click();
+
+    // Open guide again
+    await guideBtn.click();
+    await expect(matrixModal).toBeVisible();
+    await expect(formulaBox).toContainText('8.0 hrs/pt');
+
+    // Close guide
+    await matrixModal.locator('.close-btn').click();
+    await expect(matrixModal).not.toBeVisible({ timeout: 5000 });
+
+    // 4. Switch to 9.0h preset pill
+    await page.locator('app-edit-sprint-modal .preset-pill', { hasText: '9.0h' }).click();
+
+    // Open guide again
+    await guideBtn.click();
+    await expect(matrixModal).toBeVisible();
+    await expect(formulaBox).toContainText('9.0 hrs/pt');
+
+    // Close guide and sprint modal
+    await matrixModal.locator('.close-btn').click();
+    await expect(matrixModal).not.toBeVisible({ timeout: 5000 });
+    await page.locator('app-edit-sprint-modal .close-btn').click();
+    await expect(page.locator('#sprintNameInput')).not.toBeVisible({ timeout: 5000 });
   });
 });

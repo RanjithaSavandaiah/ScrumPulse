@@ -260,6 +260,7 @@
   <!-- Fibonacci Reference Matrix Modal -->
   @if (showEstimationMatrixModal()) {
     <app-estimation-matrix-modal
+      [dailyWorkingHours]="state.activeSprint()?.dailyWorkingHours"
       (close)="showEstimationMatrixModal.set(false)"
     ></app-estimation-matrix-modal>
   }

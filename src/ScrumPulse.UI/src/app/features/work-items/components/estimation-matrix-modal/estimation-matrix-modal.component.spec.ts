@@ -1,5 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideStore } from '@ngrx/store';
 import { EstimationMatrixModalComponent } from './estimation-matrix-modal.component';
+import { ScrumStateService } from '../../../../core/services/scrum-state.service';
+import { appReducers } from '../../../../core/state';
 
 describe('EstimationMatrixModalComponent', () => {
   let component: EstimationMatrixModalComponent;
@@ -7,7 +12,13 @@ describe('EstimationMatrixModalComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EstimationMatrixModalComponent]
+      imports: [EstimationMatrixModalComponent],
+      providers: [
+        ScrumStateService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideStore(appReducers)
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(EstimationMatrixModalComponent);
@@ -18,6 +29,29 @@ describe('EstimationMatrixModalComponent', () => {
   it('should create and have guide items for Fibonacci scale', () => {
     expect(component).toBeTruthy();
     expect(component.matrixItems.length).toBe(7);
+  });
+
+  it('should adopt configured daily working hours in formula', () => {
+    // Default 8.5
+    expect(component.benchmarkHoursFormatted).toBe('8.5');
+
+    // Configured 8.0
+    component.dailyWorkingHours = 8.0;
+    fixture.detectChanges();
+    expect(component.benchmarkHoursFormatted).toBe('8.0');
+    expect(fixture.nativeElement.querySelector('.formula-box').textContent).toContain('8.0 hrs/pt');
+
+    // Configured 8.5
+    component.dailyWorkingHours = 8.5;
+    fixture.detectChanges();
+    expect(component.benchmarkHoursFormatted).toBe('8.5');
+    expect(fixture.nativeElement.querySelector('.formula-box').textContent).toContain('8.5 hrs/pt');
+
+    // Configured 9.0
+    component.dailyWorkingHours = 9.0;
+    fixture.detectChanges();
+    expect(component.benchmarkHoursFormatted).toBe('9.0');
+    expect(fixture.nativeElement.querySelector('.formula-box').textContent).toContain('9.0 hrs/pt');
   });
 
   it('should calculate points from hours correctly', () => {

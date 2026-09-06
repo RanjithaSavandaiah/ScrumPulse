@@ -53,18 +53,45 @@ export function getRoleLabel(role?: string | number | null): string {
 }
 
 /**
- * Maps Kudos badge keys or integers to friendly titles.
+ * Maps Kudos badge keys or integers to friendly titles matching BadgeType enum.
  */
 export function getBadgeLabel(badge?: string | number | null): string {
   if (badge === null || badge === undefined) return 'Kudos';
 
-  const b = String(badge).toLowerCase();
-  if (b.includes('0') || b.includes('problemsolver') || b.includes('problem')) return 'Problem Solver';
-  if (b.includes('1') || b.includes('teamplayer') || b.includes('team')) return 'Team Player';
-  if (b.includes('2') || b.includes('innovator')) return 'Innovator';
-  if (b.includes('3') || b.includes('lifesaver') || b.includes('life')) return 'Life Saver';
-  if (b.includes('4') || b.includes('speedy') || b.includes('fast')) return 'Speed Demon';
-  return String(badge);
+  switch (badge) {
+    case 0:
+    case '0':
+    case 'ProblemSolver':
+      return 'Problem Solver';
+    case 1:
+    case '1':
+    case 'TeamPlayer':
+      return 'Team Player';
+    case 2:
+    case '2':
+    case 'GoalCrusher':
+      return 'Goal Crusher';
+    case 3:
+    case '3':
+    case 'QualityGuardian':
+      return 'Quality Guardian';
+    case 4:
+    case '4':
+    case 'InnovationStar':
+      return 'Innovation Star';
+    case 5:
+    case '5':
+    case 'ClientShoutout':
+      return 'Client Shoutout';
+    case 'Innovator':
+      return 'Innovator';
+    case 'LifeSaver':
+      return 'Life Saver';
+    case 'Speedy':
+      return 'Speed Demon';
+    default:
+      return String(badge);
+  }
 }
 
 /**
