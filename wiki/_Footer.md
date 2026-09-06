@@ -1,2 +1,2 @@
 ---
-*ScrumPulse Technical Documentation | Source repository: [RanjithaSavandaiah/ScrumPulse](https://github.com/RanjithaSavandaiah/ScrumPulse)*
+*ScrumPulse Documentation | Developed and maintained by [Ranjitha Savandaiah](https://github.com/RanjithaSavandaiah)*

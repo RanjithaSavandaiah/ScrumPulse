@@ -40,3 +40,9 @@ ScrumPulse is an engineering telemetry and sprint tracking tool designed for scr
 - Setting up locally: see the [[Developer Setup Guide|Developer-Setup-Guide]].
 - REST endpoints and payloads: see the [[API Reference|API-Reference]].
 - Vulnerability reports: see the [[Security Policy|Security-Architecture]] or [`.github/SECURITY.md`](https://github.com/RanjithaSavandaiah/ScrumPulse/blob/main/.github/SECURITY.md).
+
+---
+
+## Author & Maintainer
+
+ScrumPulse is developed and maintained by [Ranjitha Savandaiah](https://github.com/RanjithaSavandaiah).

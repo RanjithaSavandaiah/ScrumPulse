@@ -316,3 +316,9 @@ All API endpoints follow RESTful conventions under the `/api/` prefix with Swagg
 | `/api/teams` | `GET`, `POST`, `PUT` | Multi-squad management and join code verification |
 | `/api/ai-coach/copilot-chat` | `POST` | Interactive conversational coaching via Microsoft Agent Framework |
 | `/healthz` | `GET` | Automated health check probe |
+
+---
+
+## Author & Maintainer
+
+ScrumPulse is developed and maintained by **[Ranjitha Savandaiah](https://github.com/RanjithaSavandaiah)** ([LinkedIn](https://www.linkedin.com/in/ranjitha-savandaiah)).
