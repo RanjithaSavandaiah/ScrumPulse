@@ -119,13 +119,6 @@ export class BookLeaveModalComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.editLeave) {
-      let rawType = this.editLeave.leaveType || 'Privilege Leave';
-      rawType = rawType.replace(/\s*\([^)]*\)/g, '').trim();
-      if (rawType === 'Planned PTO' || rawType === 'PTO' || rawType === 'Vacation / PTO') rawType = 'Privilege Leave';
-      if (rawType === 'National Holiday' || rawType === 'Offshore Holiday') rawType = 'Offshore Public Holiday';
-      if (rawType === 'Training / Workshop' || rawType === 'Tech Workshop') rawType = 'Privilege Leave';
-      if (rawType === 'Medical Recovery') rawType = 'Sick Leave';
-
       const sDate = this.editLeave.startDate ? new Date(this.editLeave.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       const eDate = this.editLeave.endDate ? new Date(this.editLeave.endDate).toISOString().split('T')[0] : sDate;
 
@@ -135,7 +128,7 @@ export class BookLeaveModalComponent implements OnInit {
         endDate: eDate < sDate ? sDate : eDate,
         leaveSlot: (this.editLeave.leaveSlot as any) || 'FullDay',
         reason: this.editLeave.reason || '',
-        leaveType: rawType
+        leaveType: this.editLeave.leaveType || 'Privilege Leave'
       };
     } else if (!this.leave.teamMemberId && this.teamMembers.length > 0) {
       this.leave.teamMemberId = this.teamMembers[0].id;

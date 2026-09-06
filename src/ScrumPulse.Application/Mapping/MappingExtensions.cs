@@ -60,10 +60,18 @@ public static class MappingExtensions
         leave.Id, leave.TeamMemberId,
         leave.TeamMember?.Name ?? "Member",
         leave.StartDate, leave.EndDate, leave.Reason,
-        leave.LeaveType.ToString(), leave.Location, leave.IsApproved,
+        FormatLeaveType(leave.LeaveType), leave.Location, leave.IsApproved,
         leave.TotalDays, leave.LeaveSlot.ToString(),
         leave.CreatedBy, leave.UpdatedBy
     );
+
+    public static string FormatLeaveType(LeaveCategory category) => category switch
+    {
+        LeaveCategory.SickLeave => "Sick Leave",
+        LeaveCategory.CompensatoryOff => "Comp Off",
+        LeaveCategory.PublicHoliday => "Offshore Public Holiday",
+        _ => "Privilege Leave"
+    };
 
     public static IEnumerable<TeamLeaveDto> ToDtos(this IEnumerable<TeamLeave> leaves) =>
         leaves.Select(leave => leave.ToDto());

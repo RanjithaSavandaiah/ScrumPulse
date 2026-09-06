@@ -78,15 +78,34 @@ test.describe('Team Roster & Leave Capacity Management Lifecycle', () => {
     await page.locator('#leaveStartDateInput').fill(today);
     await page.locator('#leaveEndDateInput').fill(today);
 
+    // Select Sick Leave category explicitly
+    const sickLeaveBtn = page.locator('app-book-leave-modal .type-card', { hasText: 'Sick Leave' });
+    await expect(sickLeaveBtn).toBeVisible();
+    await sickLeaveBtn.click();
+    await expect(sickLeaveBtn).toHaveClass(/selected/);
+
+    // Choose preset reason
+    const presetChip = page.locator('.preset-chip', { hasText: 'Medical Checkup / Sick Leave' });
+    if (await presetChip.isVisible()) {
+      await presetChip.click();
+    }
+
     // Save
     const saveBtn = page.locator('app-book-leave-modal .btn-save');
     await expect(saveBtn).toBeEnabled();
     await saveBtn.click();
     await expect(page.locator('#leaveMemberSelect')).not.toBeVisible({ timeout: 5000 });
 
-    // 3. Verify Leave Table has at least one row and delete via confirm modal
+    // Verify confirmation popup card
+    await expect(page.locator('app-confirmation-popup .confirmation-popup-card', { hasText: 'Sick Leave' })).toBeVisible({ timeout: 5000 });
+
+    // 3. Verify Leave Table has the newly booked leave with category "Sick Leave" and NOT "Privilege"
     const leaveRow = page.locator('.leaves-table .leave-row').first();
     await expect(leaveRow).toBeVisible({ timeout: 10000 });
+
+    const leaveTypePill = leaveRow.locator('.leave-type-pill');
+    await expect(leaveTypePill).toContainText('Sick Leave');
+    await expect(leaveTypePill).not.toContainText('Privilege');
 
     const deleteLeaveBtn = leaveRow.locator('.delete-btn');
     await expect(deleteLeaveBtn).toBeVisible();

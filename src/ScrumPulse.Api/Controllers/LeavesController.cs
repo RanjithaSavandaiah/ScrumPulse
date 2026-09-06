@@ -87,7 +87,7 @@ public class LeavesController(
             StartDate = startDate,
             EndDate = endDate,
             Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Planned Leave" : request.Reason.Trim(),
-            LeaveType = Enum.TryParse<LeaveCategory>(request.LeaveType, true, out var parsed) ? parsed : LeaveCategory.PrivilegeLeave,
+            LeaveType = ParseLeaveCategory(request.LeaveType),
             LeaveSlot = Enum.TryParse<LeaveSlotType>(request.LeaveSlot, true, out var slot) ? slot : LeaveSlotType.FullDay,
             Location = string.IsNullOrWhiteSpace(request.Location) ? "Offshore" : request.Location.Trim(),
             IsApproved = true
@@ -117,7 +117,7 @@ public class LeavesController(
         leave.StartDate = startDate;
         leave.EndDate = endDate;
         leave.Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Planned Leave" : request.Reason.Trim();
-        leave.LeaveType = Enum.TryParse<LeaveCategory>(request.LeaveType, true, out var parsed) ? parsed : LeaveCategory.PrivilegeLeave;
+        leave.LeaveType = ParseLeaveCategory(request.LeaveType);
         leave.LeaveSlot = Enum.TryParse<LeaveSlotType>(request.LeaveSlot, true, out var slot) ? slot : LeaveSlotType.FullDay;
         if (!string.IsNullOrWhiteSpace(request.Location)) leave.Location = request.Location.Trim();
 
@@ -128,6 +128,14 @@ public class LeavesController(
 
         return Ok(leave.ToDto());
     }
+
+    public static LeaveCategory ParseLeaveCategory(string? input) => input?.Trim() switch
+    {
+        "Sick Leave" or "SickLeave" => LeaveCategory.SickLeave,
+        "Comp Off" or "CompensatoryOff" => LeaveCategory.CompensatoryOff,
+        "Offshore Public Holiday" or "PublicHoliday" => LeaveCategory.PublicHoliday,
+        _ => LeaveCategory.PrivilegeLeave
+    };
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

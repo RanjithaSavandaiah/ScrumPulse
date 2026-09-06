@@ -108,19 +108,17 @@ export class CapacityComponent {
       startDate: new Date(cleanStartDate).toISOString(),
       endDate: new Date(cleanEndDate).toISOString(),
       reason: leaveData.reason?.trim() || 'Planned Leave',
-      leaveType: leaveData.leaveSlot && leaveData.leaveSlot !== 'FullDay'
-        ? `${leaveData.leaveType} (${leaveData.leaveSlot === 'FirstHalf' ? '1st Half' : '2nd Half'})`
-        : (leaveData.leaveType || 'Privilege Leave'),
+      leaveType: leaveData.leaveType || 'Privilege Leave',
       leaveSlot: leaveData.leaveSlot || 'FullDay',
       location: 'Bangalore Offshore'
     };
 
     if (editItem) {
       this.state.updateLeave(editItem.id, payload as any);
-      this.notification.showSuccess('Leave Updated', 'Leave booking details updated successfully.', 'palmtree');
+      this.notification.showSuccess('Leave Updated', `${payload.leaveType} booking details updated successfully.`, 'palmtree');
     } else {
       this.state.submitLeave(payload as any);
-      this.notification.showSuccess('Leave Booked', 'Leave booking recorded and capacity recalculated.', 'palmtree');
+      this.notification.showSuccess('Leave Booked', `${payload.leaveType} recorded and capacity recalculated.`, 'palmtree');
     }
 
     this.showLeaveModal.set(false);

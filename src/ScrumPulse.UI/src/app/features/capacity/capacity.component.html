@@ -163,7 +163,14 @@
                   <strong>{{ leave.teamMemberName | cleanName }}</strong>
                 </div>
               </td>
-              <td><span class="leave-type-pill">{{ leave.leaveType }}</span></td>
+              <td>
+                <span class="leave-type-pill"
+                  [class.sick]="leave.leaveType === 'Sick Leave'"
+                  [class.comp]="leave.leaveType === 'Comp Off'"
+                  [class.holiday]="leave.leaveType === 'Offshore Public Holiday'">
+                  {{ leave.leaveType }}
+                </span>
+              </td>
               <td>
                 <span class="slot-pill" [class.half-day]="leave.leaveSlot && leave.leaveSlot !== 'FullDay'">
                   {{ leave.leaveSlot === 'FirstHalf' ? '½ Day (1st Half)' : (leave.leaveSlot === 'SecondHalf' ? '½ Day (2nd Half)' : 'Full Day') }}

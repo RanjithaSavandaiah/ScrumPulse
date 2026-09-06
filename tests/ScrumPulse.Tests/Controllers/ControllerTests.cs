@@ -230,10 +230,49 @@ public class ControllerTests
         var submitResult = await controller.Submit(request, Ct);
         var leaveDto = ExtractValue(submitResult);
         Assert.Equal("Rohan Verma", leaveDto.TeamMemberName);
+        Assert.Equal("Sick Leave", leaveDto.LeaveType);
 
         var capacityResult = await controller.GetCapacity(sprint.Id, Ct);
         var capacityDto = ExtractValue(capacityResult);
         Assert.NotNull(capacityDto);
+    }
+
+    [Theory]
+    [InlineData("Sick Leave", "Sick Leave", LeaveCategory.SickLeave)]
+    [InlineData("SickLeave", "Sick Leave", LeaveCategory.SickLeave)]
+    [InlineData("Comp Off", "Comp Off", LeaveCategory.CompensatoryOff)]
+    [InlineData("CompensatoryOff", "Comp Off", LeaveCategory.CompensatoryOff)]
+    [InlineData("Offshore Public Holiday", "Offshore Public Holiday", LeaveCategory.PublicHoliday)]
+    [InlineData("PublicHoliday", "Offshore Public Holiday", LeaveCategory.PublicHoliday)]
+    [InlineData("Privilege Leave", "Privilege Leave", LeaveCategory.PrivilegeLeave)]
+    [InlineData("PrivilegeLeave", "Privilege Leave", LeaveCategory.PrivilegeLeave)]
+    public async Task LeavesController_LeaveType_ParsingAndFormatting_PreservesSelectedCategory(string inputType, string expectedDtoType, LeaveCategory expectedCategory)
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var member = new TeamMember { Id = Guid.NewGuid(), Name = "Category Tester", IsActive = true };
+        db.TeamMembers.Add(member);
+        await db.SaveChangesAsync();
+
+        var metricsService = new MetricsCalculatorService(db);
+        var controller = new LeavesController(db, metricsService);
+
+        var request = new SubmitLeaveRequest(
+            TeamMemberId: member.Id,
+            StartDate: DateTime.UtcNow,
+            EndDate: DateTime.UtcNow.AddDays(1),
+            Reason: "Testing Category",
+            LeaveType: inputType,
+            Location: "Offshore"
+        );
+
+        var submitResult = await controller.Submit(request, Ct);
+        var leaveDto = ExtractValue(submitResult);
+
+        Assert.Equal(expectedDtoType, leaveDto.LeaveType);
+
+        var inDb = await db.TeamLeaves.FindAsync(leaveDto.Id);
+        Assert.NotNull(inDb);
+        Assert.Equal(expectedCategory, inDb.LeaveType);
     }
 
     [Fact]

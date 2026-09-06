@@ -317,6 +317,23 @@
   background: rgba(59, 130, 246, 0.12);
   padding: 0.2rem 0.5rem;
   border-radius: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.leave-type-pill.sick {
+  color: var(--accent-danger, #f43f5e);
+  background: rgba(244, 63, 94, 0.14);
+}
+
+.leave-type-pill.comp {
+  color: var(--accent-secondary, #a855f7);
+  background: rgba(168, 85, 247, 0.14);
+}
+
+.leave-type-pill.holiday {
+  color: var(--accent-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.14);
 }
 
 .slot-pill {
