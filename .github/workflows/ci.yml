@@ -34,6 +34,9 @@ jobs:
       - name: Run Backend Unit & Integration Tests
         run: dotnet test ScrumPulse.slnx -c Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
 
+      - name: Verify Zero NuGet Vulnerabilities
+        run: dotnet list package --vulnerable --include-transitive
+
   frontend-unit-tests:
     name: Frontend Unit Tests & Console Sentinel
     runs-on: ubuntu-latest
