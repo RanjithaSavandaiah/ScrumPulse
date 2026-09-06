@@ -9,12 +9,12 @@ const originalConsoleWarn = console.warn;
 
 beforeAll(() => {
   console.error = (...args: any[]) => {
-    capturedConsoleErrors.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+    capturedConsoleErrors.push(args.map(argumentItem => typeof argumentItem === 'object' ? JSON.stringify(argumentItem) : String(argumentItem)).join(' '));
     originalConsoleError.apply(console, args);
   };
 
   console.warn = (...args: any[]) => {
-    capturedConsoleWarnings.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+    capturedConsoleWarnings.push(args.map(argumentItem => typeof argumentItem === 'object' ? JSON.stringify(argumentItem) : String(argumentItem)).join(' '));
     originalConsoleWarn.apply(console, args);
   };
 });

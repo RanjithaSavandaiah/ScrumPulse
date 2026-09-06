@@ -15,6 +15,18 @@ import { isDeliveryRole } from '../../core/utils/format-utils';
 import { CORE_PIPES } from '../../core/pipes';
 import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constants';
 
+const TWO_WEEKS_IN_DAYS = 14;
+const HOURS_PER_DAY = 24;
+const MINUTES_PER_HOUR = 60;
+const SECONDS_PER_MINUTE = 60;
+const MILLISECONDS_PER_SECOND = 1000;
+const TWO_WEEKS_IN_MS = TWO_WEEKS_IN_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+const HALF_DAY_LEAVE_PORTION = 0.5;
+const FULL_DAY_LEAVE_PORTION = 1.0;
+const ONE_DECIMAL_PLACE_ROUNDING_FACTOR = 10;
+const TWO_DECIMAL_PLACES_ROUNDING_FACTOR = 100;
+const MAX_VELOCITY_RATIO_PERCENTAGE = 100;
+
 @Component({
   selector: 'app-work-items',
   standalone: true,
@@ -50,7 +62,7 @@ export class WorkItemsComponent {
   currentEffectiveSprint = computed<Sprint | null>(() => {
     const id = this.selectedSprintId();
     if (id && id !== 'ALL') {
-      return this.state.sprints().find(s => s.id === id) || this.state.activeSprint() || null;
+      return this.state.sprints().find(sprint => sprint.id === id) || this.state.activeSprint() || null;
     }
     return this.state.activeSprint() || this.state.sprints()[0] || null;
   });
@@ -59,55 +71,55 @@ export class WorkItemsComponent {
     const sp = this.currentEffectiveSprint();
     if (!sp) return this.state.leaves();
     const start = new Date(sp.startDate || Date.now());
-    const end = new Date(sp.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
-    return this.state.leaves().filter(l => {
-      const ls = new Date(l.startDate);
-      const le = new Date(l.endDate);
-      return ls <= end && le >= start;
+    const end = new Date(sp.endDate || (Date.now() + TWO_WEEKS_IN_MS));
+    return this.state.leaves().filter(leave => {
+      const leaveStart = new Date(leave.startDate);
+      const leaveEnd = new Date(leave.endDate);
+      return leaveStart <= end && leaveEnd >= start;
     });
   });
 
   sprintCapacitySummary = computed(() => {
     const sp = this.currentEffectiveSprint();
-    const allMembers = this.state.squadMembers().filter(m => (m.isActive ?? true));
-    const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
-    const deliveryMembers = allMembers.filter(m => isDeliveryRole(m.role));
+    const allMembers = this.state.squadMembers().filter(member => (member.isActive ?? true));
+    const devMembers = allMembers.filter(member => (member.role || '').toLowerCase() === 'developer');
+    const deliveryMembers = allMembers.filter(member => isDeliveryRole(member.role));
     const targetDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
-    const mCount = targetDevs.length;
-    const leaves = this.sprintLeaves().filter(l => l.isApproved);
+    const memberCount = targetDevs.length;
+    const leaves = this.sprintLeaves().filter(leave => leave.isApproved);
 
     let totalLeaveDays = 0;
-    leaves.forEach(l => {
-      totalLeaveDays += l.totalDays || (l.leaveSlot && l.leaveSlot !== 'FullDay' ? 0.5 : 1.0);
+    leaves.forEach(leave => {
+      totalLeaveDays += leave.totalDays || (leave.leaveSlot && leave.leaveSlot !== 'FullDay' ? HALF_DAY_LEAVE_PORTION : FULL_DAY_LEAVE_PORTION);
     });
 
     const start = sp ? new Date(sp.startDate || Date.now()) : new Date();
-    const end = sp ? new Date(sp.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000)) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    const end = sp ? new Date(sp.endDate || (Date.now() + TWO_WEEKS_IN_MS)) : new Date(Date.now() + TWO_WEEKS_IN_MS);
     const workingDays = calculateWorkingDays(start, end);
     const hoursPerDay = sp?.dailyWorkingHours && sp.dailyWorkingHours > 0 ? sp.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS;
-    const grossHours = Math.round(workingDays * mCount * hoursPerDay * 10) / 10;
-    const leaveHours = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
-    const netHours = Math.max(0, Math.round((grossHours - leaveHours) * 100) / 100);
+    const grossHours = Math.round(workingDays * memberCount * hoursPerDay * ONE_DECIMAL_PLACE_ROUNDING_FACTOR) / ONE_DECIMAL_PLACE_ROUNDING_FACTOR;
+    const leaveHours = Math.round(totalLeaveDays * hoursPerDay * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR;
+    const netHours = Math.max(0, Math.round((grossHours - leaveHours) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR);
 
-    const sprintItems = sp ? this.state.workItems().filter(w => w.sprintId === sp.id) : this.state.workItems();
-    const committed = sp?.committedStoryPoints || sprintItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0) || 0;
-    const delivered = sprintItems.filter(w => String(w.status).toLowerCase().includes('done')).reduce((acc, w) => acc + (w.storyPoints || 0), 0);
+    const sprintItems = sp ? this.state.workItems().filter(item => item.sprintId === sp.id) : this.state.workItems();
+    const committed = sp?.committedStoryPoints || sprintItems.reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0) || 0;
+    const delivered = sprintItems.filter(item => String(item.status).toLowerCase().includes('done')).reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
 
     return {
       workingDays,
-      mCount,
+      mCount: memberCount,
       grossHours,
       totalLeaveDays,
       leaveHours,
       netHours,
       committed,
       delivered,
-      velocityRatio: committed > 0 ? Math.min(100, Math.round((delivered / committed) * 100)) : 0
+      velocityRatio: committed > 0 ? Math.min(MAX_VELOCITY_RATIO_PERCENTAGE, Math.round((delivered / committed) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR)) : 0
     };
   });
 
   contributingMembers = computed(() => {
-    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
+    return this.state.squadMembers().filter(member => isDeliveryRole(member.role));
   });
 
   filteredWorkItems = computed(() => {
@@ -117,7 +129,7 @@ export class WorkItemsComponent {
 
     const current = this.state.currentTeam();
     if (current) {
-      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
       items = items.filter(item =>
         (item.teamId && item.teamId.toLowerCase().trim() === current.id.toLowerCase().trim()) ||
         (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim())) ||
@@ -146,7 +158,7 @@ export class WorkItemsComponent {
 
     const current = this.state.currentTeam();
     if (current) {
-      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
       items = items.filter(item =>
         (item.teamId && item.teamId.toLowerCase().trim() === current.id.toLowerCase().trim()) ||
         (item.assigneeId && squadMemberIds.has(item.assigneeId.toLowerCase().trim())) ||

@@ -8,6 +8,9 @@ import { DeveloperPrMetrics, PullRequestLog } from '../../core/models/scrum.mode
 import { CORE_PIPES } from '../../core/pipes';
 import { cleanName, getInitials, isDeliveryRole } from '../../core/utils/format-utils';
 
+const PERCENTAGE_FACTOR = 100;
+const DECIMAL_ROUNDING_FACTOR = 10;
+
 @Component({
   selector: 'app-pr-metrics',
   standalone: true,
@@ -38,7 +41,7 @@ export class PrMetricsComponent {
 
   // Contributing squad developers / engineers (Developers and QA Engineers)
   developerMembers = computed(() => {
-    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
+    return this.state.squadMembers().filter(member => isDeliveryRole(member.role));
   });
 
   // Filtered PR list
@@ -46,30 +49,30 @@ export class PrMetricsComponent {
     let list = this.state.prLogs();
     const current = this.state.currentTeam();
     if (current) {
-      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
-      list = list.filter(p => p.authorId && squadMemberIds.has(p.authorId.toLowerCase().trim()));
+      const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
+      list = list.filter(pr => pr.authorId && squadMemberIds.has(pr.authorId.toLowerCase().trim()));
     }
 
     const sprintFilter = this.selectedSprintId();
     const devFilter = this.selectedDeveloperId();
 
     if (sprintFilter !== 'ALL') {
-      list = list.filter(p => p.sprintId === sprintFilter);
+      list = list.filter(pr => pr.sprintId === sprintFilter);
     }
     if (devFilter !== 'ALL') {
-      list = list.filter(p => p.authorId === devFilter);
+      list = list.filter(pr => pr.authorId === devFilter);
     }
     return list;
   });
 
   // Aggregated Summary Stats
   totalPrs = computed(() => this.filteredPrLogs().length);
-  totalComments = computed(() => this.filteredPrLogs().reduce((acc, p) => acc + p.totalCommentsCount, 0));
-  totalActionableComments = computed(() => this.filteredPrLogs().reduce((acc, p) => acc + p.actionableCommentsCount, 0));
+  totalComments = computed(() => this.filteredPrLogs().reduce((totalCommentsCount, pr) => totalCommentsCount + pr.totalCommentsCount, 0));
+  totalActionableComments = computed(() => this.filteredPrLogs().reduce((totalActionableCount, pr) => totalActionableCount + pr.actionableCommentsCount, 0));
   overallActionabilityRate = computed(() => {
     const total = this.totalComments();
     if (total === 0) return 0;
-    return Math.round((this.totalActionableComments() / total) * 100);
+    return Math.round((this.totalActionableComments() / total) * PERCENTAGE_FACTOR);
   });
 
   // Developer Scorecards (Only contributing engineers)
@@ -77,15 +80,15 @@ export class PrMetricsComponent {
     const contributingDevs = this.developerMembers();
     const prs = this.selectedSprintId() === 'ALL'
       ? this.state.prLogs()
-      : this.state.prLogs().filter(p => p.sprintId === this.selectedSprintId());
+      : this.state.prLogs().filter(pr => pr.sprintId === this.selectedSprintId());
 
     return contributingDevs.map(dev => {
-      const devPrs = prs.filter(p => p.authorId === dev.id);
+      const devPrs = prs.filter(pr => pr.authorId === dev.id);
       const devTotalPrs = devPrs.length;
-      const devTotalComments = devPrs.reduce((acc, p) => acc + p.totalCommentsCount, 0);
-      const devActionable = devPrs.reduce((acc, p) => acc + p.actionableCommentsCount, 0);
-      const rate = devTotalComments > 0 ? Math.round((devActionable / devTotalComments) * 100) : 0;
-      const avg = devTotalPrs > 0 ? Math.round((devTotalComments / devTotalPrs) * 10) / 10 : 0;
+      const devTotalComments = devPrs.reduce((totalCommentsCount, pr) => totalCommentsCount + pr.totalCommentsCount, 0);
+      const devActionable = devPrs.reduce((totalActionableCount, pr) => totalActionableCount + pr.actionableCommentsCount, 0);
+      const rate = devTotalComments > 0 ? Math.round((devActionable / devTotalComments) * PERCENTAGE_FACTOR) : 0;
+      const avg = devTotalPrs > 0 ? Math.round((devTotalComments / devTotalPrs) * DECIMAL_ROUNDING_FACTOR) / DECIMAL_ROUNDING_FACTOR : 0;
       const cleanDevName = cleanName(dev.name);
 
       return {

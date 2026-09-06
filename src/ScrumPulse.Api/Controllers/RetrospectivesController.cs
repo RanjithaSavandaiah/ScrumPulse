@@ -11,6 +11,8 @@ using ScrumPulse.Domain.Entities;
 /// <summary>Sprint retrospective cards and action items management.</summary>
 public class RetrospectivesController(IAppDbContext db) : BaseApiController
 {
+    private const int InitialUpvotesCount = 1;
+
     [HttpGet("cards")]
     [ProducesResponseType(typeof(IEnumerable<RetroCardDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<RetroCardDto>>> GetCards([FromQuery] Guid? sprintId, CancellationToken ct)
@@ -33,7 +35,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
             Content = request.Content,
             AuthorId = request.AuthorId,
             IsAnonymous = request.IsAnonymous,
-            UpvotesCount = 1
+            UpvotesCount = InitialUpvotesCount
         };
         db.RetroCards.Add(retroCard);
         await db.SaveChangesAsync(ct);
@@ -49,7 +51,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> VoteCard(Guid id, CancellationToken ct)
     {
-        var card = await db.RetroCards.Include(c => c.Author).FirstOrDefaultAsync(retroCard => retroCard.Id == id, ct);
+        var card = await db.RetroCards.Include(retroCard => retroCard.Author).FirstOrDefaultAsync(retroCard => retroCard.Id == id, ct);
         if (card == null) return NotFound();
         card.UpvotesCount += 1;
         await db.SaveChangesAsync(ct);
@@ -95,7 +97,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RetroCardDto>> UpdateCard(Guid id, [FromBody] UpdateRetroCardRequest request, CancellationToken ct)
     {
-        var card = await db.RetroCards.Include(c => c.Author).FirstOrDefaultAsync(c => c.Id == id, ct);
+        var card = await db.RetroCards.Include(retroCard => retroCard.Author).FirstOrDefaultAsync(retroCard => retroCard.Id == id, ct);
         if (card == null) return NotFound();
 
         card.Category = request.Category;
@@ -108,7 +110,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
 
         if (card.Author == null || card.AuthorId != request.AuthorId)
         {
-            card.Author = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.AuthorId, ct);
+            card.Author = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == request.AuthorId, ct);
         }
 
         return Ok(card.ToDto());
@@ -119,7 +121,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteCard(Guid id, CancellationToken ct)
     {
-        var card = await db.RetroCards.FirstOrDefaultAsync(c => c.Id == id, ct);
+        var card = await db.RetroCards.FirstOrDefaultAsync(retroCard => retroCard.Id == id, ct);
         if (card == null) return NotFound();
         db.RetroCards.Remove(card);
         await db.SaveChangesAsync(ct);
@@ -131,7 +133,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RetroActionItemDto>> UpdateActionItem(Guid id, [FromBody] UpdateRetroActionItemRequest request, CancellationToken ct)
     {
-        var item = await db.RetroActionItems.Include(a => a.Assignee).FirstOrDefaultAsync(a => a.Id == id, ct);
+        var item = await db.RetroActionItems.Include(actionItem => actionItem.Assignee).FirstOrDefaultAsync(actionItem => actionItem.Id == id, ct);
         if (item == null) return NotFound();
 
         item.Title = request.Title;
@@ -144,7 +146,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
 
         if (item.Assignee == null || item.AssigneeId != request.AssigneeId)
         {
-            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.AssigneeId, ct);
+            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == request.AssigneeId, ct);
         }
 
         return Ok(item.ToDto());
@@ -155,7 +157,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteActionItem(Guid id, CancellationToken ct)
     {
-        var item = await db.RetroActionItems.FirstOrDefaultAsync(a => a.Id == id, ct);
+        var item = await db.RetroActionItems.FirstOrDefaultAsync(actionItem => actionItem.Id == id, ct);
         if (item == null) return NotFound();
         db.RetroActionItems.Remove(item);
         await db.SaveChangesAsync(ct);

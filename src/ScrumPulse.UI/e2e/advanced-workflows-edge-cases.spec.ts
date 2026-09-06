@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Advanced Workflows, Validations & Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should enforce work item validation boundary and advance through complete 6-stage lifecycle', async ({ page }) => {

@@ -5,6 +5,10 @@ import { TeamMember } from '../../../../core/models/scrum.models';
 
 import { CORE_PIPES } from '../../../../core/pipes';
 
+export const SECONDS_PER_MINUTE = 60;
+export const SINGLE_DIGIT_SECOND_THRESHOLD = 10;
+export const DEFAULT_STANDUP_TIMER_SECONDS = 120;
+
 @Component({
   selector: 'app-standup-timer',
   standalone: true,
@@ -13,7 +17,7 @@ import { CORE_PIPES } from '../../../../core/pipes';
   styleUrl: './standup-timer.component.css'
 })
 export class StandupTimerComponent {
-  @Input() seconds: number = 120;
+  @Input() seconds: number = DEFAULT_STANDUP_TIMER_SECONDS;
   @Input() isRunning: boolean = false;
   @Input() currentSpeakerIndex: number = 0;
   @Input() members: TeamMember[] = [];
@@ -28,8 +32,9 @@ export class StandupTimerComponent {
   }
 
   formatTimer(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+    const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
+    const remainingSeconds = seconds % SECONDS_PER_MINUTE;
+    const paddedSeconds = remainingSeconds < SINGLE_DIGIT_SECOND_THRESHOLD ? `0${remainingSeconds}` : `${remainingSeconds}`;
+    return `${minutes}:${paddedSeconds}`;
   }
 }

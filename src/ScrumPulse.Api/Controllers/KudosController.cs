@@ -58,8 +58,8 @@ public class KudosController(IAppDbContext db) : BaseApiController
             : (bodyRequest?.ReactionType ?? bodyRequest?.Emoji ?? "rocket");
 
         var kudos = await db.KudosCards
-            .Include(k => k.Sender)
-            .Include(k => k.Receiver)
+            .Include(kudosCard => kudosCard.Sender)
+            .Include(kudosCard => kudosCard.Receiver)
             .FirstOrDefaultAsync(kudosEntity => kudosEntity.Id == id, ct);
         if (kudos == null) return NotFound();
 

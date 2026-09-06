@@ -30,22 +30,22 @@ export const workItemsReducer = createReducer(
   })),
   on(WorkItemActions.updateWorkItemSuccess, (state, { item }) => ({
     ...state,
-    items: state.items.map(w => (w.id === item.id ? item : w))
+    items: state.items.map(workItem => (workItem.id === item.id ? item : workItem))
   })),
   on(WorkItemActions.deleteWorkItemSuccess, (state, { id }) => ({
     ...state,
-    items: state.items.filter(w => w.id !== id)
+    items: state.items.filter(workItem => workItem.id !== id)
   })),
   on(WorkItemActions.advanceWorkItemStageSuccess, (state, { item }) => ({
     ...state,
-    items: state.items.map(w => (w.id === item.id ? item : w))
+    items: state.items.map(workItem => (workItem.id === item.id ? item : workItem))
   })),
   on(WorkItemActions.updateQualityGatesSuccess, (state, { item }) => ({
     ...state,
-    items: state.items.map(w => (w.id === item.id ? item : w))
+    items: state.items.map(workItem => (workItem.id === item.id ? item : workItem))
   })),
   on(SprintActions.deleteSprintSuccess, (state, { sprintId }) => ({
     ...state,
-    items: state.items.map(w => (w.sprintId === sprintId ? { ...w, sprintId: undefined } : w))
+    items: state.items.map(workItem => (workItem.sprintId === sprintId ? { ...workItem, sprintId: undefined } : workItem))
   }))
 );

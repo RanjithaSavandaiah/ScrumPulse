@@ -15,6 +15,10 @@ public class LeavesController(
     IMetricsCalculatorService metricsCalculatorService,
     ILogger<LeavesController>? logger = null) : BaseApiController
 {
+    private const int MinValidCalendarYear = 2000;
+    private const int MinCalendarMonth = 1;
+    private const int MaxCalendarMonth = 12;
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TeamLeaveDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamLeaveDto>>> GetAll(
@@ -30,29 +34,29 @@ public class LeavesController(
             var query = db.TeamLeaves
                 .IgnoreQueryFilters()
                 .Include(leave => leave.TeamMember)
-                .Where(l => l.IsDeleted != true)
+                .Where(teamLeave => teamLeave.IsDeleted != true)
                 .AsQueryable();
 
-            if (memberId.HasValue) query = query.Where(l => l.TeamMemberId == memberId.Value);
+            if (memberId.HasValue) query = query.Where(teamLeave => teamLeave.TeamMemberId == memberId.Value);
 
             if (startDate.HasValue && endDate.HasValue)
             {
-                var s = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                var e = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                query = query.Where(l => l.StartDate <= e && l.EndDate >= s);
+                var windowStartUtc = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                var windowEndUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                query = query.Where(teamLeave => teamLeave.StartDate <= windowEndUtc && teamLeave.EndDate >= windowStartUtc);
             }
-            else if (year.HasValue && month.HasValue && year.Value >= 2000 && month.Value >= 1 && month.Value <= 12)
+            else if (year.HasValue && month.HasValue && year.Value >= MinValidCalendarYear && month.Value >= MinCalendarMonth && month.Value <= MaxCalendarMonth)
             {
                 var startOfMonth = new DateTime(year.Value, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
                 var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
-                query = query.Where(l => l.StartDate <= endOfMonth && l.EndDate >= startOfMonth);
+                query = query.Where(teamLeave => teamLeave.StartDate <= endOfMonth && teamLeave.EndDate >= startOfMonth);
             }
-            else if (year.HasValue && year.Value >= 2000)
+            else if (year.HasValue && year.Value >= MinValidCalendarYear)
             {
                 // Calendar Year strictly follows Jan 1 to Dec 31
                 var startOfYear = new DateTime(year.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                 var endOfYear = new DateTime(year.Value, 12, 31, 23, 59, 59, 999, DateTimeKind.Utc);
-                query = query.Where(l => l.StartDate <= endOfYear && l.EndDate >= startOfYear);
+                query = query.Where(teamLeave => teamLeave.StartDate <= endOfYear && teamLeave.EndDate >= startOfYear);
             }
 
             var list = await query
@@ -119,7 +123,7 @@ public class LeavesController(
 
         await db.SaveChangesAsync(ct);
 
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.TeamMemberId, ct);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(existingMember => existingMember.Id == request.TeamMemberId, ct);
         leave.TeamMember = member;
 
         return Ok(leave.ToDto());

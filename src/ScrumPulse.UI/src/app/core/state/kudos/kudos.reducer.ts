@@ -25,15 +25,15 @@ export const kudosReducer = createReducer(
   })),
   on(KudosActions.addKudosReaction, (state, { id, reactionKey }) => ({
     ...state,
-    kudos: state.kudos.map(k => {
-      if (k.id !== id) return k;
-      const reactions = { ...(k.reactionEmojis || {}) };
+    kudos: state.kudos.map(kudosCard => {
+      if (kudosCard.id !== id) return kudosCard;
+      const reactions = { ...(kudosCard.reactionEmojis || {}) };
       reactions[reactionKey] = (reactions[reactionKey] || 0) + 1;
-      return { ...k, reactionEmojis: reactions };
+      return { ...kudosCard, reactionEmojis: reactions };
     })
   })),
   on(KudosActions.addKudosReactionSuccess, (state, { kudos }) => ({
     ...state,
-    kudos: state.kudos.map(k => (k.id === kudos.id ? kudos : k))
+    kudos: state.kudos.map(kudosCard => (kudosCard.id === kudos.id ? kudos : kudosCard))
   }))
 );

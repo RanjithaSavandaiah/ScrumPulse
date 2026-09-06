@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Monthly 1:1 Reviews & 360 Feedback System Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
     await page.locator('.tab-btn', { hasText: 'Monthly 1:1 Reviews' }).click();
     await expect(page.locator('.reviews-section')).toBeVisible({ timeout: 15000 });

@@ -22,12 +22,12 @@ public class StandupsController(IAppDbContext db) : BaseApiController
             .Include(standup => standup.TeamMember)
             .AsQueryable();
 
-        if (sprintId.HasValue) query = query.Where(s => s.SprintId == sprintId.Value);
-        if (memberId.HasValue) query = query.Where(s => s.TeamMemberId == memberId.Value);
+        if (sprintId.HasValue) query = query.Where(standup => standup.SprintId == sprintId.Value);
+        if (memberId.HasValue) query = query.Where(standup => standup.TeamMemberId == memberId.Value);
         if (date.HasValue)
         {
             var targetDate = date.Value.Date;
-            query = query.Where(s => s.StandupDate.Date == targetDate);
+            query = query.Where(standup => standup.StandupDate.Date == targetDate);
         }
 
         var list = await query
@@ -79,7 +79,7 @@ public class StandupsController(IAppDbContext db) : BaseApiController
 
         await db.SaveChangesAsync(ct);
 
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == request.TeamMemberId, ct);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(existingMember => existingMember.Id == request.TeamMemberId, ct);
         standup.TeamMember = member;
 
         return Ok(standup.ToDto());

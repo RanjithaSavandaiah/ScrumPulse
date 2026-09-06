@@ -9,6 +9,9 @@ import { RoleType, TeamMember } from '../../core/models/scrum.models';
 import { CORE_PIPES } from '../../core/pipes';
 import { isLeadershipRole } from '../../core/utils/format-utils';
 
+export const DEFAULT_ACTIVE_WIP_LIMIT = 3;
+export const MAX_AVATAR_INITIALS_LENGTH = 2;
+
 @Component({
   selector: 'app-team-roster',
   standalone: true,
@@ -22,14 +25,14 @@ export class TeamRosterComponent {
   showAddModal = signal(false);
   memberToDelete = signal<TeamMember | null>(null);
 
-  developerCount = computed(() => this.state.squadMembers().filter(m => m.role === 'Developer').length);
-  qaCount = computed(() => this.state.squadMembers().filter(m => m.role === 'QaEngineer').length);
-  leadershipCount = computed(() => this.state.squadMembers().filter(m => isLeadershipRole(m.role)).length);
+  developerCount = computed(() => this.state.squadMembers().filter(member => member.role === 'Developer').length);
+  qaCount = computed(() => this.state.squadMembers().filter(member => member.role === 'QaEngineer').length);
+  leadershipCount = computed(() => this.state.squadMembers().filter(member => isLeadershipRole(member.role)).length);
 
   unassignedOrOtherMembers = computed(() => {
     const current = this.state.currentTeam();
     if (!current) return [];
-    return this.state.members().filter(m => m.teamId !== current.id);
+    return this.state.members().filter(member => member.teamId !== current.id);
   });
 
   newMember: {
@@ -47,7 +50,7 @@ export class TeamRosterComponent {
     role: 'Developer',
     location: 'Offshore',
     timeZone: 'Asia/Kolkata (IST)',
-    activeWipLimit: 3,
+    activeWipLimit: DEFAULT_ACTIVE_WIP_LIMIT,
     avatar: '',
     teamId: ''
   };
@@ -68,7 +71,7 @@ export class TeamRosterComponent {
       role: 'Developer',
       location: 'Offshore',
       timeZone: 'Asia/Kolkata (IST)',
-      activeWipLimit: 3,
+      activeWipLimit: DEFAULT_ACTIVE_WIP_LIMIT,
       avatar: '',
       teamId: this.state.currentTeam()?.id || ''
     };
@@ -95,14 +98,14 @@ export class TeamRosterComponent {
   getSquadName(teamId?: string | null): string {
     if (!teamId) return 'Unassigned Pool';
     const cleanId = teamId.toLowerCase().trim();
-    const squad = this.state.teams().find(t => t.id.toLowerCase().trim() === cleanId);
+    const squad = this.state.teams().find(team => team.id.toLowerCase().trim() === cleanId);
     return squad ? squad.name : (this.state.currentTeam()?.name || 'Unassigned Pool');
   }
 
   getMemberSquadId(member: TeamMember): string {
     if (!member.teamId) return '';
     const cleanId = member.teamId.toLowerCase().trim();
-    const squad = this.state.teams().find(t => t.id.toLowerCase().trim() === cleanId);
+    const squad = this.state.teams().find(team => team.id.toLowerCase().trim() === cleanId);
     return squad ? squad.id : '';
   }
 
@@ -127,7 +130,7 @@ export class TeamRosterComponent {
     const toLink = this.unassignedOrOtherMembers();
     if (toLink.length === 0) return;
 
-    forkJoin(toLink.map(m => this.state.assignMemberSquad(m.id, current.id))).subscribe({
+    forkJoin(toLink.map(member => this.state.assignMemberSquad(member.id, current.id))).subscribe({
       error: err => console.error('[TeamRosterComponent] Failed to link all unassigned members:', err)
     });
   }
@@ -167,8 +170,8 @@ export class TeamRosterComponent {
       role: this.newMember.role,
       location: this.newMember.location,
       timeZone: this.newMember.timeZone,
-      activeWipLimit: this.newMember.activeWipLimit || 3,
-      avatar: initials.slice(0, 2),
+      activeWipLimit: this.newMember.activeWipLimit || DEFAULT_ACTIVE_WIP_LIMIT,
+      avatar: initials.slice(0, MAX_AVATAR_INITIALS_LENGTH),
       teamId: squadId
     });
 
@@ -178,7 +181,7 @@ export class TeamRosterComponent {
       role: 'Developer',
       location: 'Offshore',
       timeZone: 'Asia/Kolkata (IST)',
-      activeWipLimit: 3,
+      activeWipLimit: DEFAULT_ACTIVE_WIP_LIMIT,
       avatar: '',
       teamId: ''
     };

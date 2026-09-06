@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
     await page.locator('.tab-btn', { hasText: 'Work Items' }).click();
     await expect(page.locator('.work-items-section')).toBeVisible({ timeout: 15000 });

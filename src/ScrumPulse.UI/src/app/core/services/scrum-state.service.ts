@@ -66,6 +66,14 @@ import {
   SprintGrowthSnapshot
 } from '../models/scrum.models';
 
+const MAX_SAY_DO_PERCENTAGE = 100;
+const PERCENTAGE_FACTOR = 100;
+const LATENCY_DECIMAL_ROUNDING_FACTOR = 10;
+const ISO_DATE_SUBSTRING_LENGTH = 10;
+export const DEFAULT_VELOCITY_TREND_SPRINT_COUNT = 6;
+export const DEFAULT_PERFORMANCE_SPRINT_COUNT = 6;
+export const DEFAULT_GROWTH_TREND_SPRINT_COUNT = 8;
+
 @Injectable({ providedIn: 'root' })
 export class ScrumStateService {
   private readonly store = inject(Store<AppState>);
@@ -82,7 +90,7 @@ export class ScrumStateService {
     const team = this.currentTeam();
     if (!team) return this.members();
     const targetId = team.id.toLowerCase().trim();
-    return this.members().filter(m => m.teamId && m.teamId.toLowerCase().trim() === targetId);
+    return this.members().filter(member => member.teamId && member.teamId.toLowerCase().trim() === targetId);
   });
   readonly workItems = this.store.selectSignal(selectAllWorkItems);
   readonly blockers = this.store.selectSignal(selectAllBlockers);
@@ -105,41 +113,41 @@ export class ScrumStateService {
   readonly canEditOrDelete = computed(() => this.currentRole() === 'ScrumMaster' && this.isSmAuthenticated());
 
   readonly activeBlockersCount = this.store.selectSignal(selectActiveBlockersCount);
-  readonly breachedBlockersCount = computed(() => this.blockers().filter(b => b.isSlaBreached).length);
+  readonly breachedBlockersCount = computed(() => this.blockers().filter(blocker => blocker.isSlaBreached).length);
   readonly currentMember = computed(() => {
     const list = this.members();
-    return list.find(m => m.role === this.currentRole()) || list[0] || null;
+    return list.find(member => member.role === this.currentRole()) || list[0] || null;
   });
 
   readonly executiveReport = computed<ExecutiveReport | null>(() => {
     const active = this.activeSprint();
     const items = this.workItems();
-    const delivered = items.filter(i => i.status === 'Done').reduce((acc, i) => acc + i.storyPoints, 0);
+    const delivered = items.filter(item => item.status === 'Done').reduce((accumulatedPoints, item) => accumulatedPoints + item.storyPoints, 0);
     const committed = active?.committedStoryPoints ?? 0;
-    const inFlight = items.filter(i => i.status !== 'Done' && i.status !== 'Backlog').reduce((acc, i) => acc + i.storyPoints, 0);
+    const inFlight = items.filter(item => item.status !== 'Done' && item.status !== 'Backlog').reduce((accumulatedPoints, item) => accumulatedPoints + item.storyPoints, 0);
     const activeBlockers = this.activeBlockersCount();
 
-    const calcAvg = (vals: (number | undefined)[]) => {
-      const valid = vals.filter((v): v is number => typeof v === 'number' && !isNaN(v) && v > 0);
-      return valid.length > 0 ? Math.round((valid.reduce((a, b) => a + b, 0) / valid.length) * 10) / 10 : 0;
+    const calcAvg = (values: (number | undefined)[]) => {
+      const validNumbers = values.filter((numericValue): numericValue is number => typeof numericValue === 'number' && !isNaN(numericValue) && numericValue > 0);
+      return validNumbers.length > 0 ? Math.round((validNumbers.reduce((runningSum, value) => runningSum + value, 0) / validNumbers.length) * LATENCY_DECIMAL_ROUNDING_FACTOR) / LATENCY_DECIMAL_ROUNDING_FACTOR : 0;
     };
 
-    const avgPickup = calcAvg(items.map(i => i.pickupLatencyHours));
-    const avgDev = calcAvg(items.map(i => i.devCycleTimeHours));
-    const avgPrReview = calcAvg(items.map(i => i.prReviewLatencyHours));
-    const avgPrMerge = calcAvg(items.map(i => i.prMergeLatencyHours));
-    const avgQa = calcAvg(items.map(i => i.qaTestingLatencyHours));
-    const avgTotalCycle = calcAvg(items.map(i => i.totalCycleTimeHours));
+    const avgPickup = calcAvg(items.map(item => item.pickupLatencyHours));
+    const avgDev = calcAvg(items.map(item => item.devCycleTimeHours));
+    const avgPrReview = calcAvg(items.map(item => item.prReviewLatencyHours));
+    const avgPrMerge = calcAvg(items.map(item => item.prMergeLatencyHours));
+    const avgQa = calcAvg(items.map(item => item.qaTestingLatencyHours));
+    const avgTotalCycle = calcAvg(items.map(item => item.totalCycleTimeHours));
 
     const blockers = this.blockers();
-    const resolvedBlockers = blockers.filter(b => b.isResolved);
-    const avgBlockerResolution = calcAvg(resolvedBlockers.map(b => b.hoursWaiting));
+    const resolvedBlockers = blockers.filter(blocker => blocker.isResolved);
+    const avgBlockerResolution = calcAvg(resolvedBlockers.map(blocker => blocker.hoursWaiting));
 
     return {
       sprintId: active?.id || 'all',
       sprintName: active?.name || 'Sprint Board',
       sprintGoal: active?.goal || 'Sprint Objectives & Velocity Deliverables',
-      sayDoRatioPercentage: committed > 0 ? Math.min(100, Math.round((delivered / committed) * 100)) : 0,
+      sayDoRatioPercentage: committed > 0 ? Math.min(MAX_SAY_DO_PERCENTAGE, Math.round((delivered / committed) * PERCENTAGE_FACTOR)) : 0,
       committedPoints: committed,
       deliveredPoints: delivered,
       inFlightPoints: inFlight,
@@ -151,8 +159,8 @@ export class ScrumStateService {
       avgTotalCycleTimeHours: avgTotalCycle,
       activeBlockersCount: activeBlockers,
       avgBlockerResolutionHours: avgBlockerResolution,
-      escapedDefectsCount: items.filter(i => i.isEscapedDefect).length,
-      inSprintBugsCount: items.filter(i => i.type === 'Bug').length,
+      escapedDefectsCount: items.filter(item => item.isEscapedDefect).length,
+      inSprintBugsCount: items.filter(item => item.type === 'Bug').length,
       executiveSummaryMarkdown: `### Executive Sprint Governance Summary\n- **Delivered Velocity:** ${delivered} Story Points completed.\n- **Active In-Flight:** ${inFlight} Story Points.\n- **Blocker Resolution:** ${activeBlockers} active blockers currently under SLA monitoring.`
     };
   });
@@ -460,7 +468,7 @@ export class ScrumStateService {
     return this.http.get<ExecutiveReport>(`${this.apiUrl}/metrics/sprint/${sprintId}/report`);
   }
 
-  getVelocityTrend(count: number = 6): Observable<SprintVelocityTrend> {
+  getVelocityTrend(count: number = DEFAULT_VELOCITY_TREND_SPRINT_COUNT): Observable<SprintVelocityTrend> {
     return this.http.get<SprintVelocityTrend>(`${this.apiUrl}/executive-reports/velocity-trend?count=${count}`);
   }
 
@@ -484,7 +492,7 @@ export class ScrumStateService {
         } catch (storageErr) {
           console.warn('[ScrumStateService] Could not read saved team ID from localStorage:', storageErr);
         }
-        const found = list.find(t => t.id === savedId) || list[0] || null;
+        const found = list.find(team => team.id === savedId) || list[0] || null;
         if (found && (!this.currentTeam() || this.currentTeam()?.id !== found.id)) {
           this.selectTeam(found, false);
         }
@@ -514,7 +522,7 @@ export class ScrumStateService {
   createTeam(request: CreateTeamRequest): Observable<Team> {
     return this.http.post<Team>(`${this.apiUrl}/teams`, request).pipe(
       map(team => {
-        this.teams.update(list => [...list, team]);
+        this.teams.update(teamList => [...teamList, team]);
         this.selectTeam(team);
         return team;
       })
@@ -524,8 +532,8 @@ export class ScrumStateService {
   joinTeam(request: JoinTeamRequest): Observable<Team> {
     return this.http.post<Team>(`${this.apiUrl}/teams/join`, request).pipe(
       map(team => {
-        if (!this.teams().some(t => t.id === team.id)) {
-          this.teams.update(list => [...list, team]);
+        if (!this.teams().some(teamItem => teamItem.id === team.id)) {
+          this.teams.update(teamList => [...teamList, team]);
         }
         this.selectTeam(team);
         return team;
@@ -538,15 +546,15 @@ export class ScrumStateService {
   }
 
   // ── Team Performance & Growth ──────────────────────────────────────
-  getTeamPerformanceSummary(sprintCount: number = 6): Observable<TeamPerformanceSummary> {
+  getTeamPerformanceSummary(sprintCount: number = DEFAULT_PERFORMANCE_SPRINT_COUNT): Observable<TeamPerformanceSummary> {
     return this.http.get<TeamPerformanceSummary>(`${this.apiUrl}/team-performance/summary?sprintCount=${sprintCount}`);
   }
 
-  getTeamHighlights(sprintCount: number = 6): Observable<TeamHighlight[]> {
+  getTeamHighlights(sprintCount: number = DEFAULT_PERFORMANCE_SPRINT_COUNT): Observable<TeamHighlight[]> {
     return this.http.get<TeamHighlight[]>(`${this.apiUrl}/team-performance/highlights?sprintCount=${sprintCount}`);
   }
 
-  getGrowthTrend(sprintCount: number = 8): Observable<SprintGrowthSnapshot[]> {
+  getGrowthTrend(sprintCount: number = DEFAULT_GROWTH_TREND_SPRINT_COUNT): Observable<SprintGrowthSnapshot[]> {
     return this.http.get<SprintGrowthSnapshot[]>(`${this.apiUrl}/team-performance/growth-trend?sprintCount=${sprintCount}`);
   }
 
@@ -566,10 +574,10 @@ export class ScrumStateService {
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ScrumPulse_Export_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
+    const anchorElement = document.createElement('a');
+    anchorElement.href = url;
+    anchorElement.download = `ScrumPulse_Export_${new Date().toISOString().slice(0, ISO_DATE_SUBSTRING_LENGTH)}.json`;
+    anchorElement.click();
     window.URL.revokeObjectURL(url);
   }
 }

@@ -24,8 +24,8 @@ export class ReviewsComponent {
     const list = this.state.monthlyFeedbacks();
     const current = this.state.currentTeam();
     if (!current) return list;
-    const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
-    return list.filter(f => f.teamMemberId && squadMemberIds.has(f.teamMemberId.toLowerCase().trim()));
+    const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
+    return list.filter(feedback => feedback.teamMemberId && squadMemberIds.has(feedback.teamMemberId.toLowerCase().trim()));
   });
 
   onOpenCreateModal(): void {

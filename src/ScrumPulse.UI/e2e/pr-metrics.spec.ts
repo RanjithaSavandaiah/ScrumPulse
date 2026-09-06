@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Git PRs & Code Review Analytics', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
     // Navigate to Git PRs & Code Review tab
     await page.getByRole('button', { name: /Git PRs & Code Review/i }).click();

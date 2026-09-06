@@ -7,6 +7,13 @@ import { ConfirmModalComponent } from '../../core/components/confirm-modal/confi
 import { AddRetroCardModalComponent } from './components/add-retro-card-modal/add-retro-card-modal.component';
 import { RetroActionItem, RetroCard, Sprint } from '../../core/models/scrum.models';
 
+export const ONE_WEEK_IN_DAYS = 7;
+export const HOURS_PER_DAY = 24;
+export const MINUTES_PER_HOUR = 60;
+export const SECONDS_PER_MINUTE = 60;
+export const MILLISECONDS_PER_SECOND = 1000;
+export const ONE_WEEK_IN_MS = ONE_WEEK_IN_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+
 @Component({
   selector: 'app-retro',
   standalone: true,
@@ -37,14 +44,14 @@ export class RetroComponent implements OnInit {
   actionForm = {
     title: '',
     assigneeId: '',
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dueDate: new Date(Date.now() + ONE_WEEK_IN_MS).toISOString().split('T')[0],
     isCompleted: false
   };
 
   selectedSprintObj = computed(() => {
     const id = this.selectedSprintId();
     if (id === 'ALL') return null;
-    return this.state.sprints().find(s => s.id === id) || null;
+    return this.state.sprints().find(sprint => sprint.id === id) || null;
   });
 
   filteredCards = computed(() => {
@@ -52,7 +59,7 @@ export class RetroComponent implements OnInit {
     let cards = this.state.retroCards();
     const current = this.state.currentTeam();
     if (current) {
-      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
       cards = cards.filter(card => !card.authorId || squadMemberIds.has(card.authorId.toLowerCase().trim()));
     }
     if (sprintId === 'ALL') return cards;
@@ -64,7 +71,7 @@ export class RetroComponent implements OnInit {
     let actions = this.state.retroActions();
     const current = this.state.currentTeam();
     if (current) {
-      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
+      const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
       actions = actions.filter(action => !action.assigneeId || squadMemberIds.has(action.assigneeId.toLowerCase().trim()));
     }
     if (sprintId === 'ALL') return actions;
@@ -131,7 +138,7 @@ export class RetroComponent implements OnInit {
     this.actionForm = {
       title: '',
       assigneeId: this.state.squadMembers()[0]?.id || '',
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + ONE_WEEK_IN_MS).toISOString().split('T')[0],
       isCompleted: false
     };
     this.showActionModal.set(true);

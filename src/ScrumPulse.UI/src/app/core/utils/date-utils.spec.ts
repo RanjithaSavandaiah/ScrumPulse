@@ -18,7 +18,7 @@ describe('date-utils', () => {
       const months = generateDynamicMonths(2, 1, true);
       expect(months.length).toBe(5); // ALL + 4 months
       expect(months[0].value).toBe('ALL');
-      expect(months.some(m => m.label.includes('(Current)'))).toBeTrue();
+      expect(months.some(month => month.label.includes('(Current)'))).toBeTrue();
     });
 
     it('should generate all 12 calendar year months', () => {
@@ -69,7 +69,7 @@ describe('date-utils', () => {
     it('should generate dynamic quarters', () => {
       const quarters = generateDynamicQuarters(3, 1);
       expect(quarters.length).toBe(5);
-      expect(quarters.some(q => q.value.includes('-Q'))).toBeTrue();
+      expect(quarters.some(quarter => quarter.value.includes('-Q'))).toBeTrue();
     });
 
     it('should return valid current month and quarter values', () => {

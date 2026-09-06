@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Daily Standup Feed, CRUD & Co-Located Timer', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
     await page.locator('.tab-btn', { hasText: 'Daily Standup' }).click();
     await expect(page.locator('.standup-section')).toBeVisible({ timeout: 15000 });

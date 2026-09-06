@@ -151,7 +151,7 @@ export class AddWorkItemModalComponent implements OnInit {
 
   get teamMembers(): TeamMember[] {
     const list = this.members.length > 0 ? this.members : this.state.squadMembers();
-    return list.filter(m => isDeliveryRole(m.role));
+    return list.filter(member => isDeliveryRole(member.role));
   }
 
   itemTypes: { value: number; label: string; icon: IconName; desc: string }[] = [

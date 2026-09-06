@@ -6,6 +6,8 @@ import { RoleType, Team } from '../../core/models/scrum.models';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { SmPinModalComponent } from '../../core/components/sm-pin-modal/sm-pin-modal.component';
 
+export const COPY_NOTIFICATION_DURATION_MS = 2000;
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
@@ -55,7 +57,7 @@ export class NavbarComponent {
     if (!teamId) {
       this.state.selectTeam(null);
     } else {
-      const found = this.state.teams().find(t => t.id === teamId);
+      const found = this.state.teams().find(team => team.id === teamId);
       if (found) {
         this.state.selectTeam(found);
       }
@@ -130,7 +132,7 @@ export class NavbarComponent {
       console.warn('[NavbarComponent] Failed to copy squad code to clipboard:', err);
     });
     this.copySuccess.set(true);
-    setTimeout(() => this.copySuccess.set(false), 2000);
+    setTimeout(() => this.copySuccess.set(false), COPY_NOTIFICATION_DURATION_MS);
   }
 
   openSmAuth(): void {

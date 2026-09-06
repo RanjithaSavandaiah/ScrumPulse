@@ -29,7 +29,7 @@ export const teamMembersReducer = createReducer(
   })),
   on(TeamMemberActions.deleteTeamMemberSuccess, (state, { id }) => ({
     ...state,
-    members: state.members.filter(m => m.id !== id)
+    members: state.members.filter(member => member.id !== id)
   })),
   on(TeamMemberActions.setCurrentRole, (state, { role }) => ({ ...state, currentRole: role })),
   on(TeamMemberActions.toggleDarkMode, state => ({ ...state, darkMode: !state.darkMode }))

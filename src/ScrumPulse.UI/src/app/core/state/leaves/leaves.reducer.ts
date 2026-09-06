@@ -28,10 +28,10 @@ export const leavesReducer = createReducer(
   })),
   on(LeaveActions.updateLeaveSuccess, (state, { leave }) => ({
     ...state,
-    leaves: state.leaves.map(l => l.id === leave.id ? leave : l)
+    leaves: state.leaves.map(leaveItem => leaveItem.id === leave.id ? leave : leaveItem)
   })),
   on(LeaveActions.deleteLeaveSuccess, (state, { id }) => ({
     ...state,
-    leaves: state.leaves.filter(l => l.id !== id)
+    leaves: state.leaves.filter(leaveItem => leaveItem.id !== id)
   }))
 );

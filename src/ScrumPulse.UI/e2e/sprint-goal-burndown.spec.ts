@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Sprint Goal, Auto-Capacity & Burndown Radar', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should display Sprint Goal banner with velocity and leave-adjusted capacity', async ({ page }) => {

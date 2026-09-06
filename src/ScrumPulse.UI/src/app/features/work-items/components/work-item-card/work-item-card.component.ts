@@ -21,7 +21,7 @@ export class WorkItemCardComponent {
 
   getAssigneeName(item: WorkItem): string {
     if (!item.assigneeId) return item.assigneeName || 'Unassigned';
-    const member = this.state.members().find(m => m.id === item.assigneeId);
+    const member = this.state.members().find(member => member.id === item.assigneeId);
     return member?.name || item.assigneeName || 'Unassigned';
   }
 

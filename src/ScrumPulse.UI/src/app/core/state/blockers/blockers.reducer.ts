@@ -25,14 +25,14 @@ export const blockersReducer = createReducer(
   })),
   on(BlockerActions.updateBlockerSuccess, (state, { blocker }) => ({
     ...state,
-    blockers: state.blockers.map(b => (b.id === blocker.id ? blocker : b))
+    blockers: state.blockers.map(blockerItem => (blockerItem.id === blocker.id ? blocker : blockerItem))
   })),
   on(BlockerActions.deleteBlockerSuccess, (state, { id }) => ({
     ...state,
-    blockers: state.blockers.filter(b => b.id !== id)
+    blockers: state.blockers.filter(blockerItem => blockerItem.id !== id)
   })),
   on(BlockerActions.resolveBlockerSuccess, (state, { blocker }) => ({
     ...state,
-    blockers: state.blockers.map(b => (b.id === blocker.id ? blocker : b))
+    blockers: state.blockers.map(blockerItem => (blockerItem.id === blocker.id ? blocker : blockerItem))
   }))
 );

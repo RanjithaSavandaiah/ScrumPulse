@@ -17,8 +17,8 @@ public class TechHubController(IAppDbContext db) : BaseApiController
     public async Task<ActionResult<IEnumerable<TechDebtItemDto>>> GetTechDebt(CancellationToken ct)
     {
         var list = await db.TechDebtItems
-            .Include(t => t.Assignee)
-            .OrderByDescending(t => t.CreatedAtUtc)
+            .Include(techDebt => techDebt.Assignee)
+            .OrderByDescending(techDebt => techDebt.CreatedAtUtc)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -46,7 +46,7 @@ public class TechHubController(IAppDbContext db) : BaseApiController
 
         if (item.AssigneeId.HasValue)
         {
-            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == item.AssigneeId.Value, ct);
+            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == item.AssigneeId.Value, ct);
         }
 
         return Ok(item.ToDto());
@@ -58,7 +58,7 @@ public class TechHubController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TechDebtItemDto>> ResolveTechDebt(Guid id, [FromBody] ResolveTechDebtRequest? request, CancellationToken ct)
     {
-        var item = await db.TechDebtItems.Include(t => t.Assignee).FirstOrDefaultAsync(t => t.Id == id, ct);
+        var item = await db.TechDebtItems.Include(techDebt => techDebt.Assignee).FirstOrDefaultAsync(techDebt => techDebt.Id == id, ct);
         if (item == null) return NotFound();
         item.Status = request?.Status ?? TechDebtStatus.Resolved;
         await db.SaveChangesAsync(ct);
@@ -72,7 +72,7 @@ public class TechHubController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TechDebtItemDto>> UpdateTechDebt(Guid id, [FromBody] UpdateTechDebtRequest request, CancellationToken ct)
     {
-        var item = await db.TechDebtItems.Include(t => t.Assignee).FirstOrDefaultAsync(t => t.Id == id, ct);
+        var item = await db.TechDebtItems.Include(techDebt => techDebt.Assignee).FirstOrDefaultAsync(techDebt => techDebt.Id == id, ct);
         if (item == null) return NotFound();
 
         item.Title = request.Title;
@@ -86,7 +86,7 @@ public class TechHubController(IAppDbContext db) : BaseApiController
 
         if (item.AssigneeId.HasValue && item.Assignee == null)
         {
-            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == item.AssigneeId.Value, ct);
+            item.Assignee = await db.TeamMembers.FirstOrDefaultAsync(member => member.Id == item.AssigneeId.Value, ct);
         }
 
         return Ok(item.ToDto());

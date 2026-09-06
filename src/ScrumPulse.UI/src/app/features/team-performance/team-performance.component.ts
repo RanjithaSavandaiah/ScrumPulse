@@ -5,6 +5,9 @@ import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
 import { TeamPerformanceSummary } from '../../core/models/scrum.models';
 
+export const DEFAULT_PERFORMANCE_SPRINT_COUNT = 6;
+export const MIN_CHART_SCALE_BASELINE = 1;
+
 @Component({
   selector: 'app-team-performance',
   standalone: true,
@@ -27,7 +30,7 @@ export class TeamPerformanceComponent implements OnInit {
   loadPerformance(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.state.getTeamPerformanceSummary(6).subscribe({
+    this.state.getTeamPerformanceSummary(DEFAULT_PERFORMANCE_SPRINT_COUNT).subscribe({
       next: (data) => {
         this.summary.set(data);
         this.loading.set(false);
@@ -41,8 +44,8 @@ export class TeamPerformanceComponent implements OnInit {
   }
 
   hasDataToAnalyze(): boolean {
-    const s = this.summary();
-    return !!s && s.sprintsAnalyzed > 0 && s.metrics.length > 0;
+    const summaryData = this.summary();
+    return !!summaryData && summaryData.sprintsAnalyzed > 0 && summaryData.metrics.length > 0;
   }
 
   getGradeClass(grade: string): string {
@@ -89,8 +92,8 @@ export class TeamPerformanceComponent implements OnInit {
 
   getMaxDelivered(): number {
     const snapshots = this.summary()?.sprintSnapshots;
-    if (!snapshots || snapshots.length === 0) return 1;
-    return Math.max(...snapshots.map(s => Math.max(s.deliveredPoints, s.committedPoints)), 1);
+    if (!snapshots || snapshots.length === 0) return MIN_CHART_SCALE_BASELINE;
+    return Math.max(...snapshots.map(snapshot => Math.max(snapshot.deliveredPoints, snapshot.committedPoints)), MIN_CHART_SCALE_BASELINE);
   }
 
   asIcon(name: string): IconName {

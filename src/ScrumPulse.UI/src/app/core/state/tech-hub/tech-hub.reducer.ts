@@ -32,15 +32,15 @@ export const techHubReducer = createReducer(
   })),
   on(TechHubActions.updateTechDebtSuccess, (state, { item }) => ({
     ...state,
-    techDebt: state.techDebt.map(t => (t.id === item.id ? item : t))
+    techDebt: state.techDebt.map(techDebtItem => (techDebtItem.id === item.id ? item : techDebtItem))
   })),
   on(TechHubActions.deleteTechDebtSuccess, (state, { id }) => ({
     ...state,
-    techDebt: state.techDebt.filter(t => t.id !== id)
+    techDebt: state.techDebt.filter(techDebtItem => techDebtItem.id !== id)
   })),
   on(TechHubActions.resolveTechDebtSuccess, (state, { item }) => ({
     ...state,
-    techDebt: state.techDebt.map(t => (t.id === item.id ? item : t))
+    techDebt: state.techDebt.map(techDebtItem => (techDebtItem.id === item.id ? item : techDebtItem))
   })),
   on(TechHubActions.logTechTalkSuccess, (state, { log }) => ({
     ...state,
@@ -48,10 +48,10 @@ export const techHubReducer = createReducer(
   })),
   on(TechHubActions.updateTechTalkSuccess, (state, { log }) => ({
     ...state,
-    techTalks: state.techTalks.map(t => (t.id === log.id ? log : t))
+    techTalks: state.techTalks.map(techTalkItem => (techTalkItem.id === log.id ? log : techTalkItem))
   })),
   on(TechHubActions.deleteTechTalkSuccess, (state, { id }) => ({
     ...state,
-    techTalks: state.techTalks.filter(t => t.id !== id)
+    techTalks: state.techTalks.filter(techTalkItem => techTalkItem.id !== id)
   }))
 );

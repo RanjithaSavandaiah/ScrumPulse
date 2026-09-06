@@ -31,6 +31,6 @@ export const pullRequestsReducer = createReducer(
   })),
   on(PullRequestActions.deletePullRequestLogSuccess, (state, { id }) => ({
     ...state,
-    prLogs: state.prLogs.filter(p => p.id !== id)
+    prLogs: state.prLogs.filter(pullRequest => pullRequest.id !== id)
   }))
 );

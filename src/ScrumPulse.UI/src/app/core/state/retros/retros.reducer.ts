@@ -27,19 +27,19 @@ export const retrosReducer = createReducer(
   })),
   on(RetroActions.updateRetroCardSuccess, (state, { card }) => ({
     ...state,
-    cards: state.cards.map(c => (c.id === card.id ? card : c))
+    cards: state.cards.map(retroCard => (retroCard.id === card.id ? card : retroCard))
   })),
   on(RetroActions.deleteRetroCardSuccess, (state, { id }) => ({
     ...state,
-    cards: state.cards.filter(c => c.id !== id)
+    cards: state.cards.filter(retroCard => retroCard.id !== id)
   })),
   on(RetroActions.voteRetroCard, (state, { id }) => ({
     ...state,
-    cards: state.cards.map(c => (c.id === id ? { ...c, upvotesCount: (c.upvotesCount || 0) + 1 } : c))
+    cards: state.cards.map(retroCard => (retroCard.id === id ? { ...retroCard, upvotesCount: (retroCard.upvotesCount || 0) + 1 } : retroCard))
   })),
   on(RetroActions.voteRetroCardSuccess, (state, { card }) => ({
     ...state,
-    cards: state.cards.map(c => (c.id === card.id ? card : c))
+    cards: state.cards.map(retroCard => (retroCard.id === card.id ? card : retroCard))
   })),
   on(RetroActions.createRetroActionSuccess, (state, { action }) => ({
     ...state,
@@ -47,14 +47,14 @@ export const retrosReducer = createReducer(
   })),
   on(RetroActions.updateRetroActionSuccess, (state, { action }) => ({
     ...state,
-    actions: state.actions.map(a => (a.id === action.id ? action : a))
+    actions: state.actions.map(actionItem => (actionItem.id === action.id ? action : actionItem))
   })),
   on(RetroActions.deleteRetroActionSuccess, (state, { id }) => ({
     ...state,
-    actions: state.actions.filter(a => a.id !== id)
+    actions: state.actions.filter(actionItem => actionItem.id !== id)
   })),
   on(RetroActions.toggleRetroActionSuccess, (state, { action }) => ({
     ...state,
-    actions: state.actions.map(a => (a.id === action.id ? action : a))
+    actions: state.actions.map(actionItem => (actionItem.id === action.id ? action : actionItem))
   }))
 );

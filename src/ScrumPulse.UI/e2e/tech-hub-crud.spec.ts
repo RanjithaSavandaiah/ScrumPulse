@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Tech Hub: Tech Debt Backlog & Tech Talks Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
     await page.locator('.tab-btn', { hasText: 'Tech Debt' }).click();
     await expect(page.locator('.tech-hub-section')).toBeVisible({ timeout: 15000 });

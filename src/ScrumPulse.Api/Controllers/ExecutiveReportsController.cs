@@ -17,13 +17,15 @@ public class ExecutiveReportsController(
     ILogger<ExecutiveReportsController>? logger = null
 ) : BaseApiController
 {
+    private const int DefaultVelocityTrendSprintCount = 6;
+
     [HttpGet("sprint/{sprintId:guid}")]
     public async Task<ActionResult<ExecutiveReportDto>> GetSprintReport(Guid sprintId, CancellationToken ct = default) =>
         Ok(await metricsCalculatorService.GenerateExecutiveReportAsync(sprintId, ct));
 
     [HttpGet("velocity-trend")]
     [ProducesResponseType(typeof(SprintVelocityTrendDto), StatusCodes.Status200OK)]
-    public async Task<ActionResult<SprintVelocityTrendDto>> GetVelocityTrend([FromQuery] int count = 6, CancellationToken ct = default) =>
+    public async Task<ActionResult<SprintVelocityTrendDto>> GetVelocityTrend([FromQuery] int count = DefaultVelocityTrendSprintCount, CancellationToken ct = default) =>
         Ok(await metricsCalculatorService.GetVelocityTrendAsync(count, ct));
 
     [HttpGet("sprint/{sprintId:guid}/health")]
@@ -55,16 +57,16 @@ public class ExecutiveReportsController(
     public async Task<IActionResult> ExportSprintCsv(Guid sprintId, CancellationToken ct = default)
     {
         var sprint = await db.Sprints
-            .Include(s => s.WorkItems)
-                .ThenInclude(w => w.Assignee)
-            .FirstOrDefaultAsync(s => s.Id == sprintId, ct);
+            .Include(sprintEntity => sprintEntity.WorkItems)
+                .ThenInclude(workItemEntity => workItemEntity.Assignee)
+            .FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
 
         if (sprint == null) return NotFound();
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("Key,Title,Type,Status,Priority,StoryPoints,Assignee,DevCycleHours,PrReviewLatencyHours,TotalCycleHours,IsEscapedDefect,DaysInStatus");
 
-        foreach (var item in sprint.WorkItems.OrderBy(w => w.Key))
+        foreach (var item in sprint.WorkItems.OrderBy(workItem => workItem.Key))
         {
             var cleanTitle = item.Title.Replace("\"", "\"\"");
             var cleanAssignee = (item.Assignee?.Name ?? "Unassigned").Replace("\"", "\"\"");

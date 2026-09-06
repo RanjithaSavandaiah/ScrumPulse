@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Team Growth & Velocity Performance Telemetry', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('.tab-btn', { hasText: 'Team Growth & Performance' }).click();
     await expect(page.locator('.performance-section')).toBeVisible({ timeout: 15000 });
   });

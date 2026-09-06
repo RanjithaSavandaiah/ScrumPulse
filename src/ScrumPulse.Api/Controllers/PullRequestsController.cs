@@ -11,20 +11,22 @@ using ScrumPulse.Domain.Enums;
 /// <summary>Pull request review log management with developer metrics aggregation.</summary>
 public class PullRequestsController(IAppDbContext db) : BaseApiController
 {
+    private const double PercentageMultiplier = 100.0;
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<PullRequestLogDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<PullRequestLogDto>>> GetAll([FromQuery] Guid? sprintId, CancellationToken ct)
     {
         var query = db.PullRequestReviewLogs
-            .Include(p => p.Author)
-            .Include(p => p.Reviewer)
-            .Include(p => p.Sprint)
-            .Include(p => p.WorkItem)
+            .Include(pullRequest => pullRequest.Author)
+            .Include(pullRequest => pullRequest.Reviewer)
+            .Include(pullRequest => pullRequest.Sprint)
+            .Include(pullRequest => pullRequest.WorkItem)
             .AsNoTracking();
 
-        if (sprintId.HasValue) query = query.Where(p => p.SprintId == sprintId.Value);
+        if (sprintId.HasValue) query = query.Where(pullRequest => pullRequest.SprintId == sprintId.Value);
 
-        var list = await query.OrderByDescending(p => p.CreatedAtUtc).ToListAsync(ct);
+        var list = await query.OrderByDescending(pullRequest => pullRequest.CreatedAtUtc).ToListAsync(ct);
         return Ok(list.ToDtos());
     }
 
@@ -34,22 +36,22 @@ public class PullRequestsController(IAppDbContext db) : BaseApiController
     {
         var members = await db.TeamMembers.AsNoTracking().ToListAsync(ct);
         var query = db.PullRequestReviewLogs
-            .Include(p => p.Author).Include(p => p.Reviewer)
-            .Include(p => p.Sprint).Include(p => p.WorkItem)
+            .Include(pullRequest => pullRequest.Author).Include(pullRequest => pullRequest.Reviewer)
+            .Include(pullRequest => pullRequest.Sprint).Include(pullRequest => pullRequest.WorkItem)
             .AsNoTracking();
 
-        if (sprintId.HasValue) query = query.Where(p => p.SprintId == sprintId.Value);
+        if (sprintId.HasValue) query = query.Where(pullRequest => pullRequest.SprintId == sprintId.Value);
 
         var prLogs = await query.ToListAsync(ct);
 
         var metrics = members.Select(dev =>
         {
-            var devPrs = prLogs.Where(p => p.AuthorId == dev.Id).ToList();
+            var devPrs = prLogs.Where(pullRequest => pullRequest.AuthorId == dev.Id).ToList();
             var totalPrs = devPrs.Count;
-            var totalComments = devPrs.Sum(p => p.TotalCommentsCount);
-            var actionableComments = devPrs.Sum(p => p.ActionableCommentsCount);
+            var totalComments = devPrs.Sum(pullRequest => pullRequest.TotalCommentsCount);
+            var actionableComments = devPrs.Sum(pullRequest => pullRequest.ActionableCommentsCount);
             var actionabilityRate = totalComments > 0
-                ? Math.Round(((double)actionableComments / totalComments) * 100.0, 1)
+                ? Math.Round(((double)actionableComments / totalComments) * PercentageMultiplier, 1)
                 : 0.0;
             var avgComments = totalPrs > 0
                 ? Math.Round((double)totalComments / totalPrs, 1)

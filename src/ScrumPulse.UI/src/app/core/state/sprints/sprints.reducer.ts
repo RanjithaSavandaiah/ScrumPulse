@@ -22,7 +22,7 @@ export const sprintsReducer = createReducer(
   initialSprintsState,
   on(SprintActions.loadSprints, state => ({ ...state, loading: true, error: null })),
   on(SprintActions.loadSprintsSuccess, (state, { sprints }) => {
-    const active = sprints.find(s => s.isActive) || sprints[0] || null;
+    const active = sprints.find(sprint => sprint.isActive) || sprints[0] || null;
     return {
       ...state,
       sprints,
@@ -34,7 +34,7 @@ export const sprintsReducer = createReducer(
   on(SprintActions.loadSprintsFailure, (state, { error }) => ({ ...state, loading: false, error })),
   on(SprintActions.createSprintSuccess, (state, { sprint }) => {
     const updated = sprint.isActive
-      ? [sprint, ...state.sprints.map(s => ({ ...s, isActive: false }))]
+      ? [sprint, ...state.sprints.map(sprintItem => ({ ...sprintItem, isActive: false }))]
       : [sprint, ...state.sprints];
     return {
       ...state,
@@ -45,17 +45,17 @@ export const sprintsReducer = createReducer(
   }),
   on(SprintActions.updateSprintSuccess, (state, { sprint }) => ({
     ...state,
-    sprints: state.sprints.map(s => (s.id === sprint.id ? sprint : s)),
+    sprints: state.sprints.map(sprintItem => (sprintItem.id === sprint.id ? sprint : sprintItem)),
     activeSprint: state.activeSprintId === sprint.id ? sprint : state.activeSprint
   })),
   on(SprintActions.activateSprintSuccess, (state, { sprint }) => ({
     ...state,
-    sprints: state.sprints.map(s => ({ ...s, isActive: s.id === sprint.id })),
+    sprints: state.sprints.map(sprintItem => ({ ...sprintItem, isActive: sprintItem.id === sprint.id })),
     activeSprint: sprint,
     activeSprintId: sprint.id
   })),
   on(SprintActions.deleteSprintSuccess, (state, { sprintId }) => {
-    const remaining = state.sprints.filter(s => s.id !== sprintId);
+    const remaining = state.sprints.filter(sprintItem => sprintItem.id !== sprintId);
     const nextActive = state.activeSprintId === sprintId ? (remaining[0] || null) : state.activeSprint;
     return {
       ...state,

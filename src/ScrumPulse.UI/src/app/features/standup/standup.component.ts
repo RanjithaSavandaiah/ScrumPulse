@@ -7,6 +7,9 @@ import { StandupTimerComponent } from './components/standup-timer/standup-timer.
 import { LogStandupModalComponent } from './components/log-standup-modal/log-standup-modal.component';
 import { isDeliveryRole } from '../../core/utils/format-utils';
 
+export const DEFAULT_STANDUP_SPEAKER_SECONDS = 120;
+export const TIMER_TICK_INTERVAL_MS = 1000;
+
 @Component({
   selector: 'app-standup',
   standalone: true,
@@ -20,13 +23,13 @@ export class StandupComponent implements OnDestroy {
   showStandupModal = signal(false);
   selectedEditStandup = signal<DailyStandup | null>(null);
 
-  timerSeconds = signal<number>(120);
+  timerSeconds = signal<number>(DEFAULT_STANDUP_SPEAKER_SECONDS);
   timerRunning = signal<boolean>(false);
   currentSpeakerIndex = signal<number>(0);
   private timerInterval: any = null;
 
   contributingMembers = computed(() => {
-    return this.state.squadMembers().filter(m => isDeliveryRole(m.role));
+    return this.state.squadMembers().filter(member => isDeliveryRole(member.role));
   });
 
   openCreateStandup(): void {
@@ -53,11 +56,11 @@ export class StandupComponent implements OnDestroy {
 
     this.timerInterval = setInterval(() => {
       if (this.timerSeconds() > 0) {
-        this.timerSeconds.update(s => s - 1);
+        this.timerSeconds.update(previousSeconds => previousSeconds - 1);
       } else {
         this.nextSpeaker();
       }
-    }, 1000);
+    }, TIMER_TICK_INTERVAL_MS);
   }
 
   pauseTimer(): void {
@@ -70,14 +73,14 @@ export class StandupComponent implements OnDestroy {
 
   resetTimer(): void {
     this.pauseTimer();
-    this.timerSeconds.set(120);
+    this.timerSeconds.set(DEFAULT_STANDUP_SPEAKER_SECONDS);
   }
 
   nextSpeaker(): void {
     this.resetTimer();
     const list = this.contributingMembers();
     if (list.length > 0) {
-      this.currentSpeakerIndex.update(idx => (idx + 1) % list.length);
+      this.currentSpeakerIndex.update(currentIndex => (currentIndex + 1) % list.length);
     }
   }
 

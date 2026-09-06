@@ -35,25 +35,25 @@ export class TechHubComponent {
     const list = this.state.techDebt();
     const filter = this.techDebtFilter();
     if (filter === 'ALL') return list;
-    return list.filter(i => (i.status || 'Identified').toLowerCase() === filter.toLowerCase());
+    return list.filter(item => (item.status || 'Identified').toLowerCase() === filter.toLowerCase());
   });
 
   getPresenterName(talk: TechTalkLog): string {
     if (talk.presenterName) return cleanName(talk.presenterName);
-    const member = this.state.members().find(m => m.id === talk.presenterId);
+    const member = this.state.members().find(member => member.id === talk.presenterId);
     return member ? cleanName(member.name) : 'Team Member';
   }
 
   getSprintName(sprintId?: string): string {
     if (!sprintId) return 'Unassigned Backlog';
-    const sprint = this.state.sprints().find(s => s.id === sprintId);
+    const sprint = this.state.sprints().find(sprint => sprint.id === sprintId);
     return sprint ? sprint.name : 'Unassigned Backlog';
   }
 
   getAssigneeName(item: TechDebtItem): string {
     if (item.assigneeName) return cleanName(item.assigneeName);
     if (item.assigneeId) {
-      const member = this.state.members().find(m => m.id === item.assigneeId);
+      const member = this.state.members().find(member => member.id === item.assigneeId);
       if (member) return cleanName(member.name);
     }
     return 'Unassigned';
@@ -85,7 +85,7 @@ export class TechHubComponent {
   }
 
   deleteTechDebt(id: string): void {
-    const item = this.state.techDebt().find(t => t.id === id);
+    const item = this.state.techDebt().find(debtItem => debtItem.id === id);
     if (item) {
       this.closeTechDebtModal();
       this.debtToDelete.set(item);
@@ -144,7 +144,7 @@ export class TechHubComponent {
   }
 
   deleteTechTalk(id: string): void {
-    const talk = this.state.techTalks().find(t => t.id === id);
+    const talk = this.state.techTalks().find(talkItem => talkItem.id === id);
     if (talk) {
       this.closeTechTalkModal();
       this.talkToDelete.set(talk);

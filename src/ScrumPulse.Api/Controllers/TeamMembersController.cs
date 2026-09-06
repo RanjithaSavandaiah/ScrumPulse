@@ -9,6 +9,8 @@ using ScrumPulse.Domain.Entities;
 /// <summary>Team member management with request DTOs to prevent mass assignment.</summary>
 public class TeamMembersController(IAppDbContext db, ITenantContext? tenantContext = null) : BaseApiController
 {
+    private const int MaxAvatarInitialsLength = 2;
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TeamMember>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamMember>>> GetAll(
@@ -43,8 +45,8 @@ public class TeamMembersController(IAppDbContext db, ITenantContext? tenantConte
         var avatar = request.Avatar;
         if (string.IsNullOrWhiteSpace(avatar))
         {
-            var initials = string.Join("", request.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s[0])).ToUpper();
-            avatar = initials.Length > 2 ? initials[..2] : initials;
+            var initials = string.Join("", request.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(word => word[0])).ToUpper();
+            avatar = initials.Length > MaxAvatarInitialsLength ? initials[..MaxAvatarInitialsLength] : initials;
         }
 
         var assignedTeamId = request.TeamId ?? tenantContext?.CurrentTeamId;
@@ -73,7 +75,7 @@ public class TeamMembersController(IAppDbContext db, ITenantContext? tenantConte
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamMember>> Update(Guid id, [FromBody] UpdateTeamMemberRequest request, CancellationToken ct = default)
     {
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id, ct);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(existingMember => existingMember.Id == id, ct);
         if (member == null) return NotFound();
 
         member.Name = request.Name;
@@ -94,7 +96,7 @@ public class TeamMembersController(IAppDbContext db, ITenantContext? tenantConte
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamMember>> AssignSquad(Guid id, [FromBody] AssignMemberSquadRequest request, CancellationToken ct = default)
     {
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id, ct);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(existingMember => existingMember.Id == id, ct);
         if (member == null) return NotFound();
 
         member.TeamId = request.TeamId;
@@ -107,7 +109,7 @@ public class TeamMembersController(IAppDbContext db, ITenantContext? tenantConte
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {
-        var member = await db.TeamMembers.FirstOrDefaultAsync(m => m.Id == id, ct);
+        var member = await db.TeamMembers.FirstOrDefaultAsync(existingMember => existingMember.Id == id, ct);
         if (member == null) return NotFound();
 
         member.IsActive = false;

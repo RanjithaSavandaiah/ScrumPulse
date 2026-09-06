@@ -9,10 +9,19 @@ using ScrumPulse.Domain.Enums;
 
 public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculatorService>? logger = null) : IMetricsCalculatorService
 {
-    // Named constants for capacity calculations
+    // Named constants for capacity and health calculations
     private const double ScrumMasterCapacityFactor = 0.75;
     private const double CdlCapacityFactor = 0.5;
     private const double HoursPerStoryPoint = 6.5;
+
+    private const int VelocityCommitmentWeight = 25;
+    private const int BlockerSlaResolutionWeight = 20;
+    private const int PrCodeReviewLatencyWeight = 15;
+    private const int TeamMoraleFlowWeight = 15;
+    private const int QualityGateContainmentWeight = 15;
+    private const int CapacityCalibrationWeight = 10;
+    private const double PercentageDivisor = 100.0;
+    private const double PercentageMultiplier = 100.0;
 
     public async Task<SprintCapacityDto> CalculateSprintCapacityAsync(Guid sprintId, CancellationToken ct = default)
     {
@@ -24,7 +33,7 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         List<Domain.Entities.TeamMember> members;
         if (sprint?.TeamId.HasValue == true)
         {
-            var squadMembers = await membersQuery.Where(m => m.TeamId == sprint.TeamId.Value).ToListAsync(ct);
+            var squadMembers = await membersQuery.Where(teamMember => teamMember.TeamId == sprint.TeamId.Value).ToListAsync(ct);
             members = squadMembers.Count > 0 ? squadMembers : await membersQuery.ToListAsync(ct);
         }
         else
@@ -115,7 +124,7 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         int deliveredPoints = workItems.Where(workItem => workItem.Status == WorkItemStatus.Done).Sum(workItem => workItem.StoryPoints);
         int inFlightPoints = workItems.Where(workItem => workItem.Status != WorkItemStatus.Done && workItem.Status != WorkItemStatus.Backlog).Sum(workItem => workItem.StoryPoints);
 
-        int sayDoRatio = committedPoints > 0 ? (int)Math.Round((deliveredPoints / (double)committedPoints) * 100) : 0;
+        int sayDoRatio = committedPoints > 0 ? (int)Math.Round((deliveredPoints / (double)committedPoints) * PercentageMultiplier) : 0;
         int activeBlockers = blockers.Count(blocker => !blocker.IsResolved);
         int escapedDefects = workItems.Count(workItem => workItem.IsEscapedDefect);
         int inSprintBugs = workItems.Count(workItem => workItem.Type == WorkItemType.Bug);
@@ -177,7 +186,7 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
     public async Task<SprintVelocityTrendDto> GetVelocityTrendAsync(int count = 6, CancellationToken ct = default)
     {
         var sprints = await db.Sprints
-            .OrderByDescending(s => s.StartDate)
+            .OrderByDescending(sprint => sprint.StartDate)
             .Take(Math.Clamp(count, 1, 24))
             .AsNoTracking()
             .ToListAsync(ct);
@@ -185,9 +194,9 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         // Sort chronologically for trend lines
         sprints.Reverse();
 
-        var sprintIds = sprints.Select(s => s.Id).ToList();
+        var sprintIds = sprints.Select(sprint => sprint.Id).ToList();
         var doneItems = await db.WorkItems
-            .Where(w => w.SprintId.HasValue && sprintIds.Contains(w.SprintId.Value) && w.Status == WorkItemStatus.Done)
+            .Where(workItem => workItem.SprintId.HasValue && sprintIds.Contains(workItem.SprintId.Value) && workItem.Status == WorkItemStatus.Done)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -198,9 +207,9 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         foreach (var sprint in sprints)
         {
             index++;
-            int delivered = doneItems.Where(w => w.SprintId == sprint.Id).Sum(w => w.StoryPoints);
+            int delivered = doneItems.Where(workItem => workItem.SprintId == sprint.Id).Sum(workItem => workItem.StoryPoints);
             int committed = sprint.CommittedStoryPoints > 0 ? sprint.CommittedStoryPoints : delivered;
-            int sayDo = committed > 0 ? (int)Math.Min(100, Math.Round((delivered / (double)committed) * 100)) : 0;
+            int sayDo = committed > 0 ? (int)Math.Min(100, Math.Round((delivered / (double)committed) * PercentageMultiplier)) : 0;
             
             runningDeliveredSum += delivered;
             double rollingAvg = Math.Round(runningDeliveredSum / index, 1);
@@ -217,79 +226,79 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
             ));
         }
 
-        double overallAvg = dataPoints.Count > 0 ? Math.Round(dataPoints.Average(d => d.DeliveredPoints), 1) : 0;
-        double predictability = dataPoints.Count > 0 ? Math.Round(dataPoints.Average(d => d.SayDoPercentage), 1) : 0;
+        double overallAvg = dataPoints.Count > 0 ? Math.Round(dataPoints.Average(point => point.DeliveredPoints), 1) : 0;
+        double predictability = dataPoints.Count > 0 ? Math.Round(dataPoints.Average(point => point.SayDoPercentage), 1) : 0;
 
         return new SprintVelocityTrendDto(dataPoints, overallAvg, predictability);
     }
 
     public async Task<SprintHealthDto> CalculateSprintHealthAsync(Guid sprintId, CancellationToken ct = default)
     {
-        var sprint = await db.Sprints.FirstOrDefaultAsync(s => s.Id == sprintId, ct);
+        var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
         var sprintName = sprint?.Name ?? "Active Sprint";
 
-        var workItems = await db.WorkItems.Where(w => w.SprintId == sprintId).AsNoTracking().ToListAsync(ct);
-        var blockers = await db.Blockers.Where(b => b.SprintId == sprintId).AsNoTracking().ToListAsync(ct);
-        var standups = await db.DailyStandups.Where(s => s.SprintId == sprintId).AsNoTracking().ToListAsync(ct);
+        var workItems = await db.WorkItems.Where(workItem => workItem.SprintId == sprintId).AsNoTracking().ToListAsync(ct);
+        var blockers = await db.Blockers.Where(blocker => blocker.SprintId == sprintId).AsNoTracking().ToListAsync(ct);
+        var standups = await db.DailyStandups.Where(standup => standup.SprintId == sprintId).AsNoTracking().ToListAsync(ct);
 
         int committed = sprint?.CommittedStoryPoints ?? 0;
-        int delivered = workItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints);
-        int sayDoPercent = committed > 0 ? (int)Math.Min(100, Math.Round((delivered / (double)committed) * 100)) : (workItems.Count > 0 ? 50 : 100);
+        int delivered = workItems.Where(workItem => workItem.Status == WorkItemStatus.Done).Sum(workItem => workItem.StoryPoints);
+        int sayDoPercent = committed > 0 ? (int)Math.Min(100, Math.Round((delivered / (double)committed) * PercentageMultiplier)) : (workItems.Count > 0 ? 50 : 100);
 
         // Factor 1: Say Do Delivery (25%)
         int sayDoScore = Math.Min(100, (int)(sayDoPercent * 1.0));
         var f1 = new SprintHealthFactorDto(
             "Velocity & Commitment",
             sayDoScore,
-            25,
+            VelocityCommitmentWeight,
             sayDoScore >= 80 ? "Optimal" : (sayDoScore >= 60 ? "Moderate" : "At Risk"),
             $"{delivered}/{committed} Story Points delivered ({sayDoPercent}% Say-Do)"
         );
 
         // Factor 2: Blocker SLA & Resolution (20%)
-        int activeBlockers = blockers.Count(b => !b.IsResolved);
-        int breachedBlockers = blockers.Count(b => b.IsSlaBreached);
+        int activeBlockers = blockers.Count(blocker => !blocker.IsResolved);
+        int breachedBlockers = blockers.Count(blocker => blocker.IsSlaBreached);
         int blockerScore = Math.Max(0, 100 - (activeBlockers * 20) - (breachedBlockers * 30));
         var f2 = new SprintHealthFactorDto(
             "Blocker Management & SLAs",
             blockerScore,
-            20,
+            BlockerSlaResolutionWeight,
             blockerScore >= 80 ? "Optimal" : (blockerScore >= 50 ? "Moderate" : "Critical"),
             $"{activeBlockers} active blockers ({breachedBlockers} breached SLA)"
         );
 
         // Factor 3: PR Review Latency (15%)
-        var prLatencies = workItems.Where(w => w.PrReviewLatencyHours.HasValue).Select(w => w.PrReviewLatencyHours!.Value).ToList();
+        var prLatencies = workItems.Where(workItem => workItem.PrReviewLatencyHours.HasValue).Select(workItem => workItem.PrReviewLatencyHours!.Value).ToList();
         double avgPrLatency = prLatencies.Count > 0 ? prLatencies.Average() : 0;
         int prScore = avgPrLatency <= 4.0 ? 100 : (avgPrLatency <= 8.0 ? 80 : (avgPrLatency <= 16.0 ? 50 : 25));
         var f3 = new SprintHealthFactorDto(
             "PR Code Review Latency",
             prScore,
-            15,
+            PrCodeReviewLatencyWeight,
             prScore >= 80 ? "Optimal" : (prScore >= 50 ? "Needs Improvement" : "Bottleneck"),
             $"Avg PR turnaround {Math.Round(avgPrLatency, 1)}h (Target < 6h)"
         );
 
         // Factor 4: Team Happiness & Morale (15%)
-        var moodScores = standups.Where(s => s.MoodScore > 0).Select(s => s.MoodScore).ToList();
+        var moodScores = standups.Where(standup => standup.MoodScore > 0).Select(standup => standup.MoodScore).ToList();
         double avgMood = moodScores.Count > 0 ? moodScores.Average() : 4.0;
         int moodScore = (int)Math.Clamp(Math.Round(avgMood * 20), 0, 100);
         var f4 = new SprintHealthFactorDto(
             "Team Morale & Flow",
             moodScore,
-            15,
+            TeamMoraleFlowWeight,
             moodScore >= 80 ? "High Morale" : (moodScore >= 60 ? "Steady" : "Burnout Risk"),
             $"Avg standup sentiment: {Math.Round(avgMood, 1)}/5"
         );
 
         // Factor 5: Quality & Zero Escapes (15%)
-        int escapedDefects = workItems.Count(w => w.IsEscapedDefect);
-        int bugs = workItems.Count(w => w.Type == WorkItemType.Bug);
+        int escapedDefects = workItems.Count(workItem => workItem.IsEscapedDefect);
+        int bugs = workItems.Count(workItem => workItem.Type == WorkItemType.Bug);
         int qualityScore = Math.Max(0, 100 - (escapedDefects * 40) - (bugs * 10));
         var f5 = new SprintHealthFactorDto(
             "Quality Gates & Defect Containment",
             qualityScore,
-            15,
+            QualityGateContainmentWeight,
             qualityScore >= 80 ? "Robust" : (qualityScore >= 50 ? "Warning" : "High Risk"),
             $"{escapedDefects} escaped defects, {bugs} in-sprint bugs"
         );
@@ -299,13 +308,13 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         var f6 = new SprintHealthFactorDto(
             "Capacity Calibration",
             capacityScore,
-            10,
+            CapacityCalibrationWeight,
             "Balanced",
             "Sprint commitment aligns with active developer roster"
         );
 
         var factors = new List<SprintHealthFactorDto> { f1, f2, f3, f4, f5, f6 };
-        double weightedSum = factors.Sum(f => f.Score * (f.Weight / 100.0));
+        double weightedSum = factors.Sum(factor => factor.Score * (factor.Weight / PercentageDivisor));
         int overallScore = (int)Math.Clamp(Math.Round(weightedSum), 0, 100);
 
         string grade = overallScore >= 85 ? "Optimal" : (overallScore >= 70 ? "Good" : (overallScore >= 55 ? "Needs Attention" : "At Risk"));
@@ -349,28 +358,34 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
 
     public async Task<SprintComparisonDto> CompareSprintsAsync(Guid sprintAId, Guid sprintBId, CancellationToken ct = default)
     {
-        var sprintA = await db.Sprints.Include(s => s.WorkItems).Include(s => s.Blockers).FirstOrDefaultAsync(s => s.Id == sprintAId, ct)
+        var sprintA = await db.Sprints
+            .Include(sprint => sprint.WorkItems)
+            .Include(sprint => sprint.Blockers)
+            .FirstOrDefaultAsync(sprint => sprint.Id == sprintAId, ct)
             ?? throw new KeyNotFoundException($"Sprint {sprintAId} not found");
-        var sprintB = await db.Sprints.Include(s => s.WorkItems).Include(s => s.Blockers).FirstOrDefaultAsync(s => s.Id == sprintBId, ct)
+        var sprintB = await db.Sprints
+            .Include(sprint => sprint.WorkItems)
+            .Include(sprint => sprint.Blockers)
+            .FirstOrDefaultAsync(sprint => sprint.Id == sprintBId, ct)
             ?? throw new KeyNotFoundException($"Sprint {sprintBId} not found");
 
-        var deliveredA = sprintA.WorkItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints);
-        var deliveredB = sprintB.WorkItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints);
+        var deliveredA = sprintA.WorkItems.Where(workItem => workItem.Status == WorkItemStatus.Done).Sum(workItem => workItem.StoryPoints);
+        var deliveredB = sprintB.WorkItems.Where(workItem => workItem.Status == WorkItemStatus.Done).Sum(workItem => workItem.StoryPoints);
 
-        var sayDoA = sprintA.CommittedStoryPoints > 0 ? Math.Round((double)deliveredA / sprintA.CommittedStoryPoints * 100, 1) : 0;
-        var sayDoB = sprintB.CommittedStoryPoints > 0 ? Math.Round((double)deliveredB / sprintB.CommittedStoryPoints * 100, 1) : 0;
+        var sayDoA = sprintA.CommittedStoryPoints > 0 ? Math.Round((double)deliveredA / sprintA.CommittedStoryPoints * PercentageMultiplier, 1) : 0;
+        var sayDoB = sprintB.CommittedStoryPoints > 0 ? Math.Round((double)deliveredB / sprintB.CommittedStoryPoints * PercentageMultiplier, 1) : 0;
 
         var blockersA = sprintA.Blockers.Count;
         var blockersB = sprintB.Blockers.Count;
 
-        var prReviewA = sprintA.WorkItems.Where(w => w.PrReviewLatencyHours.HasValue).Select(w => w.PrReviewLatencyHours!.Value).DefaultIfEmpty(0).Average();
-        var prReviewB = sprintB.WorkItems.Where(w => w.PrReviewLatencyHours.HasValue).Select(w => w.PrReviewLatencyHours!.Value).DefaultIfEmpty(0).Average();
+        var prReviewA = sprintA.WorkItems.Where(workItem => workItem.PrReviewLatencyHours.HasValue).Select(workItem => workItem.PrReviewLatencyHours!.Value).DefaultIfEmpty(0).Average();
+        var prReviewB = sprintB.WorkItems.Where(workItem => workItem.PrReviewLatencyHours.HasValue).Select(workItem => workItem.PrReviewLatencyHours!.Value).DefaultIfEmpty(0).Average();
 
-        var escapedA = sprintA.WorkItems.Count(w => w.IsEscapedDefect);
-        var escapedB = sprintB.WorkItems.Count(w => w.IsEscapedDefect);
+        var escapedA = sprintA.WorkItems.Count(workItem => workItem.IsEscapedDefect);
+        var escapedB = sprintB.WorkItems.Count(workItem => workItem.IsEscapedDefect);
 
-        var devCycleA = sprintA.WorkItems.Where(w => w.DevCycleTimeHours.HasValue).Select(w => w.DevCycleTimeHours!.Value).DefaultIfEmpty(0).Average();
-        var devCycleB = sprintB.WorkItems.Where(w => w.DevCycleTimeHours.HasValue).Select(w => w.DevCycleTimeHours!.Value).DefaultIfEmpty(0).Average();
+        var devCycleA = sprintA.WorkItems.Where(workItem => workItem.DevCycleTimeHours.HasValue).Select(workItem => workItem.DevCycleTimeHours!.Value).DefaultIfEmpty(0).Average();
+        var devCycleB = sprintB.WorkItems.Where(workItem => workItem.DevCycleTimeHours.HasValue).Select(workItem => workItem.DevCycleTimeHours!.Value).DefaultIfEmpty(0).Average();
 
         var metrics = new List<SprintComparisonMetricDto>
         {
@@ -430,7 +445,7 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
             )
         };
 
-        var improvementsCount = metrics.Count(m => m.IsImprovement);
+        var improvementsCount = metrics.Count(metric => metric.IsImprovement);
         var summary = $"Comparison between {sprintA.Name} and {sprintB.Name}: {improvementsCount} of {metrics.Count} engineering metrics demonstrated positive improvement.";
 
         return new SprintComparisonDto(

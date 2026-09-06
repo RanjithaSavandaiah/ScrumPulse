@@ -145,7 +145,7 @@ export class EstimationMatrixModalComponent implements OnInit {
   }
 
   get calculatedHoursFromPoint(): { min: number; max: number; average: number; item: FibonacciGuideItem } {
-    const found = this.matrixItems.find(m => m.points === this.selectedPoint) || this.matrixItems[3];
+    const found = this.matrixItems.find(item => item.points === this.selectedPoint) || this.matrixItems[3];
     const avg = found.points === 0 ? 0.5 : (found.points >= 13 ? 48 : (found.minHours + found.maxHours) / 2);
     return {
       min: found.minHours,

@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Blocker SLA Radar End-to-End Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
     await page.locator('.tab-btn', { hasText: 'Blocker' }).click();
     await expect(page.locator('.blockers-section')).toBeVisible({ timeout: 15000 });

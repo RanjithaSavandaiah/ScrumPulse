@@ -8,6 +8,8 @@ import { isDeliveryRole } from '../../../../core/utils/format-utils';
 
 import { CORE_PIPES } from '../../../../core/pipes';
 
+export const DEFAULT_STANDUP_MOOD_SCORE = 5;
+
 @Component({
   selector: 'app-log-standup-modal',
   standalone: true,
@@ -29,7 +31,7 @@ export class LogStandupModalComponent implements OnInit {
     yesterdaySummary: '',
     todayPlan: '',
     blockersText: 'None',
-    moodScore: 5
+    moodScore: DEFAULT_STANDUP_MOOD_SCORE
   };
 
   get isEditMode(): boolean {
@@ -38,7 +40,7 @@ export class LogStandupModalComponent implements OnInit {
 
   get teamMembers(): TeamMember[] {
     const list = this.members.length > 0 ? this.members : this.state.squadMembers();
-    return list.filter(m => isDeliveryRole(m.role));
+    return list.filter(member => isDeliveryRole(member.role));
   }
 
   ngOnInit(): void {
@@ -48,7 +50,7 @@ export class LogStandupModalComponent implements OnInit {
         yesterdaySummary: this.editStandup.yesterdaySummary || '',
         todayPlan: this.editStandup.todayPlan || '',
         blockersText: this.editStandup.blockersText || 'None',
-        moodScore: this.editStandup.moodScore || 5
+        moodScore: this.editStandup.moodScore || DEFAULT_STANDUP_MOOD_SCORE
       };
     } else if (!this.standup.teamMemberId && this.teamMembers.length > 0) {
       this.standup.teamMemberId = this.teamMembers[0].id;

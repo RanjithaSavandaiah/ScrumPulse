@@ -8,6 +8,15 @@ import { AiSuggestionResponse, SprintComparison, SprintHealth, SprintVelocityTre
 import { generateDynamicMonths, generateDynamicQuarters, getCurrentMonthValue, getCurrentQuarterValue, getDatePresetRange, getThisMonthDateRange, getSprintDateRange } from '../../core/utils/date-utils';
 import { CORE_PIPES } from '../../core/pipes';
 
+export const DEFAULT_VELOCITY_TREND_SPRINT_COUNT = 6;
+export const COPY_NOTIFICATION_TIMEOUT_MS = 2500;
+export const TWO_WEEKS_IN_DAYS = 14;
+export const HOURS_PER_DAY = 24;
+export const MINUTES_PER_HOUR = 60;
+export const SECONDS_PER_MINUTE = 60;
+export const MILLISECONDS_PER_SECOND = 1000;
+export const TWO_WEEKS_IN_MS = TWO_WEEKS_IN_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+
 @Component({
   selector: 'app-executive',
   standalone: true,
@@ -25,7 +34,7 @@ export class ExecutiveComponent implements OnInit {
   selectedSprintId = signal<string>('');
   selectedMonth = signal<string>(getCurrentMonthValue());
   selectedQuarter = signal<string>(getCurrentQuarterValue());
-  startDate = signal<string>(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  startDate = signal<string>(new Date(Date.now() - TWO_WEEKS_IN_MS).toISOString().split('T')[0]);
   endDate = signal<string>(new Date().toISOString().split('T')[0]);
 
   aiData = signal<AiSuggestionResponse | null>(null);
@@ -57,7 +66,7 @@ export class ExecutiveComponent implements OnInit {
   loadExecutiveMetrics(): void {
     this.loadingMetrics.set(true);
     this.metricsError.set(null);
-    this.state.getVelocityTrend(6).subscribe({
+    this.state.getVelocityTrend(DEFAULT_VELOCITY_TREND_SPRINT_COUNT).subscribe({
       next: (data) => this.velocityTrend.set(data),
       error: (err) => {
         console.error('[ExecutiveComponent] Failed to load velocity trend:', err);
@@ -65,9 +74,9 @@ export class ExecutiveComponent implements OnInit {
       }
     });
 
-    const spId = this.effectiveSprintId();
-    if (spId && spId !== 'ALL') {
-      this.state.getSprintHealth(spId).subscribe({
+    const sprintId = this.effectiveSprintId();
+    if (sprintId && sprintId !== 'ALL') {
+      this.state.getSprintHealth(sprintId).subscribe({
         next: (data) => {
           this.sprintHealth.set(data);
           this.loadingMetrics.set(false);
@@ -86,9 +95,9 @@ export class ExecutiveComponent implements OnInit {
 
   refreshAiIntelligence(): void {
     this.loadingAi.set(true);
-    const mId = this.selectedMemberId();
-    if (mId !== 'ALL') {
-      this.state.getIndividualAi(mId).subscribe({
+    const memberId = this.selectedMemberId();
+    if (memberId !== 'ALL') {
+      this.state.getIndividualAi(memberId).subscribe({
         next: (data) => { this.aiData.set(data); this.loadingAi.set(false); },
         error: (err) => {
           console.error('[ExecutiveComponent] Failed to load individual AI intelligence:', err);
@@ -96,9 +105,9 @@ export class ExecutiveComponent implements OnInit {
         }
       });
     } else if (this.selectedTimeScope() === 'SPRINT') {
-      const spId = this.effectiveSprintId();
-      if (spId && spId !== 'ALL') {
-        this.state.getProjectAi(spId).subscribe({
+      const sprintId = this.effectiveSprintId();
+      if (sprintId && sprintId !== 'ALL') {
+        this.state.getProjectAi(sprintId).subscribe({
           next: (data) => { this.aiData.set(data); this.loadingAi.set(false); },
           error: (err) => {
             console.error('[ExecutiveComponent] Failed to load project AI intelligence:', err);
@@ -168,15 +177,15 @@ export class ExecutiveComponent implements OnInit {
   previewWorkItems = computed(() => this.filteredPreview().workItems);
   previewPrLogs = computed(() => this.filteredPreview().prLogs);
 
-  previewTotalPoints = computed(() => this.previewWorkItems().reduce((acc, w) => acc + (w.storyPoints || 0), 0));
+  previewTotalPoints = computed(() => this.previewWorkItems().reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0));
   previewDonePoints = computed(() =>
     this.previewWorkItems()
-      .filter(w => String(w.status).toLowerCase().includes('done'))
-      .reduce((acc, w) => acc + (w.storyPoints || 0), 0)
+      .filter(item => String(item.status).toLowerCase().includes('done'))
+      .reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0)
   );
   previewTotalPrs = computed(() => this.previewPrLogs().length);
-  previewTotalComments = computed(() => this.previewPrLogs().reduce((acc, p) => acc + (p.totalCommentsCount || 0), 0));
-  previewActionableComments = computed(() => this.previewPrLogs().reduce((acc, p) => acc + (p.actionableCommentsCount || 0), 0));
+  previewTotalComments = computed(() => this.previewPrLogs().reduce((accumulatedComments, pr) => accumulatedComments + (pr.totalCommentsCount || 0), 0));
+  previewActionableComments = computed(() => this.previewPrLogs().reduce((accumulatedActionable, pr) => accumulatedActionable + (pr.actionableCommentsCount || 0), 0));
 
   applyCustomPreset(days: number): void {
     const range = getDatePresetRange(days);
@@ -214,14 +223,14 @@ export class ExecutiveComponent implements OnInit {
     if (summaryText) {
       navigator.clipboard.writeText(summaryText);
       this.copiedSummary.set(true);
-      setTimeout(() => this.copiedSummary.set(false), 2500);
+      setTimeout(() => this.copiedSummary.set(false), COPY_NOTIFICATION_TIMEOUT_MS);
     }
   }
 
   exportSprintCsv(): void {
-    const spId = this.effectiveSprintId();
-    if (spId && spId !== 'ALL') {
-      this.state.exportSprintCsv(spId);
+    const sprintId = this.effectiveSprintId();
+    if (sprintId && sprintId !== 'ALL') {
+      this.state.exportSprintCsv(sprintId);
     }
   }
 
@@ -241,14 +250,14 @@ export class ExecutiveComponent implements OnInit {
   }
 
   runComparison(): void {
-    const a = this.compareSprintA();
-    const b = this.compareSprintB();
-    if (!a || !b) return;
+    const sprintAId = this.compareSprintA();
+    const sprintBId = this.compareSprintB();
+    if (!sprintAId || !sprintBId) return;
 
     this.loadingComparison.set(true);
     this.comparisonError.set(null);
 
-    this.state.compareSprints(a, b).subscribe({
+    this.state.compareSprints(sprintAId, sprintBId).subscribe({
       next: (data) => {
         this.comparisonData.set(data);
         this.loadingComparison.set(false);

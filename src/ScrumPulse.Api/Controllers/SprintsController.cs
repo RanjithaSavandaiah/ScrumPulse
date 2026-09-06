@@ -9,10 +9,13 @@ using ScrumPulse.Domain.Entities;
 /// <summary>Sprint management with DTO mapping, tenant scoping, and production hardening.</summary>
 public class SprintsController(IAppDbContext db, ITenantContext? tenantContext = null) : BaseApiController
 {
-    private static SprintDto ToDto(Sprint s) => new(
-        s.Id, s.Name, s.Goal, s.StartDate, s.EndDate, s.IsActive,
-        s.CommittedStoryPoints, s.DeliveredStoryPoints, s.ConfidenceScore,
-        s.ConfidenceNotes, s.DailyWorkingHours, s.TeamId
+    private const int MinConfidenceScore = 1;
+    private const int MaxConfidenceScore = 10;
+
+    private static SprintDto ToDto(Sprint sprint) => new(
+        sprint.Id, sprint.Name, sprint.Goal, sprint.StartDate, sprint.EndDate, sprint.IsActive,
+        sprint.CommittedStoryPoints, sprint.DeliveredStoryPoints, sprint.ConfidenceScore,
+        sprint.ConfidenceNotes, sprint.DailyWorkingHours, sprint.TeamId
     );
 
     [HttpGet]
@@ -60,13 +63,13 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
             // Deactivate other sprints efficiently with a single update, with fallback for non-relational test providers
             try
             {
-                await db.Sprints.Where(s => s.IsActive).ExecuteUpdateAsync(
-                    s => s.SetProperty(e => e.IsActive, false), ct);
+                await db.Sprints.Where(existingSprint => existingSprint.IsActive).ExecuteUpdateAsync(
+                    updateFactory => updateFactory.SetProperty(sprintEntity => sprintEntity.IsActive, false), ct);
             }
             catch (InvalidOperationException)
             {
-                var activeList = await db.Sprints.Where(s => s.IsActive).ToListAsync(ct);
-                foreach (var s in activeList) s.IsActive = false;
+                var activeList = await db.Sprints.Where(existingSprint => existingSprint.IsActive).ToListAsync(ct);
+                foreach (var activeSprint in activeList) activeSprint.IsActive = false;
             }
         }
 
@@ -80,12 +83,12 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ActivateSprint(Guid id, CancellationToken ct)
     {
-        var targetSprint = await db.Sprints.FirstOrDefaultAsync(s => s.Id == id, ct);
+        var targetSprint = await db.Sprints.FirstOrDefaultAsync(sprint => sprint.Id == id, ct);
         if (targetSprint == null) return NotFound();
 
         // Single batch update instead of loading all sprints into memory
-        await db.Sprints.Where(s => s.IsActive && s.Id != id).ExecuteUpdateAsync(
-            s => s.SetProperty(e => e.IsActive, false), ct);
+        await db.Sprints.Where(existingSprint => existingSprint.IsActive && existingSprint.Id != id).ExecuteUpdateAsync(
+            updateFactory => updateFactory.SetProperty(sprintEntity => sprintEntity.IsActive, false), ct);
 
         targetSprint.IsActive = true;
         await db.SaveChangesAsync(ct);
@@ -97,7 +100,7 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SprintDto>> Update(Guid id, [FromBody] UpdateSprintRequest request, CancellationToken ct)
     {
-        var sprint = await db.Sprints.FirstOrDefaultAsync(s => s.Id == id, ct);
+        var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == id, ct);
         if (sprint == null) return NotFound();
 
         if (request.EndDate < request.StartDate)
@@ -130,7 +133,7 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
     {
         var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == id, ct);
         if (sprint == null) return NotFound();
-        sprint.ConfidenceScore = Math.Clamp(score, 1, 10);
+        sprint.ConfidenceScore = Math.Clamp(score, MinConfidenceScore, MaxConfidenceScore);
         sprint.ConfidenceNotes = notes;
         await db.SaveChangesAsync(ct);
         return Ok(ToDto(sprint));
@@ -141,42 +144,42 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var sprint = await db.Sprints.FirstOrDefaultAsync(s => s.Id == id, ct);
+        var sprint = await db.Sprints.FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == id, ct);
         if (sprint == null) return NotFound();
 
         // Safely unlink all dependent entities before deleting the sprint
         try
         {
-            await db.WorkItems.Where(w => w.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-            await db.DailyStandups.Where(s => s.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-            await db.Blockers.Where(b => b.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-            await db.RetroCards.Where(r => r.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-            await db.RetroActionItems.Where(a => a.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-            await db.PullRequestReviewLogs.Where(p => p.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-            await db.TechDebtItems.Where(t => t.PayoffSprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.PayoffSprintId, (Guid?)null), ct);
+            await db.WorkItems.Where(workItem => workItem.SprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(workItem => workItem.SprintId, (Guid?)null), ct);
+            await db.DailyStandups.Where(standup => standup.SprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(standup => standup.SprintId, (Guid?)null), ct);
+            await db.Blockers.Where(blocker => blocker.SprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(blocker => blocker.SprintId, (Guid?)null), ct);
+            await db.RetroCards.Where(retroCard => retroCard.SprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(retroCard => retroCard.SprintId, (Guid?)null), ct);
+            await db.RetroActionItems.Where(actionItem => actionItem.SprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(actionItem => actionItem.SprintId, (Guid?)null), ct);
+            await db.PullRequestReviewLogs.Where(pullRequest => pullRequest.SprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(pullRequest => pullRequest.SprintId, (Guid?)null), ct);
+            await db.TechDebtItems.Where(techDebt => techDebt.PayoffSprintId == id).ExecuteUpdateAsync(updateFactory => updateFactory.SetProperty(techDebt => techDebt.PayoffSprintId, (Guid?)null), ct);
         }
         catch (InvalidOperationException)
         {
-            var workItems = await db.WorkItems.Where(w => w.SprintId == id).ToListAsync(ct);
-            foreach (var w in workItems) w.SprintId = null;
+            var workItems = await db.WorkItems.Where(workItem => workItem.SprintId == id).ToListAsync(ct);
+            foreach (var workItem in workItems) workItem.SprintId = null;
 
-            var standups = await db.DailyStandups.Where(s => s.SprintId == id).ToListAsync(ct);
-            foreach (var s in standups) s.SprintId = null;
+            var standups = await db.DailyStandups.Where(standup => standup.SprintId == id).ToListAsync(ct);
+            foreach (var standup in standups) standup.SprintId = null;
 
-            var blockers = await db.Blockers.Where(b => b.SprintId == id).ToListAsync(ct);
-            foreach (var b in blockers) b.SprintId = null;
+            var blockers = await db.Blockers.Where(blocker => blocker.SprintId == id).ToListAsync(ct);
+            foreach (var blocker in blockers) blocker.SprintId = null;
 
-            var retros = await db.RetroCards.Where(r => r.SprintId == id).ToListAsync(ct);
-            foreach (var r in retros) r.SprintId = null;
+            var retros = await db.RetroCards.Where(retroCard => retroCard.SprintId == id).ToListAsync(ct);
+            foreach (var retroCard in retros) retroCard.SprintId = null;
 
-            var actions = await db.RetroActionItems.Where(a => a.SprintId == id).ToListAsync(ct);
-            foreach (var a in actions) a.SprintId = null;
+            var actions = await db.RetroActionItems.Where(actionItem => actionItem.SprintId == id).ToListAsync(ct);
+            foreach (var actionItem in actions) actionItem.SprintId = null;
 
-            var prs = await db.PullRequestReviewLogs.Where(p => p.SprintId == id).ToListAsync(ct);
-            foreach (var p in prs) p.SprintId = null;
+            var prs = await db.PullRequestReviewLogs.Where(pullRequest => pullRequest.SprintId == id).ToListAsync(ct);
+            foreach (var pullRequest in prs) pullRequest.SprintId = null;
 
-            var debts = await db.TechDebtItems.Where(t => t.PayoffSprintId == id).ToListAsync(ct);
-            foreach (var t in debts) t.PayoffSprintId = null;
+            var debts = await db.TechDebtItems.Where(techDebt => techDebt.PayoffSprintId == id).ToListAsync(ct);
+            foreach (var techDebt in debts) techDebt.PayoffSprintId = null;
         }
 
         bool wasActive = sprint.IsActive;
@@ -186,8 +189,8 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
         if (wasActive)
         {
             var nextSprint = await db.Sprints
-                .Where(s => s.Id != id)
-                .OrderByDescending(s => s.StartDate)
+                .Where(existingSprint => existingSprint.Id != id)
+                .OrderByDescending(existingSprint => existingSprint.StartDate)
                 .FirstOrDefaultAsync(ct);
 
             if (nextSprint != null)

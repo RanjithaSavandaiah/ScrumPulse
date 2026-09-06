@@ -11,48 +11,55 @@ import { ConfirmModalComponent } from '../../../../core/components/confirm-modal
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
 import { isDeliveryRole } from '../../../../core/utils/format-utils';
 import { DEFAULT_DAILY_WORKING_HOURS, HOURS_PER_POINT_RATIO, DEFAULT_FOCUS_FACTOR } from '../../../../core/constants/scrum.constants';
+import { CORE_PIPES } from '../../../../core/pipes';
+
+const TWO_WEEKS_IN_DAYS = 14;
+const HOURS_PER_DAY = 24;
+const MINUTES_PER_HOUR = 60;
+const SECONDS_PER_MINUTE = 60;
+const MILLISECONDS_PER_SECOND = 1000;
+const TWO_WEEKS_IN_MS = TWO_WEEKS_IN_DAYS * HOURS_PER_DAY * MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MILLISECONDS_PER_SECOND;
+const HALF_DAY_LEAVE_PORTION = 0.5;
+const FULL_DAY_LEAVE_PORTION = 1.0;
+const ONE_DECIMAL_PLACE_ROUNDING_FACTOR = 10;
+const TWO_DECIMAL_PLACES_ROUNDING_FACTOR = 100;
 
 @Component({
   selector: 'app-edit-sprint-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, EstimationMatrixModalComponent, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, IconComponent, EstimationMatrixModalComponent, ConfirmModalComponent, ...CORE_PIPES],
   templateUrl: './edit-sprint-modal.component.html',
   styleUrl: './edit-sprint-modal.component.css'
 })
 export class EditSprintModalComponent implements OnInit {
-  private state = inject(ScrumStateService);
+  state = inject(ScrumStateService);
 
   @Input() sprint: Sprint | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<Partial<Sprint>>();
   @Output() delete = new EventEmitter<string>();
 
-  showDeleteConfirm = signal<boolean>(false);
-
   name: string = '';
   goal: string = '';
   startDate: string = new Date().toISOString().split('T')[0];
-  endDate: string = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  
-  // Daily Working Hours Configuration (SM Configurable)
+  endDate: string = new Date(Date.now() + TWO_WEEKS_IN_MS).toISOString().split('T')[0];
   dailyWorkingHours: number = DEFAULT_DAILY_WORKING_HOURS;
-
-  // Dual Target Commitment System
-  targetMode: 'storyPoints' | 'hours' = 'storyPoints';
   committedStoryPoints: number = 0;
   committedHours: number = 0;
-  hoursPerPointRatio: number = HOURS_PER_POINT_RATIO; // Standard team conversion ratio
-  
-  // Helpers & Guide Modals
+  hoursPerPointRatio: number = 6;
+  targetMode: 'storyPoints' | 'hours' = 'storyPoints';
+  isActive: boolean = true;
   showMatrixModal: boolean = false;
   capacityCalculationSummary: string | null = null;
-  isActive: boolean = true;
+
+  // Confirmation modal state
+  showDeleteConfirm = signal<boolean>(false);
 
   rosterDeveloperCount = computed(() => {
-    const all = this.state.squadMembers().filter(m => (m.isActive ?? true));
-    const devs = all.filter(m => (m.role || '').toLowerCase() === 'developer');
+    const all = this.state.squadMembers().filter(member => (member.isActive ?? true));
+    const devs = all.filter(member => (member.role || '').toLowerCase() === 'developer');
     if (devs.length > 0) return devs.length;
-    return all.filter(m => isDeliveryRole(m.role)).length;
+    return all.filter(member => isDeliveryRole(member.role)).length;
   });
 
   get calculatedWorkingDays(): number {
@@ -76,7 +83,7 @@ export class EditSprintModalComponent implements OnInit {
       if (new Date(this.endDate) < new Date(this.startDate)) {
         // Auto-advance endDate by 14 days from startDate
         const start = new Date(this.startDate);
-        const end = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
+        const end = new Date(start.getTime() + TWO_WEEKS_IN_MS);
         this.endDate = end.toISOString().split('T')[0];
       }
     }
@@ -140,14 +147,14 @@ export class EditSprintModalComponent implements OnInit {
 
   autoCalculateFromCapacity(): void {
     const start = new Date(this.startDate || Date.now());
-    const end = new Date(this.endDate || (Date.now() + 14 * 24 * 60 * 60 * 1000));
+    const end = new Date(this.endDate || (Date.now() + TWO_WEEKS_IN_MS));
     const workingDays = this.calculatedWorkingDays;
     const hoursPerDay = this.dailyWorkingHours > 0 ? this.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS;
 
     // Read developer count dynamically from Team Roster
-    const allMembers = this.state.squadMembers().filter(m => (m.isActive ?? true));
-    const devMembers = allMembers.filter(m => (m.role || '').toLowerCase() === 'developer');
-    const deliveryMembers = allMembers.filter(m => isDeliveryRole(m.role));
+    const allMembers = this.state.squadMembers().filter(member => (member.isActive ?? true));
+    const devMembers = allMembers.filter(member => (member.role || '').toLowerCase() === 'developer');
+    const deliveryMembers = allMembers.filter(member => isDeliveryRole(member.role));
 
     const activeDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
     const memberCount = activeDevs.length;
@@ -159,25 +166,25 @@ export class EditSprintModalComponent implements OnInit {
 
     // Leaves within window for active roster developers
     const leaves = this.state.leaves();
-    const relevantLeaves = leaves.filter(l => {
-      if (!l.isApproved) return false;
-      const lStart = new Date(l.startDate);
-      const lEnd = new Date(l.endDate);
+    const relevantLeaves = leaves.filter(leave => {
+      if (!leave.isApproved) return false;
+      const lStart = new Date(leave.startDate);
+      const lEnd = new Date(leave.endDate);
       return lStart <= end && lEnd >= start;
     });
 
     let totalLeaveDays = 0;
     for (const member of activeDevs) {
-      const memberLeaves = relevantLeaves.filter(l => l.teamMemberId === member.id);
-      for (const ml of memberLeaves) {
-        const d = ml.totalDays || (ml.leaveSlot && ml.leaveSlot !== 'FullDay' ? 0.5 : 1.0);
-        totalLeaveDays += d;
+      const memberLeaves = relevantLeaves.filter(leave => leave.teamMemberId === member.id);
+      for (const memberLeave of memberLeaves) {
+        const leavePortion = memberLeave.totalDays || (memberLeave.leaveSlot && memberLeave.leaveSlot !== 'FullDay' ? HALF_DAY_LEAVE_PORTION : FULL_DAY_LEAVE_PORTION);
+        totalLeaveDays += leavePortion;
       }
     }
 
-    const grossHours = Math.round(workingDays * memberCount * hoursPerDay * 10) / 10;
-    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay * 100) / 100;
-    const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted) * 100) / 100);
+    const grossHours = Math.round(workingDays * memberCount * hoursPerDay * ONE_DECIMAL_PLACE_ROUNDING_FACTOR) / ONE_DECIMAL_PLACE_ROUNDING_FACTOR;
+    const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR;
+    const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR);
     const productiveFocusHours = Math.round(netAvailableHours * DEFAULT_FOCUS_FACTOR); // focus factor
     const suggestedPoints = Math.max(1, Math.round(productiveFocusHours / this.hoursPerPointRatio));
 

@@ -25,10 +25,10 @@ export const reviewsReducer = createReducer(
   })),
   on(ReviewActions.updateFeedbackSuccess, (state, { feedback }) => ({
     ...state,
-    feedbacks: state.feedbacks.map(f => (f.id === feedback.id ? feedback : f))
+    feedbacks: state.feedbacks.map(feedbackItem => (feedbackItem.id === feedback.id ? feedback : feedbackItem))
   })),
   on(ReviewActions.deleteFeedbackSuccess, (state, { id }) => ({
     ...state,
-    feedbacks: state.feedbacks.filter(f => f.id !== id)
+    feedbacks: state.feedbacks.filter(feedbackItem => feedbackItem.id !== id)
   }))
 );

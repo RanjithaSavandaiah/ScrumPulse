@@ -46,11 +46,11 @@ export class CapacityComponent {
     if (val === 'CUSTOM') {
       if (!this.customStartDate() && !this.customEndDate()) {
         const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
-        this.customStartDate.set(`${y}-${m}-01`);
-        this.customEndDate.set(`${y}-${m}-${String(lastDay).padStart(2, '0')}`);
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+        this.customStartDate.set(`${year}-${month}-01`);
+        this.customEndDate.set(`${year}-${month}-${String(lastDay).padStart(2, '0')}`);
       }
     }
   }
@@ -64,21 +64,21 @@ export class CapacityComponent {
     let list = this.state.leaves();
     const current = this.state.currentTeam();
     if (current && this.state.squadMembers().length > 0) {
-      const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
-      const squadMemberNames = new Set(this.state.squadMembers().map(m => m.name.toLowerCase().trim()));
-      list = list.filter(l =>
-        (l.teamMemberId && squadMemberIds.has(l.teamMemberId.toLowerCase().trim())) ||
-        (l.teamMemberName && squadMemberNames.has(l.teamMemberName.toLowerCase().trim()))
+      const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
+      const squadMemberNames = new Set(this.state.squadMembers().map(member => member.name.toLowerCase().trim()));
+      list = list.filter(leave =>
+        (leave.teamMemberId && squadMemberIds.has(leave.teamMemberId.toLowerCase().trim())) ||
+        (leave.teamMemberName && squadMemberNames.has(leave.teamMemberName.toLowerCase().trim()))
       );
     }
 
     if (this.selectedMemberId() !== 'ALL') {
-      list = list.filter(l => l.teamMemberId === this.selectedMemberId());
+      list = list.filter(leave => leave.teamMemberId === this.selectedMemberId());
     }
 
     if (this.selectedPeriod() !== 'ALL') {
-      list = list.filter(l =>
-        isLeaveInPeriod(l, this.selectedPeriod(), this.customStartDate(), this.customEndDate())
+      list = list.filter(leave =>
+        isLeaveInPeriod(leave, this.selectedPeriod(), this.customStartDate(), this.customEndDate())
       );
     }
 
@@ -125,7 +125,7 @@ export class CapacityComponent {
 
   onDeleteLeave(id: string): void {
     if (!this.state.canEditOrDelete()) return;
-    const leave = this.state.leaves().find(l => l.id === id);
+    const leave = this.state.leaves().find(targetLeave => targetLeave.id === id);
     if (leave) {
       this.showLeaveModal.set(false);
       this.selectedEditLeave.set(null);

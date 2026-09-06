@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Microsoft AI Intelligence & Coaching Studio', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('.tab-btn', { hasText: 'Microsoft AI Coach' }).click();
     await expect(page.locator('.panel-title')).toBeVisible({ timeout: 10000 });
   });

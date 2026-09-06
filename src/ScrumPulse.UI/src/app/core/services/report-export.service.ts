@@ -17,6 +17,9 @@ export interface ExportFilterOptions {
 
 import { cleanName, getRoleLabel } from '../utils/format-utils';
 
+const PERCENTAGE_FACTOR = 100;
+const MAX_STANDUPS_PDF_PREVIEW_COUNT = 8;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -76,106 +79,106 @@ export class ReportExportService {
     let selectedMember: TeamMember | null = null;
 
     if (options.memberId !== 'ALL') {
-      selectedMember = members.find(m => m.id === options.memberId) || null;
+      selectedMember = members.find(member => member.id === options.memberId) || null;
     }
 
     // Filter Work Items
     let workItems = this.state.workItems();
     if (options.memberId !== 'ALL') {
-      workItems = workItems.filter(w => w.assigneeId === options.memberId);
+      workItems = workItems.filter(item => item.assigneeId === options.memberId);
     }
     if (options.timeScopeType === 'SPRINT' && options.sprintId && options.sprintId !== 'ALL') {
-      workItems = workItems.filter(w => w.sprintId === options.sprintId);
+      workItems = workItems.filter(item => item.sprintId === options.sprintId);
     } else if (options.timeScopeType === 'MONTH' && options.month) {
-      workItems = workItems.filter(w => this.isDateInMonth(w.createdAtUtc || w.completedAtUtc, options.month!));
+      workItems = workItems.filter(item => this.isDateInMonth(item.createdAtUtc || item.completedAtUtc, options.month!));
     } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
-      workItems = workItems.filter(w => this.isDateInQuarter(w.createdAtUtc || w.completedAtUtc, options.quarter!));
+      workItems = workItems.filter(item => this.isDateInQuarter(item.createdAtUtc || item.completedAtUtc, options.quarter!));
     } else if (options.timeScopeType === 'CUSTOM') {
-      workItems = workItems.filter(w => this.isDateInRange(w.createdAtUtc || w.completedAtUtc, options.startDate, options.endDate));
+      workItems = workItems.filter(item => this.isDateInRange(item.createdAtUtc || item.completedAtUtc, options.startDate, options.endDate));
     }
 
     // Filter PR Logs
     let prLogs = this.state.prLogs();
     if (options.memberId !== 'ALL') {
-      prLogs = prLogs.filter(p => p.authorId === options.memberId);
+      prLogs = prLogs.filter(pr => pr.authorId === options.memberId);
     }
     if (options.timeScopeType === 'SPRINT' && options.sprintId && options.sprintId !== 'ALL') {
-      prLogs = prLogs.filter(p => p.sprintId === options.sprintId);
+      prLogs = prLogs.filter(pr => pr.sprintId === options.sprintId);
     } else if (options.timeScopeType === 'MONTH' && options.month) {
-      prLogs = prLogs.filter(p => this.isDateInMonth(p.createdAtUtc, options.month!));
+      prLogs = prLogs.filter(pr => this.isDateInMonth(pr.createdAtUtc, options.month!));
     } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
-      prLogs = prLogs.filter(p => this.isDateInQuarter(p.createdAtUtc, options.quarter!));
+      prLogs = prLogs.filter(pr => this.isDateInQuarter(pr.createdAtUtc, options.quarter!));
     } else if (options.timeScopeType === 'CUSTOM') {
-      prLogs = prLogs.filter(p => this.isDateInRange(p.createdAtUtc, options.startDate, options.endDate));
+      prLogs = prLogs.filter(pr => this.isDateInRange(pr.createdAtUtc, options.startDate, options.endDate));
     }
 
     // Filter Standups
     let standups = this.state.standups();
     if (options.memberId !== 'ALL') {
-      standups = standups.filter(s => s.teamMemberId === options.memberId);
+      standups = standups.filter(standup => standup.teamMemberId === options.memberId);
     }
     if (options.timeScopeType === 'MONTH' && options.month) {
-      standups = standups.filter(s => this.isDateInMonth(s.standupDate, options.month!));
+      standups = standups.filter(standup => this.isDateInMonth(standup.standupDate, options.month!));
     } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
-      standups = standups.filter(s => this.isDateInQuarter(s.standupDate, options.quarter!));
+      standups = standups.filter(standup => this.isDateInQuarter(standup.standupDate, options.quarter!));
     } else if (options.timeScopeType === 'CUSTOM') {
-      standups = standups.filter(s => this.isDateInRange(s.standupDate, options.startDate, options.endDate));
+      standups = standups.filter(standup => this.isDateInRange(standup.standupDate, options.startDate, options.endDate));
     }
 
     // Filter Leaves
     let leaves = this.state.leaves();
     if (options.memberId !== 'ALL') {
-      leaves = leaves.filter(l => l.teamMemberId === options.memberId);
+      leaves = leaves.filter(leave => leave.teamMemberId === options.memberId);
     }
     if (options.timeScopeType === 'MONTH' && options.month) {
-      leaves = leaves.filter(l => this.isDateInMonth(l.startDate, options.month!) || this.isDateInMonth(l.endDate, options.month!));
+      leaves = leaves.filter(leave => this.isDateInMonth(leave.startDate, options.month!) || this.isDateInMonth(leave.endDate, options.month!));
     } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
-      leaves = leaves.filter(l => this.isDateInQuarter(l.startDate, options.quarter!) || this.isDateInQuarter(l.endDate, options.quarter!));
+      leaves = leaves.filter(leave => this.isDateInQuarter(leave.startDate, options.quarter!) || this.isDateInQuarter(leave.endDate, options.quarter!));
     } else if (options.timeScopeType === 'CUSTOM') {
-      leaves = leaves.filter(l => this.isDateInRange(l.startDate, options.startDate, options.endDate) || this.isDateInRange(l.endDate, options.startDate, options.endDate));
+      leaves = leaves.filter(leave => this.isDateInRange(leave.startDate, options.startDate, options.endDate) || this.isDateInRange(leave.endDate, options.startDate, options.endDate));
     }
 
     // Filter Monthly Reviews
     let reviews = this.state.monthlyFeedbacks();
     if (options.memberId !== 'ALL') {
-      reviews = reviews.filter(r => r.teamMemberId === options.memberId);
+      reviews = reviews.filter(review => review.teamMemberId === options.memberId);
     }
     if (options.timeScopeType === 'MONTH' && options.month) {
-      reviews = reviews.filter(r => r.monthYear === options.month);
+      reviews = reviews.filter(review => review.monthYear === options.month);
     } else if (options.timeScopeType === 'CUSTOM') {
-      reviews = reviews.filter(r => this.isDateInRange(r.createdAtUtc, options.startDate, options.endDate));
+      reviews = reviews.filter(review => this.isDateInRange(review.createdAtUtc, options.startDate, options.endDate));
     }
 
     // Filter Kudos
     let kudos = this.state.kudos();
     if (options.memberId !== 'ALL') {
-      kudos = kudos.filter(k => k.receiverId === options.memberId || k.senderId === options.memberId);
+      kudos = kudos.filter(kudosCard => kudosCard.receiverId === options.memberId || kudosCard.senderId === options.memberId);
     }
     if (options.timeScopeType === 'MONTH' && options.month) {
-      kudos = kudos.filter(k => this.isDateInMonth(k.createdAtUtc, options.month!));
+      kudos = kudos.filter(kudosCard => this.isDateInMonth(kudosCard.createdAtUtc, options.month!));
     } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
-      kudos = kudos.filter(k => this.isDateInQuarter(k.createdAtUtc, options.quarter!));
+      kudos = kudos.filter(kudosCard => this.isDateInQuarter(kudosCard.createdAtUtc, options.quarter!));
     } else if (options.timeScopeType === 'CUSTOM') {
-      kudos = kudos.filter(k => this.isDateInRange(k.createdAtUtc, options.startDate, options.endDate));
+      kudos = kudos.filter(kudosCard => this.isDateInRange(kudosCard.createdAtUtc, options.startDate, options.endDate));
     }
 
     // Filter Tech Talks
     let techTalks = this.state.techTalks();
     if (options.memberId !== 'ALL') {
-      techTalks = techTalks.filter(t => t.presenterId === options.memberId);
+      techTalks = techTalks.filter(talk => talk.presenterId === options.memberId);
     }
     if (options.timeScopeType === 'MONTH' && options.month) {
-      techTalks = techTalks.filter(t => this.isDateInMonth(t.talkDate, options.month!));
+      techTalks = techTalks.filter(talk => this.isDateInMonth(talk.talkDate, options.month!));
     } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
-      techTalks = techTalks.filter(t => this.isDateInQuarter(t.talkDate, options.quarter!));
+      techTalks = techTalks.filter(talk => this.isDateInQuarter(talk.talkDate, options.quarter!));
     } else if (options.timeScopeType === 'CUSTOM') {
-      techTalks = techTalks.filter(t => this.isDateInRange(t.talkDate, options.startDate, options.endDate));
+      techTalks = techTalks.filter(talk => this.isDateInRange(talk.talkDate, options.startDate, options.endDate));
     }
 
     // Determine Scope Label
     let scopeLabel = 'All History';
     if (options.timeScopeType === 'SPRINT') {
-      const sp = sprints.find(s => s.id === options.sprintId);
+      const sp = sprints.find(sprint => sprint.id === options.sprintId);
       scopeLabel = sp ? `Sprint: ${sp.name}` : 'All Sprints';
     } else if (options.timeScopeType === 'MONTH' && options.month) {
       scopeLabel = `Month: ${options.month}`;
@@ -217,15 +220,15 @@ export class ReportExportService {
     const wb = XLSX.utils.book_new();
 
     // 1. Summary Sheet
-    const totalPoints = data.workItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0);
-    const donePoints = data.workItems.filter(w => String(w.status).toLowerCase().includes('done'))
-      .reduce((acc, w) => acc + (w.storyPoints || 0), 0);
+    const totalPoints = data.workItems.reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
+    const donePoints = data.workItems.filter(item => String(item.status).toLowerCase().includes('done'))
+      .reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
     const totalPrs = data.prLogs.length;
-    const totalComments = data.prLogs.reduce((acc, p) => acc + (p.totalCommentsCount || 0), 0);
-    const actionableComments = data.prLogs.reduce((acc, p) => acc + (p.actionableCommentsCount || 0), 0);
-    const actionabilityRate = totalComments > 0 ? `${Math.round((actionableComments / totalComments) * 100)}%` : '0%';
-    const totalLeaveDays = data.leaves.reduce((acc, l) => acc + (l.totalDays || 0), 0);
-    const totalTalkMinutes = data.techTalks.reduce((acc, t) => acc + (t.durationMinutes || 0), 0);
+    const totalComments = data.prLogs.reduce((accumulatedComments, pr) => accumulatedComments + (pr.totalCommentsCount || 0), 0);
+    const actionableComments = data.prLogs.reduce((accumulatedActionable, pr) => accumulatedActionable + (pr.actionableCommentsCount || 0), 0);
+    const actionabilityRate = totalComments > 0 ? `${Math.round((actionableComments / totalComments) * PERCENTAGE_FACTOR)}%` : '0%';
+    const totalLeaveDays = data.leaves.reduce((accumulatedDays, leave) => accumulatedDays + (leave.totalDays || 0), 0);
+    const totalTalkMinutes = data.techTalks.reduce((accumulatedMinutes, talk) => accumulatedMinutes + (talk.durationMinutes || 0), 0);
 
     const summaryData = [
       ['SCRUMPULSE ENTERPRISE AGILE PERFORMANCE REPORT'],
@@ -237,7 +240,7 @@ export class ReportExportService {
       ['Total Work Items Handled', data.workItems.length],
       ['Total Story Points Scope', totalPoints],
       ['Delivered Story Points', donePoints],
-      ['Say-Do Velocity Rate', totalPoints > 0 ? `${Math.round((donePoints / totalPoints) * 100)}%` : '0%'],
+      ['Say-Do Velocity Rate', totalPoints > 0 ? `${Math.round((donePoints / totalPoints) * PERCENTAGE_FACTOR)}%` : '0%'],
       ['Pull Requests Authored', totalPrs],
       ['Review Discussions Received', totalComments],
       ['Actionable Code Review Feedback', actionableComments],
@@ -292,7 +295,7 @@ export class ReportExportService {
       'Sprint': pr.sprintName || 'Current Sprint',
       'Total Comments': pr.totalCommentsCount,
       'Actionable Comments': pr.actionableCommentsCount,
-      'Actionability %': pr.totalCommentsCount > 0 ? `${Math.round((pr.actionableCommentsCount / pr.totalCommentsCount) * 100)}%` : '0%',
+      'Actionability %': pr.totalCommentsCount > 0 ? `${Math.round((pr.actionableCommentsCount / pr.totalCommentsCount) * PERCENTAGE_FACTOR)}%` : '0%',
       'Status': pr.reviewStatus,
       'Review Summary & Notes': pr.reviewSummary,
       'Created Date': pr.createdAtUtc ? new Date(pr.createdAtUtc).toLocaleDateString() : ''
@@ -301,64 +304,64 @@ export class ReportExportService {
     XLSX.utils.book_append_sheet(wb, wsPrs, 'Pull Requests & Reviews');
 
     // 4. Daily Standups Sheet
-    const standupRows = data.standups.map(s => ({
-      'Date': s.standupDate ? new Date(s.standupDate).toLocaleDateString() : '',
-      'Member': s.teamMemberName,
-      'Yesterday Accomplishments': s.yesterdaySummary,
-      'Today Focus Plan': s.todayPlan,
-      'Impediments / Blockers': s.blockersText || 'None',
-      'Mood Score (1-10)': s.moodScore
+    const standupRows = data.standups.map(standup => ({
+      'Date': standup.standupDate ? new Date(standup.standupDate).toLocaleDateString() : '',
+      'Member': standup.teamMemberName,
+      'Yesterday Accomplishments': standup.yesterdaySummary,
+      'Today Focus Plan': standup.todayPlan,
+      'Impediments / Blockers': standup.blockersText || 'None',
+      'Mood Score (1-10)': standup.moodScore
     }));
     const wsStandups = XLSX.utils.json_to_sheet(standupRows.length > 0 ? standupRows : [{ 'Info': 'No standups found for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsStandups, 'Daily Standups');
 
     // 5. Leaves & Capacity Sheet
-    const leaveRows = data.leaves.map(l => ({
-      'Member': l.teamMemberName,
-      'Leave Category': l.leaveType,
-      'Slot': l.leaveSlot === 'FirstHalf' ? '1st Half' : (l.leaveSlot === 'SecondHalf' ? '2nd Half' : 'Full Day'),
-      'Start Date': l.startDate ? new Date(l.startDate).toLocaleDateString() : '',
-      'End Date': l.endDate ? new Date(l.endDate).toLocaleDateString() : '',
-      'Total Working Days': l.totalDays,
-      'Approval Status': l.isApproved ? 'Approved' : 'Pending',
-      'Reason / Context': l.reason || 'Planned Timeoff'
+    const leaveRows = data.leaves.map(leave => ({
+      'Member': leave.teamMemberName,
+      'Leave Category': leave.leaveType,
+      'Slot': leave.leaveSlot === 'FirstHalf' ? '1st Half' : (leave.leaveSlot === 'SecondHalf' ? '2nd Half' : 'Full Day'),
+      'Start Date': leave.startDate ? new Date(leave.startDate).toLocaleDateString() : '',
+      'End Date': leave.endDate ? new Date(leave.endDate).toLocaleDateString() : '',
+      'Total Working Days': leave.totalDays,
+      'Approval Status': leave.isApproved ? 'Approved' : 'Pending',
+      'Reason / Context': leave.reason || 'Planned Timeoff'
     }));
     const wsLeaves = XLSX.utils.json_to_sheet(leaveRows.length > 0 ? leaveRows : [{ 'Info': 'No leave records for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsLeaves, 'Capacity & Leaves');
 
     // 6. Monthly 1:1 Feedback Sheet
-    const reviewRows = data.reviews.map(r => ({
-      'Team Member': r.teamMemberName,
-      'Review Month': r.monthYear,
-      'SM Rating (1-5)': r.smRating,
-      'Happiness Index (1-10)': r.happinessIndex,
-      'Scrum Master Feedback': r.scrumMasterFeedback,
-      'CDL Feedback': r.cdlFeedback,
-      'Self Reflection': r.selfReflection,
-      'Action Items Agreed': r.actionItems,
-      'Next Month Goals': r.nextMonthGoals
+    const reviewRows = data.reviews.map(review => ({
+      'Team Member': review.teamMemberName,
+      'Review Month': review.monthYear,
+      'SM Rating (1-5)': review.smRating,
+      'Happiness Index (1-10)': review.happinessIndex,
+      'Scrum Master Feedback': review.scrumMasterFeedback,
+      'CDL Feedback': review.cdlFeedback,
+      'Self Reflection': review.selfReflection,
+      'Action Items Agreed': review.actionItems,
+      'Next Month Goals': review.nextMonthGoals
     }));
     const wsReviews = XLSX.utils.json_to_sheet(reviewRows.length > 0 ? reviewRows : [{ 'Info': 'No 1:1 monthly feedback reviews for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsReviews, '1on1 Monthly Feedback');
 
     // 7. Kudos & Peer Recognitions Sheet
-    const kudosRows = data.kudos.map(k => ({
-      'Recipient': k.receiverName || data.memberLabel,
-      'Sender': k.senderName || 'Team Member',
-      'Award Category': this.getBadgeLabel(k.badge),
-      'Kudos Message': k.message,
-      'Date': k.createdAtUtc ? new Date(k.createdAtUtc).toLocaleDateString() : ''
+    const kudosRows = data.kudos.map(kudosCard => ({
+      'Recipient': kudosCard.receiverName || data.memberLabel,
+      'Sender': kudosCard.senderName || 'Team Member',
+      'Award Category': this.getBadgeLabel(kudosCard.badge),
+      'Kudos Message': kudosCard.message,
+      'Date': kudosCard.createdAtUtc ? new Date(kudosCard.createdAtUtc).toLocaleDateString() : ''
     }));
     const wsKudos = XLSX.utils.json_to_sheet(kudosRows.length > 0 ? kudosRows : [{ 'Info': 'No kudos recognitions found for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsKudos, 'Kudos Recognitions');
 
     // 8. Tech Talks & Knowledge Sharing Sheet
-    const techTalkRows = data.techTalks.map(t => ({
-      'Topic & Subject': t.topic,
-      'Presenter': t.presenterName || data.memberLabel,
-      'Date Delivered': t.talkDate ? new Date(t.talkDate).toLocaleDateString() : '',
-      'Duration (Minutes)': t.durationMinutes,
-      'Key Takeaways / Architecture Notes': t.keyTakeaways || 'Technical demo & architectural discussion'
+    const techTalkRows = data.techTalks.map(talk => ({
+      'Topic & Subject': talk.topic,
+      'Presenter': talk.presenterName || data.memberLabel,
+      'Date Delivered': talk.talkDate ? new Date(talk.talkDate).toLocaleDateString() : '',
+      'Duration (Minutes)': talk.durationMinutes,
+      'Key Takeaways / Architecture Notes': talk.keyTakeaways || 'Technical demo & architectural discussion'
     }));
     const wsTechTalks = XLSX.utils.json_to_sheet(techTalkRows.length > 0 ? techTalkRows : [{ 'Info': 'No tech talks hosted for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsTechTalks, 'Tech Talks & Knowledge Hub');
@@ -407,14 +410,14 @@ export class ReportExportService {
     currentY = 110;
 
     // KPI Cards Block
-    const totalPoints = data.workItems.reduce((acc, w) => acc + (w.storyPoints || 0), 0);
-    const donePoints = data.workItems.filter(w => String(w.status).toLowerCase().includes('done'))
-      .reduce((acc, w) => acc + (w.storyPoints || 0), 0);
+    const totalPoints = data.workItems.reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
+    const donePoints = data.workItems.filter(item => String(item.status).toLowerCase().includes('done'))
+      .reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
     const totalPrs = data.prLogs.length;
-    const totalComments = data.prLogs.reduce((acc, p) => acc + (p.totalCommentsCount || 0), 0);
-    const actionableComments = data.prLogs.reduce((acc, p) => acc + (p.actionableCommentsCount || 0), 0);
-    const actionabilityRate = totalComments > 0 ? `${Math.round((actionableComments / totalComments) * 100)}%` : '0%';
-    const totalLeaveDays = data.leaves.reduce((acc, l) => acc + (l.totalDays || 0), 0);
+    const totalComments = data.prLogs.reduce((accumulatedComments, pr) => accumulatedComments + (pr.totalCommentsCount || 0), 0);
+    const actionableComments = data.prLogs.reduce((accumulatedActionable, pr) => accumulatedActionable + (pr.actionableCommentsCount || 0), 0);
+    const actionabilityRate = totalComments > 0 ? `${Math.round((actionableComments / totalComments) * PERCENTAGE_FACTOR)}%` : '0%';
+    const totalLeaveDays = data.leaves.reduce((accumulatedDays, leave) => accumulatedDays + (leave.totalDays || 0), 0);
 
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(13);
@@ -483,7 +486,7 @@ export class ReportExportService {
       pr.prTitle.length > 30 ? pr.prTitle.substring(0, 27) + '...' : pr.prTitle,
       pr.authorName,
       `${pr.totalCommentsCount} / ${pr.actionableCommentsCount}`,
-      pr.totalCommentsCount > 0 ? `${Math.round((pr.actionableCommentsCount / pr.totalCommentsCount) * 100)}%` : '0%',
+      pr.totalCommentsCount > 0 ? `${Math.round((pr.actionableCommentsCount / pr.totalCommentsCount) * PERCENTAGE_FACTOR)}%` : '0%',
       pr.reviewStatus
     ]);
 
@@ -506,11 +509,11 @@ export class ReportExportService {
       doc.text('3. Recent Daily Standups & Impediments', 30, currentY);
       currentY += 10;
 
-      const standupsBody = data.standups.slice(0, 8).map(s => [
-        s.standupDate ? new Date(s.standupDate).toLocaleDateString() : '',
-        s.yesterdaySummary.length > 35 ? s.yesterdaySummary.substring(0, 32) + '...' : s.yesterdaySummary,
-        s.todayPlan.length > 35 ? s.todayPlan.substring(0, 32) + '...' : s.todayPlan,
-        s.blockersText || 'None'
+      const standupsBody = data.standups.slice(0, MAX_STANDUPS_PDF_PREVIEW_COUNT).map(standup => [
+        standup.standupDate ? new Date(standup.standupDate).toLocaleDateString() : '',
+        standup.yesterdaySummary.length > 35 ? standup.yesterdaySummary.substring(0, 32) + '...' : standup.yesterdaySummary,
+        standup.todayPlan.length > 35 ? standup.todayPlan.substring(0, 32) + '...' : standup.todayPlan,
+        standup.blockersText || 'None'
       ]);
 
       autoTable(doc, {
@@ -532,14 +535,14 @@ export class ReportExportService {
       doc.text('4. Leaves & Capacity Allocation', 30, currentY);
       currentY += 10;
 
-      const leavesBody = data.leaves.map(l => [
-        l.teamMemberName,
-        l.leaveType,
-        l.leaveSlot === 'FirstHalf' ? '1st Half' : (l.leaveSlot === 'SecondHalf' ? '2nd Half' : 'Full Day'),
-        l.startDate ? new Date(l.startDate).toLocaleDateString() : '',
-        l.endDate ? new Date(l.endDate).toLocaleDateString() : '',
-        `${l.totalDays}d`,
-        l.reason || 'Planned PTO'
+      const leavesBody = data.leaves.map(leave => [
+        leave.teamMemberName,
+        leave.leaveType,
+        leave.leaveSlot === 'FirstHalf' ? '1st Half' : (leave.leaveSlot === 'SecondHalf' ? '2nd Half' : 'Full Day'),
+        leave.startDate ? new Date(leave.startDate).toLocaleDateString() : '',
+        leave.endDate ? new Date(leave.endDate).toLocaleDateString() : '',
+        `${leave.totalDays}d`,
+        leave.reason || 'Planned PTO'
       ]);
 
       autoTable(doc, {
@@ -561,13 +564,13 @@ export class ReportExportService {
       doc.text('5. Monthly 1-on-1 Reviews & Coaching Feedback', 30, currentY);
       currentY += 10;
 
-      const reviewsBody = data.reviews.map(r => [
-        r.teamMemberName,
-        r.monthYear,
-        `${r.smRating} / 5`,
-        `${r.happinessIndex} / 10`,
-        r.scrumMasterFeedback.length > 40 ? r.scrumMasterFeedback.substring(0, 37) + '...' : r.scrumMasterFeedback,
-        r.actionItems.length > 35 ? r.actionItems.substring(0, 32) + '...' : r.actionItems
+      const reviewsBody = data.reviews.map(review => [
+        review.teamMemberName,
+        review.monthYear,
+        `${review.smRating} / 5`,
+        `${review.happinessIndex} / 10`,
+        review.scrumMasterFeedback.length > 40 ? review.scrumMasterFeedback.substring(0, 37) + '...' : review.scrumMasterFeedback,
+        review.actionItems.length > 35 ? review.actionItems.substring(0, 32) + '...' : review.actionItems
       ]);
 
       autoTable(doc, {
@@ -589,12 +592,12 @@ export class ReportExportService {
       doc.text('6. Peer Kudos & Recognitions Received', 30, currentY);
       currentY += 10;
 
-      const kudosBody = data.kudos.map(k => [
-        k.receiverName || data.memberLabel,
-        k.senderName || 'Team Member',
-        this.getBadgeLabel(k.badge),
-        k.message.length > 45 ? k.message.substring(0, 42) + '...' : k.message,
-        k.createdAtUtc ? new Date(k.createdAtUtc).toLocaleDateString() : ''
+      const kudosBody = data.kudos.map(kudosCard => [
+        kudosCard.receiverName || data.memberLabel,
+        kudosCard.senderName || 'Team Member',
+        this.getBadgeLabel(kudosCard.badge),
+        kudosCard.message.length > 45 ? kudosCard.message.substring(0, 42) + '...' : kudosCard.message,
+        kudosCard.createdAtUtc ? new Date(kudosCard.createdAtUtc).toLocaleDateString() : ''
       ]);
 
       autoTable(doc, {
@@ -616,12 +619,12 @@ export class ReportExportService {
       doc.text('7. Tech Talks & Knowledge Sharing Sessions', 30, currentY);
       currentY += 10;
 
-      const talksBody = data.techTalks.map(t => [
-        t.topic,
-        t.presenterName || data.memberLabel,
-        t.talkDate ? new Date(t.talkDate).toLocaleDateString() : '',
-        `${t.durationMinutes} mins`,
-        (t.keyTakeaways || '').length > 45 ? (t.keyTakeaways || '').substring(0, 42) + '...' : (t.keyTakeaways || 'Technical demo & architectural review')
+      const talksBody = data.techTalks.map(talk => [
+        talk.topic,
+        talk.presenterName || data.memberLabel,
+        talk.talkDate ? new Date(talk.talkDate).toLocaleDateString() : '',
+        `${talk.durationMinutes} mins`,
+        (talk.keyTakeaways || '').length > 45 ? (talk.keyTakeaways || '').substring(0, 42) + '...' : (talk.keyTakeaways || 'Technical demo & architectural review')
       ]);
 
       autoTable(doc, {
@@ -637,12 +640,12 @@ export class ReportExportService {
 
     // Page Number Footers on All Pages
     const totalPages = (doc.internal as any).getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+      doc.setPage(pageNumber);
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        `ScrumPulse Enterprise v2.0  |  Confidential & Proprietary  |  Page ${i} of ${totalPages}`,
+        `ScrumPulse Enterprise v2.0  |  Confidential & Proprietary  |  Page ${pageNumber} of ${totalPages}`,
         pageWidth / 2,
         doc.internal.pageSize.getHeight() - 15,
         { align: 'center' }

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Scrum Master PIN Security & Role Interception', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should default role to Developer and intercept switching to Scrum Master', async ({ page }) => {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Executive Suite Multi-Duration Export & AI Synthesis', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.locator('.tab-btn', { hasText: 'Executive Suite' }).click();
     await expect(page.locator('.hero-title')).toBeVisible({ timeout: 10000 });
   });

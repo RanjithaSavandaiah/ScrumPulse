@@ -25,11 +25,11 @@ export const standupsReducer = createReducer(
   })),
   on(StandupActions.updateStandupSuccess, (state, { standup }) => ({
     ...state,
-    standups: state.standups.map(s => s.id === standup.id ? standup : s)
+    standups: state.standups.map(standupItem => standupItem.id === standup.id ? standup : standupItem)
   })),
   on(StandupActions.deleteStandupSuccess, (state, { id }) => ({
     ...state,
-    standups: state.standups.filter(s => s.id !== id)
+    standups: state.standups.filter(standupItem => standupItem.id !== id)
   })),
   on(StandupActions.clearAllStandupsSuccess, state => ({
     ...state,

@@ -21,10 +21,10 @@ export class KudosComponent {
     const list = this.state.kudos();
     const current = this.state.currentTeam();
     if (!current) return list;
-    const squadMemberIds = new Set(this.state.squadMembers().map(m => m.id.toLowerCase().trim()));
-    return list.filter(k =>
-      (k.senderId && squadMemberIds.has(k.senderId.toLowerCase().trim())) ||
-      (k.receiverId && squadMemberIds.has(k.receiverId.toLowerCase().trim()))
+    const squadMemberIds = new Set(this.state.squadMembers().map(member => member.id.toLowerCase().trim()));
+    return list.filter(kudosCard =>
+      (kudosCard.senderId && squadMemberIds.has(kudosCard.senderId.toLowerCase().trim())) ||
+      (kudosCard.receiverId && squadMemberIds.has(kudosCard.receiverId.toLowerCase().trim()))
     );
   });
 

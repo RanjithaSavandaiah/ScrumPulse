@@ -16,13 +16,19 @@ using ScrumPulse.Domain.Enums;
 /// </summary>
 public class TeamsController(IAppDbContext db) : BaseApiController
 {
+    private const int MinSlugRandomSuffix = 100;
+    private const int MaxSlugRandomSuffix = 1000;
+    private const int MinFallbackSlugRandom = 1000;
+    private const int MaxFallbackSlugRandom = 10000;
+    private const int JoinCodeLength = 6;
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TeamDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamDto>>> GetAll(CancellationToken ct = default)
     {
         var teams = await db.Teams
-            .Where(t => t.IsActive)
-            .OrderBy(t => t.Name)
+            .Where(team => team.IsActive)
+            .OrderBy(team => team.Name)
             .AsNoTracking()
             .ToListAsync(ct);
 
@@ -34,7 +40,7 @@ public class TeamsController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDto>> GetById(Guid id, CancellationToken ct = default)
     {
-        var team = await db.Teams.FirstOrDefaultAsync(t => t.Id == id, ct);
+        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
         if (team == null) return NotFound();
 
         return Ok(team.ToDto());
@@ -57,10 +63,10 @@ public class TeamsController(IAppDbContext db) : BaseApiController
         }
 
         var slug = GenerateSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
-        var existingSlug = await db.Teams.AnyAsync(t => t.Slug == slug, ct);
+        var existingSlug = await db.Teams.AnyAsync(team => team.Slug == slug, ct);
         if (existingSlug)
         {
-            slug = $"{slug}-{RandomNumberGenerator.GetInt32(100, 999)}";
+            slug = $"{slug}-{RandomNumberGenerator.GetInt32(MinSlugRandomSuffix, MaxSlugRandomSuffix)}";
         }
 
         var joinCode = GenerateJoinCode();
@@ -86,7 +92,7 @@ public class TeamsController(IAppDbContext db) : BaseApiController
     public async Task<ActionResult<TeamDto>> Join([FromBody] JoinTeamRequest request, CancellationToken ct = default)
     {
         var code = request.JoinCode.Trim().ToUpperInvariant();
-        var team = await db.Teams.FirstOrDefaultAsync(t => t.JoinCode == code && t.IsActive, ct);
+        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.JoinCode == code && teamEntity.IsActive, ct);
         if (team == null)
         {
             return NotFound(new { error = "No active team found with the specified join code." });
@@ -100,7 +106,7 @@ public class TeamsController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDto>> Update(Guid id, [FromBody] CreateTeamRequest request, CancellationToken ct = default)
     {
-        var team = await db.Teams.FirstOrDefaultAsync(t => t.Id == id, ct);
+        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
         if (team == null) return NotFound();
 
         team.Name = request.Name.Trim();
@@ -115,17 +121,17 @@ public class TeamsController(IAppDbContext db) : BaseApiController
         var slug = input.ToLowerInvariant().Trim();
         slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");
         slug = Regex.Replace(slug, @"\s+", "-").Trim('-');
-        return string.IsNullOrWhiteSpace(slug) ? $"team-{RandomNumberGenerator.GetInt32(1000, 9999)}" : slug;
+        return string.IsNullOrWhiteSpace(slug) ? $"team-{RandomNumberGenerator.GetInt32(MinFallbackSlugRandom, MaxFallbackSlugRandom)}" : slug;
     }
 
     private static string GenerateJoinCode()
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var bytes = RandomNumberGenerator.GetBytes(6);
-        var result = new char[6];
-        for (int i = 0; i < 6; i++)
+        var bytes = RandomNumberGenerator.GetBytes(JoinCodeLength);
+        var result = new char[JoinCodeLength];
+        for (int characterIndex = 0; characterIndex < JoinCodeLength; characterIndex++)
         {
-            result[i] = chars[bytes[i] % chars.Length];
+            result[characterIndex] = chars[bytes[characterIndex] % chars.Length];
         }
         return new string(result);
     }

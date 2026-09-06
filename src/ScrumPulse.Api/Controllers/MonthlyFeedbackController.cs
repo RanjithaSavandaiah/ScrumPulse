@@ -14,6 +14,9 @@ using ScrumPulse.Domain.Entities;
 /// <summary>Monthly 1:1 feedback management with AI-synthesized insights.</summary>
 public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
 {
+    private const int DefaultSentimentScore = 5;
+    private const int MediumBurnoutRiskHappinessThreshold = 6;
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<MonthlyFeedbackDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<MonthlyFeedbackDto>>> GetAll([FromQuery] Guid? memberId, CancellationToken ct)
@@ -29,8 +32,8 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(typeof(MonthlyFeedbackDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<MonthlyFeedbackDto>> Submit([FromBody] SubmitMonthlyFeedbackRequest request, CancellationToken ct)
     {
-        var smRating = request.SmRating > 0 ? request.SmRating : 5;
-        var happinessIndex = request.HappinessIndex > 0 ? request.HappinessIndex : 5;
+        var smRating = request.SmRating > 0 ? request.SmRating : DefaultSentimentScore;
+        var happinessIndex = request.HappinessIndex > 0 ? request.HappinessIndex : DefaultSentimentScore;
 
         var feedback = new Monthly1on1Feedback
         {
@@ -46,7 +49,7 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
             NextMonthGoals = request.NextMonthGoals?.Trim() ?? string.Empty,
             AiSynthesizedStrengths = string.Empty,
             AiGrowthRecommendations = string.Empty,
-            AiBurnoutRiskAssessment = happinessIndex < 6 ? "Medium Risk" : "Low Risk"
+            AiBurnoutRiskAssessment = happinessIndex < MediumBurnoutRiskHappinessThreshold ? "Medium Risk" : "Low Risk"
         };
 
         db.Monthly1on1Feedbacks.Add(feedback);
@@ -63,11 +66,13 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MonthlyFeedbackDto>> Update(Guid id, [FromBody] SubmitMonthlyFeedbackRequest request, CancellationToken ct)
     {
-        var feedback = await db.Monthly1on1Feedbacks.Include(f => f.TeamMember).FirstOrDefaultAsync(f => f.Id == id, ct);
+        var feedback = await db.Monthly1on1Feedbacks
+            .Include(existingFeedback => existingFeedback.TeamMember)
+            .FirstOrDefaultAsync(existingFeedback => existingFeedback.Id == id, ct);
         if (feedback == null) return NotFound();
 
-        var smRating = request.SmRating > 0 ? request.SmRating : 5;
-        var happinessIndex = request.HappinessIndex > 0 ? request.HappinessIndex : 5;
+        var smRating = request.SmRating > 0 ? request.SmRating : DefaultSentimentScore;
+        var happinessIndex = request.HappinessIndex > 0 ? request.HappinessIndex : DefaultSentimentScore;
 
         feedback.TeamMemberId = request.TeamMemberId;
         if (!string.IsNullOrWhiteSpace(request.MonthYear)) feedback.MonthYear = request.MonthYear;
@@ -79,7 +84,7 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
         feedback.HappinessIndex = happinessIndex;
         if (request.ActionItems != null) feedback.ActionItems = request.ActionItems.Trim();
         if (request.NextMonthGoals != null) feedback.NextMonthGoals = request.NextMonthGoals.Trim();
-        feedback.AiBurnoutRiskAssessment = happinessIndex < 6 ? "Medium Risk" : "Low Risk";
+        feedback.AiBurnoutRiskAssessment = happinessIndex < MediumBurnoutRiskHappinessThreshold ? "Medium Risk" : "Low Risk";
 
         await db.SaveChangesAsync(ct);
 
@@ -96,7 +101,7 @@ public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var feedback = await db.Monthly1on1Feedbacks.FirstOrDefaultAsync(f => f.Id == id, ct);
+        var feedback = await db.Monthly1on1Feedbacks.FirstOrDefaultAsync(existingFeedback => existingFeedback.Id == id, ct);
         if (feedback == null) return NotFound();
         db.Monthly1on1Feedbacks.Remove(feedback);
         await db.SaveChangesAsync(ct);
