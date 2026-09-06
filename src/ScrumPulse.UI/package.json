@@ -28,7 +28,7 @@
     "jspdf-autotable": "^5.0.8",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
@@ -44,5 +44,8 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "typescript": "~6.0.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.0"
   }
 }
