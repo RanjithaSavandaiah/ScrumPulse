@@ -36,12 +36,14 @@ public class GlobalExceptionHandlerMiddleware
         }
         catch (Exception unhandledException)
         {
-            var correlationId = httpContext.Items["CorrelationId"]?.ToString() ?? "unknown";
+            var rawCorrelationId = httpContext.Items["CorrelationId"]?.ToString() ?? "unknown";
+            var correlationId = rawCorrelationId.Replace("\r", string.Empty).Replace("\n", string.Empty);
+            var method = (httpContext.Request.Method ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+            var path = (httpContext.Request.Path.Value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
 
             _logger.LogError(unhandledException,
                 "Unhandled {ExceptionType} during {Method} {Path} [CID: {CorrelationId}]",
-                unhandledException.GetType().Name, httpContext.Request.Method,
-                httpContext.Request.Path, correlationId);
+                unhandledException.GetType().Name, method, path, correlationId);
 
             await HandleExceptionAsync(httpContext, unhandledException, correlationId);
         }

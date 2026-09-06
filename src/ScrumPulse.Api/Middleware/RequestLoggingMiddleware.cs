@@ -13,15 +13,16 @@ public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggi
     public async Task InvokeAsync(HttpContext httpContext)
     {
         // Generate or propagate correlation ID
-        var correlationId = httpContext.Request.Headers[CorrelationIdHeader].FirstOrDefault()
+        var rawCorrelationId = httpContext.Request.Headers[CorrelationIdHeader].FirstOrDefault()
             ?? Guid.NewGuid().ToString("N")[..12];
+        var correlationId = rawCorrelationId.Replace("\r", string.Empty).Replace("\n", string.Empty);
 
         httpContext.Items["CorrelationId"] = correlationId;
         httpContext.Response.Headers[CorrelationIdHeader] = correlationId;
 
         var stopwatch = Stopwatch.StartNew();
-        var path = httpContext.Request.Path;
-        var method = httpContext.Request.Method;
+        var path = (httpContext.Request.Path.Value ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var method = (httpContext.Request.Method ?? string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty);
 
         try
         {
