@@ -57,9 +57,17 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
 
         if (sprint.IsActive)
         {
-            // Deactivate other sprints efficiently with a single update
-            await db.Sprints.Where(s => s.IsActive).ExecuteUpdateAsync(
-                s => s.SetProperty(e => e.IsActive, false), ct);
+            // Deactivate other sprints efficiently with a single update, with fallback for non-relational test providers
+            try
+            {
+                await db.Sprints.Where(s => s.IsActive).ExecuteUpdateAsync(
+                    s => s.SetProperty(e => e.IsActive, false), ct);
+            }
+            catch (InvalidOperationException)
+            {
+                var activeList = await db.Sprints.Where(s => s.IsActive).ToListAsync(ct);
+                foreach (var s in activeList) s.IsActive = false;
+            }
         }
 
         db.Sprints.Add(sprint);
@@ -137,13 +145,39 @@ public class SprintsController(IAppDbContext db, ITenantContext? tenantContext =
         if (sprint == null) return NotFound();
 
         // Safely unlink all dependent entities before deleting the sprint
-        await db.WorkItems.Where(w => w.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-        await db.DailyStandups.Where(s => s.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-        await db.Blockers.Where(b => b.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-        await db.RetroCards.Where(r => r.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-        await db.RetroActionItems.Where(a => a.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-        await db.PullRequestReviewLogs.Where(p => p.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
-        await db.TechDebtItems.Where(t => t.PayoffSprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.PayoffSprintId, (Guid?)null), ct);
+        try
+        {
+            await db.WorkItems.Where(w => w.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
+            await db.DailyStandups.Where(s => s.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
+            await db.Blockers.Where(b => b.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
+            await db.RetroCards.Where(r => r.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
+            await db.RetroActionItems.Where(a => a.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
+            await db.PullRequestReviewLogs.Where(p => p.SprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.SprintId, (Guid?)null), ct);
+            await db.TechDebtItems.Where(t => t.PayoffSprintId == id).ExecuteUpdateAsync(s => s.SetProperty(e => e.PayoffSprintId, (Guid?)null), ct);
+        }
+        catch (InvalidOperationException)
+        {
+            var workItems = await db.WorkItems.Where(w => w.SprintId == id).ToListAsync(ct);
+            foreach (var w in workItems) w.SprintId = null;
+
+            var standups = await db.DailyStandups.Where(s => s.SprintId == id).ToListAsync(ct);
+            foreach (var s in standups) s.SprintId = null;
+
+            var blockers = await db.Blockers.Where(b => b.SprintId == id).ToListAsync(ct);
+            foreach (var b in blockers) b.SprintId = null;
+
+            var retros = await db.RetroCards.Where(r => r.SprintId == id).ToListAsync(ct);
+            foreach (var r in retros) r.SprintId = null;
+
+            var actions = await db.RetroActionItems.Where(a => a.SprintId == id).ToListAsync(ct);
+            foreach (var a in actions) a.SprintId = null;
+
+            var prs = await db.PullRequestReviewLogs.Where(p => p.SprintId == id).ToListAsync(ct);
+            foreach (var p in prs) p.SprintId = null;
+
+            var debts = await db.TechDebtItems.Where(t => t.PayoffSprintId == id).ToListAsync(ct);
+            foreach (var t in debts) t.PayoffSprintId = null;
+        }
 
         bool wasActive = sprint.IsActive;
         db.Sprints.Remove(sprint);
