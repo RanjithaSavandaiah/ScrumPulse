@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
@@ -21,6 +21,7 @@ export class TechTalkModalComponent implements OnInit {
   @Output() delete = new EventEmitter<string>();
 
   state = inject(ScrumStateService);
+  isSubmitting = signal(false);
 
   topic: string = '';
   presenterId: string = '';
@@ -53,7 +54,8 @@ export class TechTalkModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.topic.trim() || !this.presenterId) return;
+    if (this.isSubmitting() || !this.topic.trim() || !this.presenterId) return;
+    this.isSubmitting.set(true);
 
     const payload: any = {
       topic: this.topic.trim(),

@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { BlockerCardComponent } from './components/blocker-card/blocker-card.component';
 import { AddBlockerModalComponent } from './components/add-blocker-modal/add-blocker-modal.component';
@@ -24,6 +25,7 @@ import { Blocker } from '../../core/models/scrum.models';
 })
 export class BlockersComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
   showNewBlockerModal = signal(false);
   selectedBlockerForEdit = signal<Blocker | null>(null);
   selectedBlockerForResolution = signal<Blocker | null>(null);
@@ -52,12 +54,14 @@ export class BlockersComponent {
         sprintId: editItem.sprintId || this.state.activeSprint()?.id,
         raisedById: editItem.raisedById || this.state.squadMembers()[0]?.id
       });
+      this.notification.showSuccess('Blocker Updated', `Blocker "${blockerData.title}" updated successfully.`, 'shield-alert');
     } else {
       this.state.createBlocker({
         ...blockerData,
         sprintId: this.state.activeSprint()?.id,
         raisedById: this.state.squadMembers()[0]?.id
       });
+      this.notification.showSuccess('Blocker Logged', `Blocker "${blockerData.title}" logged on SLA Radar.`, 'shield-alert');
     }
 
     this.onCloseBlockerModal();
@@ -69,6 +73,7 @@ export class BlockersComponent {
 
   onConfirmResolve(event: { id: string; notes: string }): void {
     this.state.resolveBlocker(event.id, event.notes);
+    this.notification.showSuccess('Blocker Resolved', 'Blocker marked as resolved on SLA Radar.', 'check-circle');
     this.selectedBlockerForResolution.set(null);
   }
 
@@ -80,12 +85,14 @@ export class BlockersComponent {
     const target = this.blockerToDelete();
     if (target?.id) {
       this.state.deleteBlocker(target.id);
+      this.notification.showSuccess('Blocker Deleted', `"${target.title}" removed from radar.`, 'trash-2');
       this.blockerToDelete.set(null);
     }
   }
 
   onDeleteFromModal(id: string): void {
     this.state.deleteBlocker(id);
+    this.notification.showSuccess('Blocker Deleted', 'Blocker removed from radar.', 'trash-2');
     this.onCloseBlockerModal();
   }
 }

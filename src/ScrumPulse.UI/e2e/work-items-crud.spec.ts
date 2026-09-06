@@ -77,7 +77,14 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     await updatedCard.locator('button.btn-edit').click();
     await expect(page.locator('#workItemTitleInput')).toBeVisible();
     await page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
+
+    // Confirm deletion in app-confirm-modal
+    const confirmDeleteModal = page.locator('app-add-work-item-modal app-confirm-modal .modal-box');
+    await expect(confirmDeleteModal).toBeVisible();
+    await confirmDeleteModal.locator('button.btn-confirm-action', { hasText: 'Delete Story' }).click();
+
     await expect(page.locator('#workItemTitleInput')).not.toBeVisible();
+    await expect(page.locator('app-confirmation-popup .confirmation-popup-card', { hasText: 'Work Item Deleted' })).toBeVisible({ timeout: 5000 });
 
     // Verify deleted
     await expect(page.locator('.work-item-card', { hasText: updatedTitle })).not.toBeVisible({ timeout: 10000 });
@@ -154,7 +161,14 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     await updatedStoryCard.locator('button.btn-edit').click();
     await expect(page.locator('#workItemTitleInput')).toBeVisible();
     await page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
+
+    // Confirm deletion in app-confirm-modal
+    const sprintConfirmDeleteModal = page.locator('app-add-work-item-modal app-confirm-modal .modal-box');
+    await expect(sprintConfirmDeleteModal).toBeVisible();
+    await sprintConfirmDeleteModal.locator('button.btn-confirm-action', { hasText: 'Delete Story' }).click();
+
     await expect(page.locator('#workItemTitleInput')).not.toBeVisible();
+    await expect(page.locator('app-confirmation-popup .confirmation-popup-card', { hasText: 'Work Item Deleted' })).toBeVisible({ timeout: 5000 });
     await expect(page.locator('.work-item-card', { hasText: updatedStoryTitle })).not.toBeVisible({ timeout: 10000 });
 
     // 8. Edit Sprint Goal

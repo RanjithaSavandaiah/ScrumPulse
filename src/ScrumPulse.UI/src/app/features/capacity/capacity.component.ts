@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { TeamLeave, TeamMember } from '../../core/models/scrum.models';
 import { BookLeaveModalComponent } from './components/book-leave-modal/book-leave-modal.component';
@@ -20,6 +21,7 @@ import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constant
 })
 export class CapacityComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
 
   showLeaveModal = signal(false);
   selectedEditLeave = signal<TeamLeave | null>(null);
@@ -115,8 +117,10 @@ export class CapacityComponent {
 
     if (editItem) {
       this.state.updateLeave(editItem.id, payload as any);
+      this.notification.showSuccess('Leave Updated', 'Leave booking details updated successfully.', 'palmtree');
     } else {
       this.state.submitLeave(payload as any);
+      this.notification.showSuccess('Leave Booked', 'Leave booking recorded and capacity recalculated.', 'palmtree');
     }
 
     this.showLeaveModal.set(false);
@@ -132,6 +136,7 @@ export class CapacityComponent {
       this.leaveToDelete.set(leave);
     } else {
       this.state.deleteLeave(id);
+      this.notification.showSuccess('Leave Cancelled', 'Leave booking removed.', 'trash-2');
       this.showLeaveModal.set(false);
       this.selectedEditLeave.set(null);
     }
@@ -141,6 +146,7 @@ export class CapacityComponent {
     const target = this.leaveToDelete();
     if (target) {
       this.state.deleteLeave(target.id);
+      this.notification.showSuccess('Leave Cancelled', 'Leave booking removed.', 'trash-2');
       this.leaveToDelete.set(null);
     }
   }

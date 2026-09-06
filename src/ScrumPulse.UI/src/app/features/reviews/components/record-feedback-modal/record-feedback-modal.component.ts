@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
@@ -20,6 +20,8 @@ export class RecordFeedbackModalComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<any>();
   @Output() delete = new EventEmitter<string>();
+
+  isSubmitting = signal(false);
 
   feedback = {
     teamMemberId: '',
@@ -68,6 +70,12 @@ export class RecordFeedbackModalComponent implements OnInit {
     } else if (!this.feedback.teamMemberId && this.teamMembers.length > 0) {
       this.feedback.teamMemberId = this.teamMembers[0].id;
     }
+  }
+
+  onSubmit(): void {
+    if (this.isSubmitting() || !this.feedback.teamMemberId) return;
+    this.isSubmitting.set(true);
+    this.save.emit(this.feedback);
   }
 
   onDelete(): void {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
@@ -16,6 +16,8 @@ export class AddBlockerModalComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<{ title: string; description: string; category: number; slaHoursLimit: number }>();
   @Output() delete = new EventEmitter<string>();
+
+  isSubmitting = signal(false);
 
   blocker = {
     title: '',
@@ -77,6 +79,12 @@ export class AddBlockerModalComponent implements OnInit {
   applyPreset(preset: string): void {
     this.blocker.title = preset;
     this.blocker.description = `Urgent unblocking requested from onshore stakeholders to prevent sprint delay.`;
+  }
+
+  onSubmit(): void {
+    if (this.isSubmitting() || !this.blocker.title.trim()) return;
+    this.isSubmitting.set(true);
+    this.save.emit(this.blocker);
   }
 
   onDelete(): void {

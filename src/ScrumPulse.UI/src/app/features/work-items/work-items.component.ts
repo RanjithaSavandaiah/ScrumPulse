@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { WorkItemCardComponent } from './components/work-item-card/work-item-card.component';
 import { AddWorkItemModalComponent } from './components/add-work-item-modal/add-work-item-modal.component';
@@ -47,6 +48,7 @@ const MAX_VELOCITY_RATIO_PERCENTAGE = 100;
 })
 export class WorkItemsComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
 
   showNewItemModal = signal(false);
   showEditSprintModal = signal(false);
@@ -221,6 +223,7 @@ export class WorkItemsComponent {
         sprintId: targetSprint || null,
         assigneeId: newItem.assigneeId || null
       });
+      this.notification.showSuccess('Work Item Updated', `"${newItem.title.trim()}" has been updated.`);
     } else {
       this.state.createWorkItem({
         title: newItem.title.trim(),
@@ -232,6 +235,7 @@ export class WorkItemsComponent {
         sprintId: targetSprint || null,
         assigneeId: newItem.assigneeId || null
       });
+      this.notification.showSuccess('Work Item Added', `"${newItem.title.trim()}" added to sprint pipeline.`);
     }
 
     this.selectedItemForEdit.set(null);
@@ -240,6 +244,7 @@ export class WorkItemsComponent {
 
   onDeleteItem(id: string) {
     this.state.deleteWorkItem(id);
+    this.notification.showSuccess('Work Item Deleted', 'The work item was removed from the sprint pipeline.', 'trash-2');
     this.selectedItemForEdit.set(null);
     this.showNewItemModal.set(false);
   }
@@ -263,14 +268,17 @@ export class WorkItemsComponent {
   onSaveSprint(sprintData: Partial<Sprint>): void {
     if (sprintData.id) {
       this.state.updateSprint(sprintData.id, sprintData);
+      this.notification.showSuccess('Sprint Updated', `Sprint "${sprintData.name || 'Sprint'}" updated successfully.`, 'calendar');
     } else {
       this.state.createSprint(sprintData);
+      this.notification.showSuccess('Sprint Created', `Sprint "${sprintData.name || 'Sprint'}" created successfully.`, 'calendar');
     }
     this.closeSprintModal();
   }
 
   onDeleteSprint(id: string): void {
     this.state.deleteSprint(id);
+    this.notification.showSuccess('Sprint Deleted', 'Sprint board was deleted.', 'trash-2');
     if (this.selectedSprintId() === id) {
       this.selectedSprintId.set('ALL');
     }
@@ -287,6 +295,7 @@ export class WorkItemsComponent {
       dodMergedToMaster: updatedItem.dodMergedToMaster,
       dodStagingVerified: updatedItem.dodStagingVerified
     });
+    this.notification.showSuccess('Quality Gates Saved', `DoR / DoD criteria updated for "${updatedItem.title}".`, 'shield-check');
     this.selectedItemForGates = null;
   }
 }

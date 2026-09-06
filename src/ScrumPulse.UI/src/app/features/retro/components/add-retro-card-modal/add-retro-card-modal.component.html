@@ -78,9 +78,10 @@
     </div>
 
     <div class="modal-footer">
-      <button (click)="close.emit()" class="btn-secondary">Cancel</button>
-      <button (click)="save.emit(card)" [disabled]="!card.content.trim()" class="btn-primary btn-save">
-        <app-icon name="check" [size]="16"></app-icon> {{ editingCard ? 'Save Note Changes' : 'Pin to Retrospective Board' }}
+      <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+      <button (click)="onSubmit()" [disabled]="!card.content.trim() || isSubmitting()" class="btn-primary btn-save">
+        <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
+        {{ isSubmitting() ? 'Saving...' : (editingCard ? 'Save Note Changes' : 'Pin to Retrospective Board') }}
       </button>
     </div>
   </div>

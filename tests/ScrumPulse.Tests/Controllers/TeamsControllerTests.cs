@@ -114,4 +114,54 @@ public class TeamsControllerTests
         var objectResult = Assert.IsType<ObjectResult>(actionResult.Result);
         Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden, objectResult.StatusCode);
     }
+
+    [Fact]
+    public async Task Create_WhenDuplicateSquadNameExists_ReturnsConflict()
+    {
+        using var db = CreateInMemoryDbContext();
+        var controller = new TeamsController(db);
+
+        var firstRequest = new CreateTeamRequest("Titan Squad", "First squad description");
+        var firstResult = await controller.Create(firstRequest);
+        Assert.IsType<CreatedAtActionResult>(firstResult.Result);
+
+        // Attempt duplicate squad name (with leading/trailing spaces and different casing)
+        var duplicateRequest = new CreateTeamRequest("  titan squad  ", "Duplicate squad attempt");
+        var duplicateResult = await controller.Create(duplicateRequest);
+
+        var conflictResult = Assert.IsType<ConflictObjectResult>(duplicateResult.Result);
+        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status409Conflict, conflictResult.StatusCode);
+
+        // Ensure database only contains 1 team
+        var teamsCount = await db.Teams.CountAsync(t => t.IsActive);
+        Assert.Equal(1, teamsCount);
+    }
+
+    [Fact]
+    public async Task Create_WithIdempotencyKey_ReturnsCachedResponseOnRepeat()
+    {
+        using var db = CreateInMemoryDbContext();
+        var store = new ScrumPulse.Infrastructure.Services.MemoryIdempotencyStore();
+        var controller = new TeamsController(db, store);
+
+        var request = new CreateTeamRequest("Nexus Squad", "Core platform squad");
+        const string idempotencyKey = "key-nexus-123";
+
+        // First call creates team
+        var firstResult = await controller.Create(request, idempotencyKey);
+        var createdResult = Assert.IsType<CreatedAtActionResult>(firstResult.Result);
+        var createdTeam = Assert.IsType<TeamDto>(createdResult.Value);
+
+        // Second call with same idempotency key returns cached response immediately
+        var repeatResult = await controller.Create(request, idempotencyKey);
+        var okResult = Assert.IsType<OkObjectResult>(repeatResult.Result);
+        var cachedTeam = Assert.IsType<TeamDto>(okResult.Value);
+
+        Assert.Equal(createdTeam.Id, cachedTeam.Id);
+        Assert.Equal("Nexus Squad", cachedTeam.Name);
+
+        // Ensure only one squad was created in database
+        var totalSquads = await db.Teams.CountAsync(t => t.IsActive);
+        Assert.Equal(1, totalSquads);
+    }
 }

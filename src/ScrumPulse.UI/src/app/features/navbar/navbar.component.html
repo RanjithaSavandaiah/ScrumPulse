@@ -155,9 +155,10 @@
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeSquadModal()" class="btn-secondary">Cancel</button>
-          <button (click)="handleCreateSquad()" class="btn-primary">
-            <app-icon name="plus" [size]="14"></app-icon> Create Squad
+          <button (click)="closeSquadModal()" [disabled]="isSubmittingSquad()" class="btn-secondary">Cancel</button>
+          <button (click)="handleCreateSquad()" [disabled]="isSubmittingSquad()" class="btn-primary">
+            <app-icon [name]="isSubmittingSquad() ? 'loader' : 'plus'" [size]="14"></app-icon>
+            {{ isSubmittingSquad() ? 'Creating Squad...' : 'Create Squad' }}
           </button>
         </div>
         } @else {
@@ -190,9 +191,10 @@
         </div>
 
         <div class="modal-actions">
-          <button (click)="closeSquadModal()" class="btn-secondary">Cancel</button>
-          <button (click)="handleJoinSquad()" class="btn-primary">
-            <app-icon name="check-circle" [size]="14"></app-icon> Join Squad
+          <button (click)="closeSquadModal()" [disabled]="isJoiningSquad()" class="btn-secondary">Cancel</button>
+          <button (click)="handleJoinSquad()" [disabled]="isJoiningSquad()" class="btn-primary">
+            <app-icon [name]="isJoiningSquad() ? 'loader' : 'check-circle'" [size]="14"></app-icon>
+            {{ isJoiningSquad() ? 'Joining Squad...' : 'Join Squad' }}
           </button>
         </div>
       }

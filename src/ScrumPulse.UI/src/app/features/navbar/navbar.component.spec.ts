@@ -84,6 +84,19 @@ describe('NavbarComponent', () => {
     expect(component.showSquadModal()).toBeFalse();
   });
 
+  it('should prevent duplicate squad creation when submission is already in flight', () => {
+    spyOn(stateService, 'canEditOrDelete').and.returnValue(true);
+    spyOn(stateService, 'createTeam');
+
+    component.openSquadModal('create');
+    component.newSquadName.set('Spartans');
+    component.isSubmittingSquad.set(true);
+
+    component.handleCreateSquad();
+
+    expect(stateService.createTeam).not.toHaveBeenCalled();
+  });
+
   it('should handle join squad with join code', () => {
     const mockTeam: Team = { id: 't-1', name: 'Spartans', slug: 'spartans', description: '', joinCode: 'SPAR-1', isActive: true, createdAtUtc: '' };
     spyOn(stateService, 'joinTeam').and.returnValue(of(mockTeam));
@@ -94,6 +107,18 @@ describe('NavbarComponent', () => {
 
     expect(stateService.joinTeam).toHaveBeenCalledWith({ joinCode: 'SPAR-1' });
     expect(component.showSquadModal()).toBeFalse();
+  });
+
+  it('should prevent duplicate squad join when join is already in flight', () => {
+    spyOn(stateService, 'joinTeam');
+
+    component.openSquadModal('join');
+    component.joinCodeInput.set('SPAR-1');
+    component.isJoiningSquad.set(true);
+
+    component.handleJoinSquad();
+
+    expect(stateService.joinTeam).not.toHaveBeenCalled();
   });
 
   it('should lock SM session', () => {

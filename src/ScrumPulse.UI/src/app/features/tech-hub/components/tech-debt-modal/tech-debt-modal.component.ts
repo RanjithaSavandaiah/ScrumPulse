@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
@@ -20,6 +20,7 @@ export class TechDebtModalComponent implements OnInit {
   @Output() delete = new EventEmitter<string>();
 
   state = inject(ScrumStateService);
+  isSubmitting = signal(false);
 
   title: string = '';
   description: string = '';
@@ -56,7 +57,8 @@ export class TechDebtModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.title.trim()) return;
+    if (this.isSubmitting() || !this.title.trim()) return;
+    this.isSubmitting.set(true);
 
     const payload: any = {
       title: this.title.trim(),

@@ -1,0 +1,163 @@
+.confirmation-popups-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 99999999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+  width: calc(100vw - 3rem);
+  pointer-events: none;
+}
+
+.confirmation-popup-card {
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem 1.1rem 1rem;
+  background: rgba(17, 24, 39, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 20px rgba(99, 102, 241, 0.15);
+  transition: transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+}
+
+.confirmation-popup-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.55), 0 0 25px rgba(99, 102, 241, 0.25);
+}
+
+.confirmation-popup-card.popup-success {
+  border-left: 4px solid var(--accent-success);
+}
+
+.confirmation-popup-card.popup-danger {
+  border-left: 4px solid var(--accent-danger);
+}
+
+.confirmation-popup-card.popup-warning {
+  border-left: 4px solid var(--accent-warning);
+}
+
+.confirmation-popup-card.popup-info {
+  border-left: 4px solid var(--accent-secondary);
+}
+
+.popup-icon-wrap {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.popup-title {
+  font-family: var(--font-heading);
+  font-size: 0.925rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.popup-message {
+  font-family: var(--font-body);
+  font-size: 0.815rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.popup-close-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.popup-close-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.popup-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  opacity: 0.75;
+  animation: shrinkProgress linear forwards;
+}
+
+@keyframes shrinkProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Universal Light Theme */
+:host-context([data-theme="light"]) .confirmation-popup-card,
+[data-theme="light"] .confirmation-popup-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.12), 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+:host-context([data-theme="light"]) .popup-title,
+[data-theme="light"] .popup-title {
+  color: #0f172a;
+}
+
+:host-context([data-theme="light"]) .popup-message,
+[data-theme="light"] .popup-message {
+  color: #475569;
+}
+
+:host-context([data-theme="light"]) .popup-close-btn:hover,
+[data-theme="light"] .popup-close-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}

@@ -34,6 +34,7 @@ test.describe('Multi-Squad Management & Tenant Context Switching', () => {
     // Submit valid squad creation
     await submitCreateBtn.click();
     await expect(modalCard).not.toBeVisible({ timeout: 10000 });
+    await expect(page.locator('app-confirmation-popup .confirmation-popup-card')).toBeVisible({ timeout: 5000 });
 
     // 4. Verify new squad is selectable in navbar #squadSelect
     const squadSelect = page.locator('#squadSelect');

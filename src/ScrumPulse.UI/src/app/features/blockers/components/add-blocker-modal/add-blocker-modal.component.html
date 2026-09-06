@@ -94,10 +94,10 @@
         }
       </div>
       <div class="footer-right">
-        <button (click)="close.emit()" class="btn-secondary">Cancel</button>
-        <button (click)="save.emit(blocker)" [disabled]="!blocker.title.trim()" class="btn-primary btn-save">
-          <app-icon [name]="editBlocker ? 'check' : 'alert-triangle'" [size]="16"></app-icon>
-          {{ editBlocker ? 'Save Changes' : 'Broadcast Blocker to SLA Radar' }}
+        <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+        <button (click)="onSubmit()" [disabled]="!blocker.title.trim() || isSubmitting()" class="btn-primary btn-save">
+          <app-icon [name]="isSubmitting() ? 'loader' : (editBlocker ? 'check' : 'alert-triangle')" [size]="16"></app-icon>
+          {{ isSubmitting() ? 'Saving...' : (editBlocker ? 'Save Changes' : 'Broadcast Blocker to SLA Radar') }}
         </button>
       </div>
     </div>

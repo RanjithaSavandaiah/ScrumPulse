@@ -86,6 +86,11 @@ test.describe('Advanced Workflows, Validations & Edge Cases', () => {
     await itemCard.locator('button.btn-edit').click();
     await expect(modalContent).toBeVisible();
     await modalContent.locator('.modal-footer .btn-danger', { hasText: 'Delete Story' }).click();
+
+    const confirmDeleteModal = page.locator('app-add-work-item-modal app-confirm-modal .modal-box');
+    await expect(confirmDeleteModal).toBeVisible();
+    await confirmDeleteModal.locator('button.btn-confirm-action', { hasText: 'Delete Story' }).click();
+
     await expect(modalContent).not.toBeVisible({ timeout: 5000 });
     await expect(page.locator('.work-item-card', { hasText: itemTitle })).not.toBeVisible({ timeout: 10000 });
   });

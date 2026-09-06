@@ -266,9 +266,9 @@
           }
         </div>
         <div class="footer-right">
-          <button type="button" (click)="close.emit()" class="btn-secondary">Cancel</button>
-          <button type="submit" [disabled]="!canSubmit" class="btn-primary">
-            <app-icon name="check" [size]="16"></app-icon> {{ sprint ? 'Save Sprint & Goal' : 'Create Sprint' }}
+          <button type="button" (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+          <button type="submit" [disabled]="!canSubmit || isSubmitting()" class="btn-primary">
+            <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon> {{ isSubmitting() ? 'Saving...' : (sprint ? 'Save Sprint & Goal' : 'Create Sprint') }}
           </button>
         </div>
       </div>

@@ -14,7 +14,7 @@ using ScrumPulse.Domain.Enums;
 /// Multi team tenant management controller enabling squad onboarding,
 /// discovery, and context switching across an enterprise.
 /// </summary>
-public class TeamsController(IAppDbContext db) : BaseApiController
+public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencyStore = null) : BaseApiController
 {
     private const int MinSlugRandomSuffix = 100;
     private const int MaxSlugRandomSuffix = 1000;
@@ -48,9 +48,14 @@ public class TeamsController(IAppDbContext db) : BaseApiController
 
     [HttpPost]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<TeamDto>> Create([FromBody] CreateTeamRequest request, CancellationToken ct = default)
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<TeamDto>> Create(
+        [FromBody] CreateTeamRequest request,
+        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey = null,
+        CancellationToken ct = default)
     {
         if (Request?.Headers != null && Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
         {
@@ -60,6 +65,20 @@ public class TeamsController(IAppDbContext db) : BaseApiController
             {
                 return StatusCode(StatusCodes.Status403Forbidden, new { error = "Only Scrum Masters can create a new squad." });
             }
+        }
+
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && idempotencyStore != null)
+        {
+            var cached = await idempotencyStore.GetResponseAsync<TeamDto>(idempotencyKey, ct);
+            if (cached != null) return Ok(cached);
+        }
+
+        var trimmedName = request.Name.Trim();
+        var existingActiveTeam = await db.Teams
+            .FirstOrDefaultAsync(team => team.IsActive && team.Name.ToLower() == trimmedName.ToLower(), ct);
+        if (existingActiveTeam != null)
+        {
+            return Conflict(new { error = $"A squad named '{trimmedName}' already exists." });
         }
 
         var slug = GenerateSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
@@ -73,7 +92,7 @@ public class TeamsController(IAppDbContext db) : BaseApiController
 
         var team = new Team
         {
-            Name = request.Name.Trim(),
+            Name = trimmedName,
             Slug = slug,
             Description = request.Description?.Trim() ?? string.Empty,
             JoinCode = joinCode,
@@ -83,7 +102,13 @@ public class TeamsController(IAppDbContext db) : BaseApiController
         db.Teams.Add(team);
         await db.SaveChangesAsync(ct);
 
-        return CreatedAtAction(nameof(GetById), new { id = team.Id }, team.ToDto());
+        var dto = team.ToDto();
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && idempotencyStore != null)
+        {
+            await idempotencyStore.SaveResponseAsync(idempotencyKey, dto, null, ct);
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = team.Id }, dto);
     }
 
     [HttpPost("join")]

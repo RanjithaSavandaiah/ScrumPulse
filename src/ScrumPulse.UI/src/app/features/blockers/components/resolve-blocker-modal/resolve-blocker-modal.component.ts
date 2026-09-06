@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
@@ -16,6 +16,7 @@ export class ResolveBlockerModalComponent {
   @Output() close = new EventEmitter<void>();
   @Output() resolve = new EventEmitter<{ id: string; notes: string }>();
 
+  isSubmitting = signal(false);
   notes: string = '';
 
   presets: string[] = [
@@ -31,6 +32,9 @@ export class ResolveBlockerModalComponent {
   }
 
   onConfirm(): void {
+    if (this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+
     this.resolve.emit({
       id: this.blocker.id,
       notes: this.notes.trim() || 'Resolved with team'

@@ -62,23 +62,46 @@ describe('AddWorkItemModalComponent', () => {
     expect(component.mapPriorityToNumber('Low')).toBe(0);
   });
 
-  it('should emit save when save event is fired', () => {
-    spyOn(component.save, 'emit');
+  it('should emit save when save event is fired and prevent double-submit', () => {
+    const saveSpy = spyOn(component.save, 'emit');
 
     component.item.title = 'Add user authorization gate';
     component.item.description = 'OAuth 2.1';
     component.item.storyPoints = 5;
 
-    component.save.emit(component.item);
-    expect(component.save.emit).toHaveBeenCalledWith(jasmine.objectContaining({
+    component.onSubmit();
+    expect(saveSpy).toHaveBeenCalledWith(jasmine.objectContaining({
       title: 'Add user authorization gate',
       storyPoints: 5
     }));
+    expect(component.isSubmitting()).toBeTrue();
+
+    // Secondary click should be ignored
+    saveSpy.calls.reset();
+    component.onSubmit();
+    expect(saveSpy).not.toHaveBeenCalled();
   });
 
-  it('should emit delete when delete event is fired', () => {
+  it('should manage delete confirmation modal flow before emitting delete', () => {
     spyOn(component.delete, 'emit');
-    component.delete.emit('item-123');
-    expect(component.delete.emit).toHaveBeenCalledWith('item-123');
+    component.editItem = { id: 'item-999', title: 'Task to delete' } as any;
+
+    expect(component.showDeleteConfirm()).toBeFalse();
+
+    // User clicks delete button
+    component.onDeletePrompt();
+    expect(component.showDeleteConfirm()).toBeTrue();
+    expect(component.delete.emit).not.toHaveBeenCalled();
+
+    // User cancels delete
+    component.onCancelDelete();
+    expect(component.showDeleteConfirm()).toBeFalse();
+    expect(component.delete.emit).not.toHaveBeenCalled();
+
+    // User confirms delete
+    component.onDeletePrompt();
+    component.onConfirmDelete();
+    expect(component.showDeleteConfirm()).toBeFalse();
+    expect(component.delete.emit).toHaveBeenCalledWith('item-999');
   });
 });

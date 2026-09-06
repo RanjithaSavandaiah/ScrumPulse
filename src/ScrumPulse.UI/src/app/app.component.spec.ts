@@ -25,4 +25,9 @@ describe('AppComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
+
+  it('should contain app-confirmation-popup for global action confirmations', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('app-confirmation-popup')).toBeTruthy();
+  });
 });

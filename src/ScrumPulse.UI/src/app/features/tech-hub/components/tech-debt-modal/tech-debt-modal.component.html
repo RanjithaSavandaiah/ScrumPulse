@@ -110,9 +110,10 @@
           }
         </div>
         <div class="footer-right">
-          <button type="button" (click)="close.emit()" class="btn-secondary">Cancel</button>
-          <button type="submit" [disabled]="!title.trim()" class="btn-primary">
-            <app-icon name="check" [size]="16"></app-icon> {{ techDebt ? 'Save Changes' : 'Log Tech Debt' }}
+          <button type="button" (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+          <button type="submit" [disabled]="!title.trim() || isSubmitting()" class="btn-primary">
+            <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
+            {{ isSubmitting() ? 'Saving...' : (techDebt ? 'Save Changes' : 'Log Tech Debt') }}
           </button>
         </div>
       </div>

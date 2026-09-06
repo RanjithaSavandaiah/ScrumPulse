@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
@@ -25,6 +25,8 @@ export class LogStandupModalComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<{ teamMemberId: string; yesterdaySummary: string; todayPlan: string; blockersText: string; moodScore: number }>();
   @Output() delete = new EventEmitter<string>();
+
+  isSubmitting = signal(false);
 
   standup = {
     teamMemberId: '',
@@ -96,6 +98,12 @@ export class LogStandupModalComponent implements OnInit {
 
   setBlocker(text: string): void {
     this.standup.blockersText = text;
+  }
+
+  onSubmit(): void {
+    if (this.isSubmitting() || !this.standup.teamMemberId) return;
+    this.isSubmitting.set(true);
+    this.save.emit(this.standup);
   }
 
   onDelete(): void {

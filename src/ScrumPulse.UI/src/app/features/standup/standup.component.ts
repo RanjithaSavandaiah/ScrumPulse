@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { DailyStandup } from '../../core/models/scrum.models';
 import { StandupFeedComponent } from './components/standup-feed/standup-feed.component';
 import { StandupTimerComponent } from './components/standup-timer/standup-timer.component';
@@ -19,6 +20,7 @@ export const TIMER_TICK_INTERVAL_MS = 1000;
 })
 export class StandupComponent implements OnDestroy {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
 
   showStandupModal = signal(false);
   selectedEditStandup = signal<DailyStandup | null>(null);

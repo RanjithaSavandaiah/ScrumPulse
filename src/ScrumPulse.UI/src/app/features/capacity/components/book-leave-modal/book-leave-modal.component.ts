@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
@@ -30,6 +30,8 @@ export class BookLeaveModalComponent implements OnInit {
     leaveType: string;
   }>();
   @Output() delete = new EventEmitter<string>();
+
+  isSubmitting = signal(false);
 
   leave: {
     teamMemberId: string;
@@ -177,7 +179,8 @@ export class BookLeaveModalComponent implements OnInit {
   }
 
   onConfirmSubmit(): void {
-    if (!this.canSubmit) return;
+    if (this.isSubmitting() || !this.canSubmit) return;
+    this.isSubmitting.set(true);
 
     if (this.leave.endDate < this.leave.startDate || this.leave.leaveSlot !== 'FullDay') {
       this.leave.endDate = this.leave.startDate;

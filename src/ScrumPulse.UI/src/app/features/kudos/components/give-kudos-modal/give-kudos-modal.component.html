@@ -93,9 +93,10 @@
     </div>
 
     <div class="modal-footer">
-      <button (click)="close.emit()" class="btn-secondary">Cancel</button>
-      <button (click)="save.emit(kudos)" [disabled]="!kudos.senderId || !kudos.receiverId || !kudos.message.trim()" class="btn-primary btn-save">
-        <app-icon name="gift" [size]="16"></app-icon> Publish to Kudos Wall
+      <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+      <button (click)="onSubmit()" [disabled]="!kudos.senderId || !kudos.receiverId || !kudos.message.trim() || isSubmitting()" class="btn-primary btn-save">
+        <app-icon [name]="isSubmitting() ? 'loader' : 'gift'" [size]="16"></app-icon>
+        {{ isSubmitting() ? 'Publishing...' : 'Publish to Kudos Wall' }}
       </button>
     </div>
   </div>

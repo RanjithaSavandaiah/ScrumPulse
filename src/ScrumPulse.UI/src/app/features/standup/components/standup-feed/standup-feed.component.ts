@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
 import { DailyStandup } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { CORE_PIPES } from '../../../../core/pipes';
 import { cleanName, isDeliveryRole } from '../../../../core/utils/format-utils';
 
@@ -21,6 +22,7 @@ export const INITIAL_PAGE_NUMBER = 1;
 })
 export class StandupFeedComponent {
   state = inject(ScrumStateService);
+  private notification = inject(NotificationService);
 
   @Input() standups: DailyStandup[] = [];
   @Output() logStandup = new EventEmitter<void>();
@@ -96,6 +98,7 @@ export class StandupFeedComponent {
         this.currentPage.update(previousPage => previousPage - 1);
       }
       this.standupToDelete.set(null);
+      this.notification.showSuccess('Standup Deleted', 'The standup update has been removed.');
     }
   }
 

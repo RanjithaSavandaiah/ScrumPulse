@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { TechDebtItem, TechTalkLog } from '../../core/models/scrum.models';
 import { TechDebtModalComponent } from './components/tech-debt-modal/tech-debt-modal.component';
@@ -18,6 +19,7 @@ import { cleanName } from '../../core/utils/format-utils';
 })
 export class TechHubComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
 
   // Modals state
   isTechDebtModalOpen = signal<boolean>(false);
@@ -78,8 +80,10 @@ export class TechHubComponent {
   saveTechDebt(payload: any): void {
     if (payload.id) {
       this.state.updateTechDebt(payload.id, payload);
+      this.notification.showSuccess('Tech Debt Updated', `"${payload.title}" updated.`, 'wrench');
     } else {
       this.state.createTechDebt(payload);
+      this.notification.showSuccess('Tech Debt Logged', `"${payload.title}" logged in architecture backlog.`, 'wrench');
     }
     this.closeTechDebtModal();
   }
@@ -91,6 +95,7 @@ export class TechHubComponent {
       this.debtToDelete.set(item);
     } else {
       this.state.deleteTechDebt(id);
+      this.notification.showSuccess('Tech Debt Deleted', 'Item removed from tech hub.', 'trash-2');
       this.closeTechDebtModal();
     }
   }
@@ -104,6 +109,7 @@ export class TechHubComponent {
     const target = this.debtToDelete();
     if (target) {
       this.state.deleteTechDebt(target.id);
+      this.notification.showSuccess('Tech Debt Deleted', `"${target.title}" removed.`, 'trash-2');
       this.debtToDelete.set(null);
     }
   }
@@ -116,6 +122,7 @@ export class TechHubComponent {
     event.stopPropagation();
     const newStatus = item.status === 'Resolved' ? 'Identified' : 'Resolved';
     this.state.resolveTechDebt(item.id, newStatus);
+    this.notification.showSuccess('Tech Debt Status Updated', `Marked as ${newStatus}.`, 'check-circle');
   }
 
   // Tech Talk Actions
@@ -137,8 +144,10 @@ export class TechHubComponent {
   saveTechTalk(payload: any): void {
     if (payload.id) {
       this.state.updateTechTalk(payload.id, payload);
+      this.notification.showSuccess('Tech Talk Updated', `"${payload.topic}" updated.`, 'book-open');
     } else {
       this.state.createTechTalk(payload);
+      this.notification.showSuccess('Tech Talk Scheduled', `"${payload.topic}" added to knowledge sharing calendar.`, 'book-open');
     }
     this.closeTechTalkModal();
   }
@@ -150,6 +159,7 @@ export class TechHubComponent {
       this.talkToDelete.set(talk);
     } else {
       this.state.deleteTechTalk(id);
+      this.notification.showSuccess('Tech Talk Deleted', 'Session removed from knowledge calendar.', 'trash-2');
       this.closeTechTalkModal();
     }
   }
@@ -163,6 +173,7 @@ export class TechHubComponent {
     const target = this.talkToDelete();
     if (target) {
       this.state.deleteTechTalk(target.id);
+      this.notification.showSuccess('Tech Talk Deleted', `"${target.topic}" removed.`, 'trash-2');
       this.talkToDelete.set(null);
     }
   }

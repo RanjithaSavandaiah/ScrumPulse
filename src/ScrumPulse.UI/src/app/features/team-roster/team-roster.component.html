@@ -257,9 +257,10 @@
         </div>
 
         <div class="modal-footer">
-          <button (click)="showAddModal.set(false)" class="btn-secondary">Cancel</button>
-          <button (click)="onSaveMember()" [disabled]="!newMember.name.trim()" class="btn-primary btn-save">
-            <app-icon name="check" [size]="16"></app-icon> Save Member to Squad
+          <button (click)="showAddModal.set(false)" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+          <button (click)="onSaveMember()" [disabled]="!newMember.name.trim() || isSubmitting()" class="btn-primary btn-save">
+            <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
+            {{ isSubmitting() ? 'Saving...' : 'Save Member to Squad' }}
           </button>
         </div>
       </div>

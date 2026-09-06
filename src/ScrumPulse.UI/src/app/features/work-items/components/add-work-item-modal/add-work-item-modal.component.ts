@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
+import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
 import { Sprint, TeamMember, WorkItem } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
 import { EstimationMatrixModalComponent } from '../estimation-matrix-modal/estimation-matrix-modal.component';
@@ -12,12 +13,14 @@ import { CORE_PIPES } from '../../../../core/pipes';
 @Component({
   selector: 'app-add-work-item-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, EstimationMatrixModalComponent, ...CORE_PIPES],
+  imports: [CommonModule, FormsModule, IconComponent, ConfirmModalComponent, EstimationMatrixModalComponent, ...CORE_PIPES],
   templateUrl: './add-work-item-modal.component.html',
   styleUrl: './add-work-item-modal.component.css'
 })
 export class AddWorkItemModalComponent implements OnInit {
   state = inject(ScrumStateService);
+  isSubmitting = signal(false);
+  showDeleteConfirm = signal(false);
 
   @Input() editItem: WorkItem | null = null;
   @Input() members: TeamMember[] = [];
@@ -169,4 +172,27 @@ export class AddWorkItemModalComponent implements OnInit {
 
   pointOptions = [0, 1, 2, 3, 5, 8, 13];
   hourOptions = [0, 2, 4, 8, 16, 24, 40];
+
+  onSubmit(): void {
+    if (this.isSubmitting()) return;
+    if (!this.item.title.trim()) return;
+
+    this.isSubmitting.set(true);
+    this.save.emit(this.item);
+  }
+
+  onDeletePrompt(): void {
+    this.showDeleteConfirm.set(true);
+  }
+
+  onConfirmDelete(): void {
+    this.showDeleteConfirm.set(false);
+    if (this.editItem?.id) {
+      this.delete.emit(this.editItem.id);
+    }
+  }
+
+  onCancelDelete(): void {
+    this.showDeleteConfirm.set(false);
+  }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
 import { RoleType, TeamMember } from '../../core/models/scrum.models';
@@ -21,8 +22,10 @@ export const MAX_AVATAR_INITIALS_LENGTH = 2;
 })
 export class TeamRosterComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
 
   showAddModal = signal(false);
+  isSubmitting = signal(false);
   memberToDelete = signal<TeamMember | null>(null);
 
   developerCount = computed(() => this.state.squadMembers().filter(member => member.role === 'Developer').length);
@@ -153,9 +156,13 @@ export class TeamRosterComponent {
   }
 
   onSaveMember(): void {
-    if (!this.newMember.name.trim()) return;
+    if (this.isSubmitting()) return;
+    const name = this.newMember.name.trim();
+    if (!name) return;
 
-    const initials = this.newMember.name
+    this.isSubmitting.set(true);
+
+    const initials = name
       .split(' ')
       .filter(Boolean)
       .map(part => part[0])
@@ -165,8 +172,8 @@ export class TeamRosterComponent {
     const squadId = this.newMember.teamId || this.state.currentTeam()?.id || undefined;
 
     this.state.createTeamMember({
-      name: this.newMember.name.trim(),
-      email: this.newMember.email.trim() || `${this.newMember.name.toLowerCase().replace(/\s+/g, '.')}@scrumpulse.io`,
+      name,
+      email: this.newMember.email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@scrumpulse.io`,
       role: this.newMember.role,
       location: this.newMember.location,
       timeZone: this.newMember.timeZone,
@@ -174,6 +181,8 @@ export class TeamRosterComponent {
       avatar: initials.slice(0, MAX_AVATAR_INITIALS_LENGTH),
       teamId: squadId
     });
+
+    this.notification.showSuccess('Team Member Added', `"${name}" has been added to the team roster.`, 'users');
 
     this.newMember = {
       name: '',
@@ -186,6 +195,7 @@ export class TeamRosterComponent {
       teamId: ''
     };
 
+    this.isSubmitting.set(false);
     this.showAddModal.set(false);
   }
 
@@ -197,6 +207,7 @@ export class TeamRosterComponent {
     const member = this.memberToDelete();
     if (member) {
       this.state.deleteTeamMember(member.id);
+      this.notification.showSuccess('Team Member Removed', `"${member.name}" removed from the team roster.`, 'trash-2');
       this.memberToDelete.set(null);
     }
   }

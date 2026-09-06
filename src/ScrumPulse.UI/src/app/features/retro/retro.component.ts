@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
 import { AddRetroCardModalComponent } from './components/add-retro-card-modal/add-retro-card-modal.component';
@@ -23,6 +24,7 @@ export const ONE_WEEK_IN_MS = ONE_WEEK_IN_DAYS * HOURS_PER_DAY * MINUTES_PER_HOU
 })
 export class RetroComponent implements OnInit {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
 
   showRetroModal = signal(false);
   editingCard = signal<RetroCard | null>(null);
@@ -103,6 +105,7 @@ export class RetroComponent implements OnInit {
     const card = this.cardToDelete();
     if (card) {
       this.state.deleteRetroCard(card.id);
+      this.notification.showSuccess('Retro Card Deleted', 'Retrospective item removed from board.', 'trash-2');
       this.cardToDelete.set(null);
     }
   }
@@ -118,6 +121,7 @@ export class RetroComponent implements OnInit {
         ...cardData,
         sprintId: edit.sprintId
       });
+      this.notification.showSuccess('Retro Card Updated', 'Retrospective note updated.', 'rotate-cw');
       this.editingCard.set(null);
     } else {
       const targetSprintId = this.selectedSprintId() !== 'ALL'
@@ -129,6 +133,7 @@ export class RetroComponent implements OnInit {
         sprintId: targetSprintId,
         authorId: cardData.authorId || this.state.squadMembers()[0]?.id
       });
+      this.notification.showSuccess('Retro Card Added', 'Retrospective note pinned to board.', 'rotate-cw');
     }
     this.showRetroModal.set(false);
   }
@@ -163,6 +168,7 @@ export class RetroComponent implements OnInit {
     const action = this.actionToDelete();
     if (action) {
       this.state.deleteRetroAction(action.id);
+      this.notification.showSuccess('Action Item Deleted', 'Retro action item removed.', 'trash-2');
       this.actionToDelete.set(null);
     }
   }
@@ -187,6 +193,7 @@ export class RetroComponent implements OnInit {
         dueDate: this.actionForm.dueDate || null,
         isCompleted: this.actionForm.isCompleted
       });
+      this.notification.showSuccess('Action Item Updated', 'Retro action item updated.', 'check-circle');
       this.editingAction.set(null);
     } else {
       this.state.createRetroAction({
@@ -195,6 +202,7 @@ export class RetroComponent implements OnInit {
         assigneeId: this.actionForm.assigneeId || null,
         dueDate: this.actionForm.dueDate || null
       });
+      this.notification.showSuccess('Action Item Added', 'Retro action item committed.', 'check-circle');
     }
 
     this.showActionModal.set(false);

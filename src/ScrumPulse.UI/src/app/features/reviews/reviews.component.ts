@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { RecordFeedbackModalComponent } from './components/record-feedback-modal/record-feedback-modal.component';
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
@@ -16,6 +17,7 @@ import { MonthlyFeedback } from '../../core/models/scrum.models';
 })
 export class ReviewsComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
   showFeedbackModal = signal(false);
   selectedFeedbackForEdit = signal<MonthlyFeedback | null>(null);
   feedbackToDelete = signal<MonthlyFeedback | null>(null);
@@ -47,8 +49,10 @@ export class ReviewsComponent {
     const editItem = this.selectedFeedbackForEdit();
     if (editItem) {
       this.state.updateMonthlyFeedback(editItem.id, feedbackData);
+      this.notification.showSuccess('Review Updated', 'Monthly 1:1 feedback record updated.', 'file-text');
     } else {
       this.state.submitMonthlyFeedback(feedbackData);
+      this.notification.showSuccess('Review Saved', 'Monthly 1:1 feedback recorded successfully.', 'file-text');
     }
     this.onCloseFeedbackModal();
   }
@@ -61,12 +65,14 @@ export class ReviewsComponent {
     const target = this.feedbackToDelete();
     if (target?.id) {
       this.state.deleteMonthlyFeedback(target.id);
+      this.notification.showSuccess('Review Deleted', 'Monthly feedback record removed.', 'trash-2');
       this.feedbackToDelete.set(null);
     }
   }
 
   onDeleteFromModal(id: string): void {
     this.state.deleteMonthlyFeedback(id);
+    this.notification.showSuccess('Review Deleted', 'Monthly feedback record removed.', 'trash-2');
     this.onCloseFeedbackModal();
   }
 }

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
@@ -16,6 +16,8 @@ export class AddRetroCardModalComponent implements OnInit {
   @Input() editingCard?: RetroCard | null = null;
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<{ category: number; authorId: string; content: string; isAnonymous: boolean }>();
+
+  isSubmitting = signal(false);
 
   card = {
     category: 0,
@@ -61,6 +63,12 @@ export class AddRetroCardModalComponent implements OnInit {
 
   applyPreset(preset: string): void {
     this.card.content = preset;
+  }
+
+  onSubmit(): void {
+    if (this.isSubmitting() || !this.card.content.trim()) return;
+    this.isSubmitting.set(true);
+    this.save.emit(this.card);
   }
 
   getRoleLabel(role: string): string {

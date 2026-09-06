@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
@@ -20,6 +20,8 @@ export class GiveKudosModalComponent implements OnInit {
   @Input() members: TeamMember[] = [];
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<{ senderId: string; receiverId: string; badge: number; message: string }>();
+
+  isSubmitting = signal(false);
 
   kudos = {
     senderId: '',
@@ -61,6 +63,12 @@ export class GiveKudosModalComponent implements OnInit {
 
   setPreset(preset: string): void {
     this.kudos.message = preset;
+  }
+
+  onSubmit(): void {
+    if (this.isSubmitting() || !this.kudos.senderId || !this.kudos.receiverId || !this.kudos.message.trim()) return;
+    this.isSubmitting.set(true);
+    this.save.emit(this.kudos);
   }
 
   getRoleLabel(role: string): string {

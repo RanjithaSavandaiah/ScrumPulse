@@ -37,6 +37,18 @@ public class WorkItemsController(
             if (cached != null) return Ok(cached);
         }
 
+        // Deduplication guard for rapid double-clicks within a short time window
+        var window = DateTime.UtcNow.AddSeconds(-2);
+        var duplicate = await db.WorkItems
+            .Include(item => item.Assignee)
+            .Include(item => item.PrReviewer)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.SprintId == request.SprintId && w.Title == request.Title && w.CreatedAtUtc >= window, ct);
+        if (duplicate != null)
+        {
+            return Ok(duplicate.ToDto());
+        }
+
         var result = await mediator.SendAsync(new CreateWorkItemCommand(request), ct);
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))

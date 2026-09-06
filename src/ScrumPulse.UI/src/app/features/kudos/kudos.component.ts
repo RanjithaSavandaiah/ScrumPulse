@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
+import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
 import { GiveKudosModalComponent } from './components/give-kudos-modal/give-kudos-modal.component';
 
@@ -15,6 +16,7 @@ import { CORE_PIPES } from '../../core/pipes';
 })
 export class KudosComponent {
   state = inject(ScrumStateService);
+  notification = inject(NotificationService);
   showKudosModal = signal(false);
 
   filteredKudos = computed(() => {
@@ -36,6 +38,7 @@ export class KudosComponent {
         badge: kudosData.badge,
         message: kudosData.message
       });
+      this.notification.showSuccess('Kudos Awarded', 'Appreciation badge published to Kudos Wall.', 'gift');
       this.showKudosModal.set(false);
     }
   }

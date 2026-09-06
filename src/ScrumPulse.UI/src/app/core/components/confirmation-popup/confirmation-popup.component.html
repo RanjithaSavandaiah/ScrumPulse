@@ -1,0 +1,43 @@
+<div class="confirmation-popups-container" aria-live="polite" aria-atomic="true">
+  @for (item of notifications; track item.id) {
+    <div
+      class="confirmation-popup-card glass-panel animate-slide-down"
+      [class.popup-success]="item.variant === 'success'"
+      [class.popup-danger]="item.variant === 'danger'"
+      [class.popup-warning]="item.variant === 'warning'"
+      [class.popup-info]="item.variant === 'info'"
+      role="alert"
+    >
+      <div
+        class="popup-icon-wrap"
+        [style.color]="getVariantColor(item.variant)"
+        [style.background]="item.variant === 'success' ? 'rgba(16, 185, 129, 0.15)' : (item.variant === 'danger' ? 'rgba(239, 68, 68, 0.15)' : (item.variant === 'warning' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(99, 102, 241, 0.15)'))"
+      >
+        <app-icon [name]="item.icon" [size]="20" [color]="getVariantColor(item.variant)"></app-icon>
+      </div>
+
+      <div class="popup-content">
+        <h4 class="popup-title">{{ item.title }}</h4>
+        @if (item.message) {
+          <p class="popup-message">{{ item.message }}</p>
+        }
+      </div>
+
+      <button
+        type="button"
+        (click)="onDismiss(item.id)"
+        class="popup-close-btn"
+        title="Dismiss notification"
+        aria-label="Dismiss"
+      >
+        <app-icon name="x" [size]="14"></app-icon>
+      </button>
+
+      <div
+        class="popup-progress-bar"
+        [style.background]="getVariantColor(item.variant)"
+        [style.animationDuration]="item.durationMs + 'ms'"
+      ></div>
+    </div>
+  }
+</div>

@@ -33,6 +33,7 @@ const TWO_DECIMAL_PLACES_ROUNDING_FACTOR = 100;
 })
 export class EditSprintModalComponent implements OnInit {
   state = inject(ScrumStateService);
+  isSubmitting = signal(false);
 
   @Input() sprint: Sprint | null = null;
   @Output() close = new EventEmitter<void>();
@@ -201,7 +202,10 @@ export class EditSprintModalComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting()) return;
     if (!this.canSubmit) return;
+
+    this.isSubmitting.set(true);
 
     // Ensure story points is non-zero if hours entered
     const finalPoints = this.committedStoryPoints > 0 
