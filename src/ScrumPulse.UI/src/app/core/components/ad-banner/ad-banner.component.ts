@@ -31,7 +31,11 @@ export class AdBannerComponent implements AfterViewInit {
         }
         try {
           const adsbygoogle = (window as any).adsbygoogle || [];
-          adsbygoogle.push({});
+          if (adsbygoogle.pauseAdRequests !== 1) {
+            adsbygoogle.push({});
+          } else {
+            console.info('[AdBannerComponent] Ad requests paused awaiting site approval; unfilled ad placeholder deferred.');
+          }
           (window as any).adsbygoogle = adsbygoogle;
         } catch (pushError) {
           console.info('[AdBannerComponent] Note: Ad slot push skipped or already filled:', pushError);
