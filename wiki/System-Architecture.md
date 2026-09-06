@@ -1,6 +1,6 @@
 # System Architecture
 
-ScrumPulse is structured as a Clean Architecture solution with a .NET 10 ASP.NET Core backend and an Angular 18 single-page frontend.
+ScrumPulse is structured as a Clean Architecture solution with a .NET 10 ASP.NET Core backend and an Angular 22 single-page frontend.
 
 ---
 
@@ -15,7 +15,7 @@ src/
 ├── ScrumPulse.Infrastructure/ # EF Core AppDbContext, migrations, repos, seed data
 ├── ScrumPulse.AI/ # Microsoft Agent Framework service & prompt pipelines
 ├── ScrumPulse.Api/ # Web API host, middleware, routing, wwwroot SPA host
-└── ScrumPulse.UI/ # Angular 18 SPA (standalone components, NgRx store)
+└── ScrumPulse.UI/ # Angular 22 SPA (standalone components, NgRx store)
 ```
 
 Dependency relationships:
@@ -58,7 +58,7 @@ The active squad is passed in incoming HTTP requests via the `X-Team-Id` header 
 
 ---
 
-## Frontend Architecture (Angular 18)
+## Frontend Architecture (Angular 22)
 
 The frontend is located at `src/ScrumPulse.UI`:
 - **Standalone Components**: No `NgModule` boilerplate. Each feature component explicitly imports its required Angular directives.

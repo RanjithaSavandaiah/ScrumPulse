@@ -121,7 +121,7 @@ public class TeamPerformanceServiceTests
         var techTalk = new TechTalkLog
         {
             Id = Guid.NewGuid(),
-            Topic = "Angular 18 Signals & Performance",
+            Topic = "Angular 22 Signals & Performance",
             PresenterId = member.Id,
             TalkDate = DateTime.UtcNow.AddDays(-4),
             DurationMinutes = 45

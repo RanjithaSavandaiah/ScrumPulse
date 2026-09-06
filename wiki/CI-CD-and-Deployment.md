@@ -48,7 +48,7 @@ ScrumPulse uses a multi-stage `Dockerfile` producing a lean, production-hardened
 ### Stage Breakdown
 - **Stage 1: Frontend Build (`node:22-alpine`)**
 - Installs npm dependencies.
-- Compiles optimized Angular 18 production bundle with Ahead-of-Time (AOT) compilation.
+- Compiles optimized Angular 22 production bundle with Ahead-of-Time (AOT) compilation.
 - **Stage 2: Backend Build & Publish (`mcr.microsoft.com/dotnet/sdk:10.0`)**
 - Compiles .NET solution in `Release` configuration.
 - Publishes trimmed binaries.

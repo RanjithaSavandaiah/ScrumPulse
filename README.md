@@ -18,7 +18,7 @@ ScrumPulse is an engineering telemetry and sprint tracking application for scrum
 - [Configuration & Environment Variables](#configuration--environment-variables)
 - [Testing Architecture (3-Tier Matrix)](#testing-architecture-3-tier-matrix)
 - [Backend Tests (.NET 10 / xUnit)](#backend-tests-net-10--xunit)
-- [Frontend Unit Tests (Angular 18 / Karma)](#frontend-unit-tests-angular-18--karma)
+- [Frontend Unit Tests (Angular 22 / Karma)](#frontend-unit-tests-angular-22--karma)
 - [End-to-End Test Suite (Playwright)](#end-to-end-test-suite-playwright)
 - [CI/CD Pipeline Architecture](#cicd-pipeline-architecture)
 - [Production Deployment & Docker](#production-deployment--docker)
@@ -55,7 +55,7 @@ ScrumPulse provides 13 dedicated feature tabs plus multi-squad navigation:
 |---|---|---|
 | **Backend** | .NET 10 (C# 14) | ASP.NET Core Web API, Clean Architecture |
 | **ORM** | Entity Framework Core 10 | PostgreSQL provider (production), SQLite provider (development), InMemory (testing) |
-| **Frontend** | Angular 18 (Node 22) | Standalone components, signals, NgRx store & effects, vanilla responsive CSS |
+| **Frontend** | Angular 22 (Node 22) | Standalone components, signals, NgRx store & effects, vanilla responsive CSS |
 | **AI Integration** | Microsoft Agent Framework | Prompt orchestration, automated coaching, copilot chat |
 | **Testing** | xUnit, Moq, Karma, Playwright | 93 backend tests, 259 frontend unit tests, 30 E2E tests |
 | **Containerization** | Docker | Multi-stage build (Alpine Node 22 + .NET 10 SDK + ASP.NET runtime) |
@@ -84,7 +84,7 @@ ScrumPulse.Api
  └── ASP.NET Core Controllers, Rate Limiting, Compression, Swagger, SPA Host
 
 ScrumPulse.UI
- └── Angular 18 Standalone Application (served via API wwwroot in production)
+ └── Angular 22 Standalone Application (served via API wwwroot in production)
 ```
 
 ---
@@ -133,7 +133,7 @@ c:\ScrumPulse/
 │ ├── ScrumPulse.Infrastructure/ # Persistence, AppDbContext, Seed Data
 │ ├── ScrumPulse.AI/ # Microsoft Agent Framework service
 │ ├── ScrumPulse.Api/ # Web API host, middleware, controllers, wwwroot
-│ └── ScrumPulse.UI/ # Angular 18 frontend
+│ └── ScrumPulse.UI/ # Angular 22 frontend
 │ ├── e2e/ # Playwright end-to-end test suites (30 tests)
 │ └── src/app/
 │ ├── core/ # State (NgRx), services, models, components
@@ -224,7 +224,7 @@ dotnet test ScrumPulse.slnx -c Release
 - **Scope**: `TeamPerformanceServiceTests`, extended domain entities (`Monthly1on1Feedback`, `PullRequestReviewLog`, `DailyStandup`, `TechDebtItem`, `TechTalkLog`, `RetroCard`, `RetroActionItem`, `KudosCard`, `Team`), and full CRUD controllers (`TechHubController`, `MonthlyFeedbackController`, `SprintsController`, `TeamMembersController`).
 - **Result**: **93 passed, 0 failed, 0 warnings** under `/warnaserror`.
 
-### Frontend Unit Tests (Angular 18 / Karma)
+### Frontend Unit Tests (Angular 22 / Karma)
 ```bash
 cd src/ScrumPulse.UI
 npm run test:ci

@@ -28,7 +28,7 @@ ScrumPulse is an engineering telemetry and sprint tracking tool designed for scr
 | :--- | :--- | :--- |
 | **Backend** | .NET 10, C# 14, ASP.NET Core Web API | Clean Architecture with CQRS handlers. |
 | **ORM / Storage** | Entity Framework Core 10, PostgreSQL, SQLite | PostgreSQL in production; SQLite for zero-dependency local dev. |
-| **Frontend** | Angular 18, TypeScript, NgRx, Signals | Standalone components, reactive store, responsive CSS (no Tailwind). |
+| **Frontend** | Angular 22, TypeScript, NgRx, Signals | Standalone components, reactive store, responsive CSS (no Tailwind). |
 | **AI Integration** | Microsoft Agent Framework, Azure OpenAI | Prompt orchestration, automated risk synthesis, copilot chat. |
 | **Testing** | xUnit, Moq, Karma, Jasmine, Playwright | 93 backend unit/integration tests, 259 UI tests, 30 Playwright E2E tests. |
 | **Containers / Hosting** | Docker, Render.com, GitHub Actions | Multi-stage Alpine build; auto-deploy on push to `main`. |

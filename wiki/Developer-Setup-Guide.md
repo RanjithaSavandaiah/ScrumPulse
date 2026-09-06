@@ -47,7 +47,7 @@ cd ScrumPulse
 
 ---
 
-## 4. Frontend Setup (Angular 18)
+## 4. Frontend Setup (Angular 22)
 
 1. **Navigate to the UI directory**:
  ```bash
