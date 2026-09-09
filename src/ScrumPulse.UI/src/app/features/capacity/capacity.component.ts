@@ -110,15 +110,19 @@ export class CapacityComponent {
       reason: leaveData.reason?.trim() || 'Planned Leave',
       leaveType: leaveData.leaveType || 'Privilege Leave',
       leaveSlot: leaveData.leaveSlot || 'FullDay',
-      location: 'Bangalore Offshore'
+      location: 'Bangalore Offshore',
+      createdBy: this.state.currentRole()
     };
+
+    const member = this.state.squadMembers().find(m => m.id === payload.teamMemberId);
+    const memberName = member ? member.name : 'Team member';
 
     if (editItem) {
       this.state.updateLeave(editItem.id, payload as any);
-      this.notification.showSuccess('Leave Updated', `${payload.leaveType} booking details updated successfully.`, 'palmtree');
+      this.notification.showSuccess('Leave Updated', `${payload.leaveType} for ${memberName} updated successfully.`, 'palmtree');
     } else {
       this.state.submitLeave(payload as any);
-      this.notification.showSuccess('Leave Booked', `${payload.leaveType} recorded and capacity recalculated.`, 'palmtree');
+      this.notification.showSuccess('Leave Booked', `${payload.leaveType} for ${memberName} added successfully.`, 'palmtree');
     }
 
     this.showLeaveModal.set(false);

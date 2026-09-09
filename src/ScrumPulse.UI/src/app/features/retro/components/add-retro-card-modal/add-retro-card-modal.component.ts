@@ -18,6 +18,7 @@ export class AddRetroCardModalComponent implements OnInit {
   @Output() save = new EventEmitter<{ category: number; authorId: string; content: string; isAnonymous: boolean }>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   card = {
     category: 0,
@@ -66,7 +67,12 @@ export class AddRetroCardModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.card.content.trim()) return;
+    if (this.isSubmitting()) return;
+    if (!this.card.content?.trim()) {
+      this.validationError.set('Retrospective note content is mandatory');
+      return;
+    }
+    this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.card);
   }

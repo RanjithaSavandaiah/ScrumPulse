@@ -99,7 +99,7 @@ export class NavbarComponent {
 
     const name = this.newSquadName().trim();
     if (!name) {
-      this.squadError.set('Squad name is required.');
+      this.squadError.set('Squad name is mandatory');
       return;
     }
 
@@ -112,7 +112,7 @@ export class NavbarComponent {
       next: (team) => {
         this.isSubmittingSquad.set(false);
         this.closeSquadModal();
-        this.notification.showSuccess('Squad Created', `Squad "${team?.name || name}" created successfully.`, 'users');
+        this.notification.showSuccess('Squad Created', `Squad "${team?.name || name}" added successfully.`, 'users');
       },
       error: (err) => {
         this.isSubmittingSquad.set(false);
@@ -127,7 +127,7 @@ export class NavbarComponent {
 
     const code = this.joinCodeInput().trim();
     if (!code) {
-      this.squadError.set('Join code is required.');
+      this.squadError.set('Join code is mandatory');
       return;
     }
 

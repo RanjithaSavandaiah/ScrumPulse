@@ -631,4 +631,20 @@ select optgroup {
   border-color: rgba(99, 102, 241, 0.2) !important;
 }
 
+/* Universal Form Validation Alert Banner */
+.validation-alert-banner {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 0.65rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+
 

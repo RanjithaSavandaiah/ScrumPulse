@@ -22,6 +22,7 @@ export class RecordFeedbackModalComponent implements OnInit {
   @Output() delete = new EventEmitter<string>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   feedback = {
     teamMemberId: '',
@@ -73,7 +74,22 @@ export class RecordFeedbackModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.feedback.teamMemberId) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.feedback.teamMemberId) {
+      this.validationError.set('Please select a team member');
+      return;
+    }
+    if (!this.feedback.monthYear) {
+      this.validationError.set('Month/Year is mandatory');
+      return;
+    }
+    if (!this.feedback.scrumMasterFeedback?.trim()) {
+      this.validationError.set('Scrum Master feedback is mandatory');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.feedback);
   }

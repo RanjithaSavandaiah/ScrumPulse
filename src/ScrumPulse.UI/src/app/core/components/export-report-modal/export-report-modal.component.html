@@ -184,7 +184,26 @@
             <span class="stat-num">{{ previewData().kudos.length + previewData().techTalks.length }}</span>
             <span class="stat-txt">Kudos & Talks</span>
           </div>
+          <div class="stat-cell" [class.stat-warning]="previewData().standupCompliance.missedDays > 0">
+            <span class="stat-num" [style.color]="previewData().standupCompliance.missedDays > 0 ? '#ef4444' : '#10b981'">
+              {{ previewData().standupCompliance.missedDays }}
+            </span>
+            <span class="stat-txt">Missed Updates</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-num">{{ previewData().standupCompliance.complianceRate }}%</span>
+            <span class="stat-txt">Standup Rate</span>
+          </div>
         </div>
+
+        @if (previewData().standupCompliance.missedDays > 0) {
+          <div class="missed-alert-banner animate-fade-in">
+            <app-icon name="alert-circle" [size]="14" color="#ef4444"></app-icon>
+            <span>
+              <strong>{{ previewData().standupCompliance.missedDays }} daily updates missed</strong> while not on leave.
+            </span>
+          </div>
+        }
       </div>
     </div>
 

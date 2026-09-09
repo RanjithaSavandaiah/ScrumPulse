@@ -25,6 +25,7 @@ export class TeamRosterComponent {
   notification = inject(NotificationService);
 
   showAddModal = signal(false);
+  addMemberError = signal<string | null>(null);
   isSubmitting = signal(false);
   memberToDelete = signal<TeamMember | null>(null);
 
@@ -68,6 +69,7 @@ export class TeamRosterComponent {
   ];
 
   openAddModal(): void {
+    this.addMemberError.set(null);
     this.newMember = {
       name: '',
       email: '',
@@ -158,8 +160,12 @@ export class TeamRosterComponent {
   onSaveMember(): void {
     if (this.isSubmitting()) return;
     const name = this.newMember.name.trim();
-    if (!name) return;
+    if (!name) {
+      this.addMemberError.set('Squad member name is mandatory');
+      return;
+    }
 
+    this.addMemberError.set(null);
     this.isSubmitting.set(true);
 
     const initials = name
@@ -182,7 +188,7 @@ export class TeamRosterComponent {
       teamId: squadId
     });
 
-    this.notification.showSuccess('Team Member Added', `"${name}" has been added to the team roster.`, 'users');
+    this.notification.showSuccess('Team Member Added', `"${name}" added successfully.`, 'users');
 
     this.newMember = {
       name: '',

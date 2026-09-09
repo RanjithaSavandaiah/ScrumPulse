@@ -81,7 +81,7 @@ public class ControllerTests
         // 1. Create Work Item
         var createRequest = new CreateWorkItemRequest(
             Title: "Build OAuth Flow",
-            Description: "Implement PKCE auth for SPA",
+            Description: "Implement PKCE auth for SPA\n\n**Acceptance Criteria (DoR):**\n- User can authenticate with OAuth 2.0 PKCE",
             Type: WorkItemType.UserStory,
             Priority: PriorityLevel.High,
             StoryPoints: 5,
@@ -448,6 +448,35 @@ public class ControllerTests
         var exportResult = await controller.ExportJson();
         var fileResult = Assert.IsAssignableFrom<FileResult>(exportResult);
         Assert.Equal("application/json", fileResult.ContentType);
+
+        // Test ExportSprintCsv with stage date timestamps
+        var workItem = new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            Key = "SP-101",
+            Title = "Implement Stage Telemetry",
+            Type = WorkItemType.UserStory,
+            Status = WorkItemStatus.InProgress,
+            Priority = PriorityLevel.High,
+            StoryPoints = 5,
+            SprintId = sprint.Id,
+            PickedUpAtUtc = new DateTime(2026, 9, 1, 10, 0, 0, DateTimeKind.Utc),
+            PrCreatedAtUtc = new DateTime(2026, 9, 2, 14, 0, 0, DateTimeKind.Utc)
+        };
+        db.WorkItems.Add(workItem);
+        await db.SaveChangesAsync();
+
+        var csvResult = await controller.ExportSprintCsv(sprint.Id);
+        var csvFile = Assert.IsType<FileContentResult>(csvResult);
+        Assert.Equal("text/csv", csvFile.ContentType);
+        var csvContent = System.Text.Encoding.UTF8.GetString(csvFile.FileContents);
+        Assert.Contains("PickedUpAtUtc", csvContent);
+        Assert.Contains("PrCreatedAtUtc", csvContent);
+        Assert.Contains("PrApprovedAtUtc", csvContent);
+        Assert.Contains("PrMergedAtUtc", csvContent);
+        Assert.Contains("QaStartedAtUtc", csvContent);
+        Assert.Contains("CompletedAtUtc", csvContent);
+        Assert.Contains("2026-09-01T10:00:00", csvContent);
     }
 
     [Fact]
@@ -700,4 +729,403 @@ public class ControllerTests
         Assert.Equal("No Data", summary.Engagement.EngagementGrade);
         Assert.Contains("No completed sprint telemetry", summary.Headline);
     }
+
+    [Fact]
+    public async Task WorkItemsController_CreateUserStory_WithoutAcceptanceCriteria_ReturnsBadRequestWithMandatoryMessage()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var request = new CreateWorkItemRequest(
+            Title: "Invalid User Story without AC",
+            Description: "Some general description without criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.Medium,
+            StoryPoints: 3,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var result = await controller.Create(request, null, Ct);
+
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequestResult.Value);
+
+        // Verify message property
+        var json = System.Text.Json.JsonSerializer.Serialize(badRequestResult.Value);
+        Assert.Contains("Acceptance criteria is mandatory to add user story", json);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_CreateUserStory_WithAcceptanceCriteria_Succeeds()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var request = new CreateWorkItemRequest(
+            Title: "Valid User Story with AC",
+            Description: "User login feature\n\n**Acceptance Criteria (DoR):**\n- User receives JWT upon valid credentials\n- Error shown on invalid password",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.High,
+            StoryPoints: 5,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var result = await controller.Create(request, null, Ct);
+        var created = ExtractValue(result);
+
+        Assert.NotNull(created);
+        Assert.Equal("Valid User Story with AC", created.Title);
+        Assert.Equal(WorkItemType.UserStory, created.Type);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_CreateTaskOrBug_WithoutAcceptanceCriteria_Succeeds()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        // Bug does not require acceptance criteria
+        var bugRequest = new CreateWorkItemRequest(
+            Title: "Fix memory leak in websocket handler",
+            Description: "Websocket connections are not disposed properly",
+            Type: WorkItemType.Bug,
+            Priority: PriorityLevel.Critical,
+            StoryPoints: 2,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var bugResult = await controller.Create(bugRequest, null, Ct);
+        var bugDto = ExtractValue(bugResult);
+        Assert.Equal(WorkItemType.Bug, bugDto.Type);
+
+        // TechTask / TaskPbi does not require acceptance criteria
+        var taskRequest = new CreateWorkItemRequest(
+            Title: "Upgrade EF Core to v10",
+            Description: "Upgrade NuGet packages",
+            Type: WorkItemType.TaskPbi,
+            Priority: PriorityLevel.Low,
+            StoryPoints: 1,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var taskResult = await controller.Create(taskRequest, null, Ct);
+        var taskDto = ExtractValue(taskResult);
+        Assert.Equal(WorkItemType.TaskPbi, taskDto.Type);
+    }
+
+    [Fact]
+    public async Task LeavesController_Submit_PreservesCreatedByRole_Developer()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var member = new TeamMember { Id = Guid.NewGuid(), Name = "Dev User", Role = RoleType.Developer, IsActive = true };
+        db.TeamMembers.Add(member);
+        await db.SaveChangesAsync();
+
+        var metricsService = new MetricsCalculatorService(db);
+        var controller = new LeavesController(db, metricsService);
+
+        var request = new SubmitLeaveRequest(
+            TeamMemberId: member.Id,
+            StartDate: DateTime.UtcNow,
+            EndDate: DateTime.UtcNow.AddDays(1),
+            Reason: "Medical appointment",
+            LeaveType: "Sick Leave",
+            Location: "Offshore",
+            CreatedBy: "Developer"
+        );
+
+        var result = await controller.Submit(request, Ct);
+        var leaveDto = ExtractValue(result);
+
+        Assert.Equal("Developer", leaveDto.CreatedBy);
+
+        var leaveInDb = await db.TeamLeaves.FindAsync(leaveDto.Id);
+        Assert.NotNull(leaveInDb);
+        Assert.Equal("Developer", leaveInDb.CreatedBy);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_UpdateUserStory_Succeeds()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var createRequest = new CreateWorkItemRequest(
+            Title: "Initial Story",
+            Description: "Initial description\n\n**Acceptance Criteria (DoR):**\n- Initial criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.Medium,
+            StoryPoints: 3,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var createResult = await controller.Create(createRequest, null, Ct);
+        var created = ExtractValue(createResult);
+
+        var updateRequest = new UpdateWorkItemRequest(
+            Title: "Updated Story by Developer",
+            Description: "Updated description\n\n**Acceptance Criteria (DoR):**\n- Updated criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.High,
+            StoryPoints: 5,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: "PR-456",
+            PrUrl: "https://github.com/org/repo/pull/456",
+            PrBranch: "feature/auth",
+            TargetBranch: "main"
+        );
+
+        var updateResult = await controller.Update(created.Id, updateRequest, Ct);
+        var updateOk = Assert.IsType<OkObjectResult>(updateResult.Result);
+        var updatedDto = Assert.IsType<WorkItemDto>(updateOk.Value);
+
+        Assert.Equal("Updated Story by Developer", updatedDto.Title);
+        Assert.Equal(5, updatedDto.StoryPoints);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_Create_WithoutTitle_ReturnsBadRequest()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var request = new CreateWorkItemRequest(
+            Title: "",
+            Description: "Some desc\n\n**Acceptance Criteria (DoR):**\n- Valid AC",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.Medium,
+            StoryPoints: 3,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var result = await controller.Create(request, null, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_Create_UserStoryWithoutAcceptanceCriteria_ReturnsBadRequest()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var request = new CreateWorkItemRequest(
+            Title: "Story without AC",
+            Description: "Just some description without acceptance criteria marker",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.Medium,
+            StoryPoints: 3,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var result = await controller.Create(request, null, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_Update_WithoutTitle_ReturnsBadRequest()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var createRequest = new CreateWorkItemRequest(
+            Title: "Initial Story",
+            Description: "Initial description\n\n**Acceptance Criteria (DoR):**\n- Initial criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.Medium,
+            StoryPoints: 3,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var createResult = await controller.Create(createRequest, null, Ct);
+        var created = ExtractValue(createResult);
+
+        var updateRequest = new UpdateWorkItemRequest(
+            Title: "   ",
+            Description: "Updated description\n\n**Acceptance Criteria (DoR):**\n- Updated criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.High,
+            StoryPoints: 5,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var updateResult = await controller.Update(created.Id, updateRequest, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(updateResult.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_Update_UserStoryWithoutAcceptanceCriteria_ReturnsBadRequest()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var createRequest = new CreateWorkItemRequest(
+            Title: "Initial Story",
+            Description: "Initial description\n\n**Acceptance Criteria (DoR):**\n- Initial criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.Medium,
+            StoryPoints: 3,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var createResult = await controller.Create(createRequest, null, Ct);
+        var created = ExtractValue(createResult);
+
+        var updateRequest = new UpdateWorkItemRequest(
+            Title: "Valid Title",
+            Description: "Updated description without acceptance criteria",
+            Type: WorkItemType.UserStory,
+            Priority: PriorityLevel.High,
+            StoryPoints: 5,
+            AssigneeId: null,
+            SprintId: null,
+            PrNumber: null,
+            PrUrl: null,
+            PrBranch: null,
+            TargetBranch: "main"
+        );
+
+        var updateResult = await controller.Update(created.Id, updateRequest, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(updateResult.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task BlockersController_Create_WithoutTitle_ReturnsBadRequest()
+    {
+        var (_, mediator, store, _) = CreateTestServices();
+        var controller = new BlockersController(mediator, store);
+
+        var request = new CreateBlockerRequest("", "Context", BlockerCategory.EnvironmentAccess, 4, null, Guid.NewGuid(), null);
+        var result = await controller.Create(request, null);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task BlockersController_Create_WithoutDescription_ReturnsBadRequest()
+    {
+        var (_, mediator, store, _) = CreateTestServices();
+        var controller = new BlockersController(mediator, store);
+
+        var request = new CreateBlockerRequest("Valid Title", "  ", BlockerCategory.EnvironmentAccess, 4, null, Guid.NewGuid(), null);
+        var result = await controller.Create(request, null);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task BlockersController_Resolve_WithoutNotes_ReturnsBadRequest()
+    {
+        var (_, mediator, store, _) = CreateTestServices();
+        var controller = new BlockersController(mediator, store);
+
+        var request = new ResolveBlockerRequest("  ");
+        var result = await controller.Resolve(Guid.NewGuid(), request);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task StandupsController_Submit_WithoutMember_ReturnsBadRequest()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var controller = new StandupsController(db);
+
+        var request = new SubmitStandupRequest(Guid.Empty, "Did work", "Will do work", "None", 5, null);
+        var result = await controller.Submit(request, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task StandupsController_Submit_WithoutYesterday_ReturnsBadRequest()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var controller = new StandupsController(db);
+
+        var request = new SubmitStandupRequest(Guid.NewGuid(), "   ", "Will do work", "None", 5, null);
+        var result = await controller.Submit(request, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task StandupsController_Submit_WithoutToday_ReturnsBadRequest()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var controller = new StandupsController(db);
+
+        var request = new SubmitStandupRequest(Guid.NewGuid(), "Did work", "", "None", 5, null);
+        var result = await controller.Submit(request, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task LeavesController_Submit_WithoutMember_ReturnsBadRequest()
+    {
+        var (db, _, _, _) = CreateTestServices();
+        var metricsService = new MetricsCalculatorService(db);
+        var controller = new LeavesController(db, metricsService);
+
+        var request = new SubmitLeaveRequest(Guid.Empty, DateTime.UtcNow, DateTime.UtcNow.AddDays(1), "Vacation", "Planned Leave", "Offshore");
+        var result = await controller.Submit(request, Ct);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+    }
 }
+

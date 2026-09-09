@@ -127,4 +127,53 @@ test.describe('Daily Standup Feed, CRUD & Co-Located Timer', () => {
       await expect(queueItems.nth(1)).toHaveClass(/active-speaker/);
     }
   });
+
+  test('should enforce mandatory field validation on standup modal and display meaningful success notification when logged', async ({ page }) => {
+    // 1. Open Log Standup Modal
+    const logBtn = page.locator('app-standup-feed .btn-primary', { hasText: 'Log My Standup' });
+    await expect(logBtn).toBeVisible();
+    await logBtn.click();
+
+    await expect(page.locator('#standupYesterdaySummary')).toBeVisible();
+
+    // 2. Select Member
+    const memberSelect = page.locator('#standupMemberSelect');
+    await expect(memberSelect).toBeVisible();
+    const options = await memberSelect.locator('option').all();
+    if (options.length > 1) {
+      const firstVal = await options[1].getAttribute('value');
+      if (firstVal) {
+        await memberSelect.selectOption(firstVal);
+      }
+    }
+
+    // 3. Clear Yesterday Summary and attempt save
+    await page.locator('#standupYesterdaySummary').fill('');
+    await page.locator('#standupTodayPlan').fill('Some plan');
+    await page.locator('app-log-standup-modal .btn-save').click();
+
+    // 4. Assert Yesterday Summary validation banner
+    const alertBanner = page.locator('app-log-standup-modal .validation-alert-banner');
+    await expect(alertBanner).toBeVisible();
+    await expect(alertBanner).toContainText("Yesterday's accomplishments is mandatory");
+
+    // 5. Fill Yesterday Summary, clear Today Plan
+    const timestamp = Date.now();
+    const yesterday = `Completed refactor ${timestamp}`;
+    await page.locator('#standupYesterdaySummary').fill(yesterday);
+    await page.locator('#standupTodayPlan').fill('');
+    await page.locator('app-log-standup-modal .btn-save').click();
+    await expect(alertBanner).toContainText("Today's commitment is mandatory");
+
+    // 6. Fill Today Plan and submit
+    const today = `Verify automated tests ${timestamp}`;
+    await page.locator('#standupTodayPlan').fill(today);
+    await page.locator('app-log-standup-modal .btn-save').click();
+    await expect(page.locator('#standupYesterdaySummary')).not.toBeVisible({ timeout: 5000 });
+
+    // 7. Assert success toast
+    const successToast = page.locator('.confirmation-popup-card .popup-message');
+    await expect(successToast).toBeVisible({ timeout: 5000 });
+    await expect(successToast).toContainText('added successfully');
+  });
 });

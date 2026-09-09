@@ -22,6 +22,7 @@ export class TechTalkModalComponent implements OnInit {
 
   state = inject(ScrumStateService);
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   topic: string = '';
   presenterId: string = '';
@@ -54,7 +55,22 @@ export class TechTalkModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.topic.trim() || !this.presenterId) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.topic.trim()) {
+      this.validationError.set('Tech talk topic is mandatory');
+      return;
+    }
+    if (!this.presenterId) {
+      this.validationError.set('Please select a presenter');
+      return;
+    }
+    if (!this.talkDate) {
+      this.validationError.set('Talk date is mandatory');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
 
     const payload: any = {

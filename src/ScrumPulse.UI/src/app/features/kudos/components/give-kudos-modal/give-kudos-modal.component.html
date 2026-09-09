@@ -12,6 +12,13 @@
     </div>
 
     <div class="modal-body">
+      @if (validationError()) {
+        <div class="validation-alert-banner animate-fade-in">
+          <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+          <span>{{ validationError() }}</span>
+        </div>
+      }
+
       <!-- Sender & Receiver Row -->
       <div class="form-row split-controls">
         <div class="control-col">
@@ -94,7 +101,7 @@
 
     <div class="modal-footer">
       <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
-      <button (click)="onSubmit()" [disabled]="!kudos.senderId || !kudos.receiverId || !kudos.message.trim() || isSubmitting()" class="btn-primary btn-save">
+      <button (click)="onSubmit()" [disabled]="isSubmitting()" class="btn-primary btn-save">
         <app-icon [name]="isSubmitting() ? 'loader' : 'gift'" [size]="16"></app-icon>
         {{ isSubmitting() ? 'Publishing...' : 'Publish to Kudos Wall' }}
       </button>

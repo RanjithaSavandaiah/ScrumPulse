@@ -212,6 +212,13 @@
         </div>
 
         <div class="modal-body">
+          @if (addMemberError()) {
+            <div class="validation-alert-banner animate-fade-in">
+              <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+              <span>{{ addMemberError() }}</span>
+            </div>
+          }
+
           <!-- Role Selector Cards -->
           <div class="form-group">
             <label class="input-label">Squad Role</label>
@@ -258,7 +265,7 @@
 
         <div class="modal-footer">
           <button (click)="showAddModal.set(false)" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
-          <button (click)="onSaveMember()" [disabled]="!newMember.name.trim() || isSubmitting()" class="btn-primary btn-save">
+          <button (click)="onSaveMember()" [disabled]="isSubmitting()" class="btn-primary btn-save">
             <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
             {{ isSubmitting() ? 'Saving...' : 'Save Member to Squad' }}
           </button>

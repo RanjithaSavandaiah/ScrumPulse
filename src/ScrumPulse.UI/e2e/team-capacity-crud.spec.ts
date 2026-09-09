@@ -368,4 +368,83 @@ test.describe('Team Roster & Leave Capacity Management Lifecycle', () => {
     await expect(confirmModal).not.toBeVisible({ timeout: 5000 });
     await expect(page.locator('.leaves-table .leave-row', { hasText: testReason })).not.toBeVisible({ timeout: 10000 });
   });
+
+  test('should record and display "Logged by: Developer" when Developer role logs a leave', async ({ page }) => {
+    // 1. Switch role to Developer
+    const roleSelect = page.locator('[data-testid="role-select"]');
+    await expect(roleSelect).toBeVisible();
+    await roleSelect.selectOption('Developer');
+    await page.waitForTimeout(200);
+
+    // 2. Navigate to Leave & Capacity
+    await page.locator('.tab-btn', { hasText: 'Leave & Capacity' }).click();
+    await expect(page.locator('.capacity-section')).toBeVisible({ timeout: 15000 });
+
+    const timestamp = Date.now();
+    const devReason = `Dev Planned Leave ${timestamp}`;
+
+    // 3. Open Book Leave modal as Developer
+    const bookBtn = page.locator('.capacity-section .section-header button', { hasText: 'Book Planned Leave' });
+    await expect(bookBtn).toBeVisible();
+    await bookBtn.click();
+
+    await expect(page.locator('#leaveMemberSelect')).toBeVisible();
+
+    // Select first member
+    const memberSelect = page.locator('#leaveMemberSelect');
+    const memberOptions = await memberSelect.locator('option').all();
+    if (memberOptions.length > 1) {
+      const val = await memberOptions[1].getAttribute('value');
+      if (val) await memberSelect.selectOption(val);
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    await page.locator('#leaveStartDateInput').fill(today);
+    await page.locator('#leaveEndDateInput').fill(today);
+    await page.locator('#leaveReasonInput').fill(devReason);
+
+    // Save
+    await page.locator('app-book-leave-modal .btn-save').click();
+    await expect(page.locator('#leaveMemberSelect')).not.toBeVisible({ timeout: 5000 });
+
+    // 4. Verify leave row displays "Logged by: Developer"
+    const leaveRow = page.locator('.leaves-table .leave-row', { hasText: devReason });
+    await expect(leaveRow).toBeVisible({ timeout: 10000 });
+    await expect(leaveRow).toContainText('Logged by: Developer');
+    await expect(leaveRow).not.toContainText('Logged by: Scrum Master');
+  });
+
+  test('should enforce mandatory reason field validation on leave booking and show meaningful success notification when booked', async ({ page }) => {
+    // 1. Navigate to Leave & Capacity
+    await page.locator('.tab-btn', { hasText: 'Leave & Capacity' }).click();
+    await expect(page.locator('.capacity-section')).toBeVisible({ timeout: 15000 });
+
+    // 2. Open Book Leave modal
+    const bookBtn = page.locator('.capacity-section .section-header button', { hasText: 'Book Planned Leave' });
+    await expect(bookBtn).toBeVisible();
+    await bookBtn.click();
+
+    await expect(page.locator('#leaveMemberSelect')).toBeVisible();
+
+    // 2. Clear reason input and attempt save
+    await page.locator('#leaveReasonInput').fill('');
+    await page.locator('app-book-leave-modal .btn-save').click();
+
+    // 3. Assert reason validation banner appears
+    const alertBanner = page.locator('app-book-leave-modal .validation-alert-banner');
+    await expect(alertBanner).toBeVisible();
+    await expect(alertBanner).toContainText('Reason is mandatory');
+
+    // 4. Fill valid reason and save
+    const timestamp = Date.now();
+    const validReason = `Annual Family Vacation ${timestamp}`;
+    await page.locator('#leaveReasonInput').fill(validReason);
+    await page.locator('app-book-leave-modal .btn-save').click();
+    await expect(page.locator('#leaveMemberSelect')).not.toBeVisible({ timeout: 5000 });
+
+    // 5. Verify success toast appears with meaningful text
+    const toast = page.locator('.confirmation-popup-card .popup-message');
+    await expect(toast).toBeVisible({ timeout: 5000 });
+    await expect(toast).toContainText('added successfully');
+  });
 });

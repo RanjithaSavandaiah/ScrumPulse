@@ -33,6 +33,7 @@ export class RetroComponent implements OnInit {
   showActionModal = signal(false);
   editingAction = signal<RetroActionItem | null>(null);
   actionToDelete = signal<RetroActionItem | null>(null);
+  actionValidationError = signal<string | null>(null);
 
   selectedSprintId = signal<string>('ALL');
 
@@ -121,7 +122,7 @@ export class RetroComponent implements OnInit {
         ...cardData,
         sprintId: edit.sprintId
       });
-      this.notification.showSuccess('Retro Card Updated', 'Retrospective note updated.', 'rotate-cw');
+      this.notification.showSuccess('Retro Card Updated', 'Retrospective note updated successfully.', 'rotate-cw');
       this.editingCard.set(null);
     } else {
       const targetSprintId = this.selectedSprintId() !== 'ALL'
@@ -133,13 +134,14 @@ export class RetroComponent implements OnInit {
         sprintId: targetSprintId,
         authorId: cardData.authorId || this.state.squadMembers()[0]?.id
       });
-      this.notification.showSuccess('Retro Card Added', 'Retrospective note pinned to board.', 'rotate-cw');
+      this.notification.showSuccess('Retro Card Added', 'Retrospective note added successfully.', 'rotate-cw');
     }
     this.showRetroModal.set(false);
   }
 
   onOpenAddAction(): void {
     this.editingAction.set(null);
+    this.actionValidationError.set(null);
     this.actionForm = {
       title: '',
       assigneeId: this.state.squadMembers()[0]?.id || '',
@@ -151,6 +153,7 @@ export class RetroComponent implements OnInit {
 
   onEditAction(action: RetroActionItem): void {
     this.editingAction.set(action);
+    this.actionValidationError.set(null);
     this.actionForm = {
       title: action.title,
       assigneeId: action.assigneeId || '',
@@ -178,7 +181,12 @@ export class RetroComponent implements OnInit {
   }
 
   onSaveAction(): void {
-    if (!this.actionForm.title.trim()) return;
+    const title = this.actionForm.title.trim();
+    if (!title) {
+      this.actionValidationError.set('Action item title is mandatory');
+      return;
+    }
+    this.actionValidationError.set(null);
 
     const edit = this.editingAction();
     const targetSprintId = this.selectedSprintId() !== 'ALL'
@@ -188,21 +196,21 @@ export class RetroComponent implements OnInit {
     if (edit) {
       this.state.updateRetroAction(edit.id, {
         sprintId: edit.sprintId || targetSprintId,
-        title: this.actionForm.title.trim(),
+        title,
         assigneeId: this.actionForm.assigneeId || null,
         dueDate: this.actionForm.dueDate || null,
         isCompleted: this.actionForm.isCompleted
       });
-      this.notification.showSuccess('Action Item Updated', 'Retro action item updated.', 'check-circle');
+      this.notification.showSuccess('Action Item Updated', `Action item "${title}" updated successfully.`, 'check-circle');
       this.editingAction.set(null);
     } else {
       this.state.createRetroAction({
         sprintId: targetSprintId,
-        title: this.actionForm.title.trim(),
+        title,
         assigneeId: this.actionForm.assigneeId || null,
         dueDate: this.actionForm.dueDate || null
       });
-      this.notification.showSuccess('Action Item Added', 'Retro action item committed.', 'check-circle');
+      this.notification.showSuccess('Action Item Added', `Action item "${title}" added successfully.`, 'check-circle');
     }
 
     this.showActionModal.set(false);

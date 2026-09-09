@@ -67,12 +67,14 @@ describe('AddWorkItemModalComponent', () => {
 
     component.item.title = 'Add user authorization gate';
     component.item.description = 'OAuth 2.1';
+    component.item.acceptanceCriteria = 'User can log in with valid OAuth token';
     component.item.storyPoints = 5;
 
     component.onSubmit();
     expect(saveSpy).toHaveBeenCalledWith(jasmine.objectContaining({
       title: 'Add user authorization gate',
-      storyPoints: 5
+      storyPoints: 5,
+      acceptanceCriteria: 'User can log in with valid OAuth token'
     }));
     expect(component.isSubmitting()).toBeTrue();
 
@@ -80,6 +82,35 @@ describe('AddWorkItemModalComponent', () => {
     saveSpy.calls.reset();
     component.onSubmit();
     expect(saveSpy).not.toHaveBeenCalled();
+  });
+
+  it('should block submit and show validation error if User Story is missing acceptance criteria', () => {
+    const saveSpy = spyOn(component.save, 'emit');
+
+    component.item.type = 0; // UserStory
+    component.item.title = 'Story without AC';
+    component.item.acceptanceCriteria = '';
+
+    component.onSubmit();
+
+    expect(saveSpy).not.toHaveBeenCalled();
+    expect(component.validationError()).toBe('Acceptance criteria is mandatory to add user story');
+    expect(component.isSubmitting()).toBeFalse();
+  });
+
+  it('should allow submit if Bug or TechTask does not have acceptance criteria', () => {
+    const saveSpy = spyOn(component.save, 'emit');
+
+    // Bug
+    component.item.type = 1; // Bug
+    component.item.title = 'Bug fix without AC';
+    component.item.acceptanceCriteria = '';
+    component.item.storyPoints = 3;
+
+    component.onSubmit();
+
+    expect(saveSpy).toHaveBeenCalled();
+    expect(component.validationError()).toBeNull();
   });
 
   it('should manage delete confirmation modal flow before emitting delete', () => {

@@ -22,6 +22,7 @@ export class GiveKudosModalComponent implements OnInit {
   @Output() save = new EventEmitter<{ senderId: string; receiverId: string; badge: number; message: string }>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   kudos = {
     senderId: '',
@@ -66,7 +67,22 @@ export class GiveKudosModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.kudos.senderId || !this.kudos.receiverId || !this.kudos.message.trim()) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.kudos.senderId) {
+      this.validationError.set('Please select who is giving kudos');
+      return;
+    }
+    if (!this.kudos.receiverId) {
+      this.validationError.set('Please select teammate to appreciate');
+      return;
+    }
+    if (!this.kudos.message?.trim()) {
+      this.validationError.set('Appreciation message is mandatory');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.kudos);
   }

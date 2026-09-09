@@ -12,6 +12,13 @@
     </div>
 
     <div class="modal-body">
+      @if (validationError()) {
+        <div class="validation-alert-banner animate-fade-in">
+          <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+          <span>{{ validationError() }}</span>
+        </div>
+      }
+
       <!-- Blocker Summary Info Banner -->
       <div class="blocker-summary-box">
         <div class="summary-header">
@@ -53,7 +60,7 @@
     <!-- Footer Actions -->
     <div class="modal-footer">
       <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
-      <button (click)="onConfirm()" [disabled]="!notes.trim() || isSubmitting()" class="btn-primary btn-confirm">
+      <button (click)="onConfirm()" [disabled]="isSubmitting()" class="btn-primary btn-confirm">
         <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
         {{ isSubmitting() ? 'Resolving...' : 'Confirm & Mark Resolved' }}
       </button>

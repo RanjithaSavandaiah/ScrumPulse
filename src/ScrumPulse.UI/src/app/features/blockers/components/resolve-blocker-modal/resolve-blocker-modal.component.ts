@@ -17,6 +17,7 @@ export class ResolveBlockerModalComponent {
   @Output() resolve = new EventEmitter<{ id: string; notes: string }>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
   notes: string = '';
 
   presets: string[] = [
@@ -33,11 +34,16 @@ export class ResolveBlockerModalComponent {
 
   onConfirm(): void {
     if (this.isSubmitting()) return;
+    if (!this.notes.trim()) {
+      this.validationError.set('Resolution notes are mandatory');
+      return;
+    }
+    this.validationError.set(null);
     this.isSubmitting.set(true);
 
     this.resolve.emit({
       id: this.blocker.id,
-      notes: this.notes.trim() || 'Resolved with team'
+      notes: this.notes.trim()
     });
   }
 }

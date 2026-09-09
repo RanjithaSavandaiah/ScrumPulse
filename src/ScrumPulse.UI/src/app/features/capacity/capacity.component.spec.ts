@@ -89,9 +89,30 @@ describe('CapacityComponent', () => {
     expect(stateService.submitLeave).toHaveBeenCalledWith(jasmine.objectContaining({
       teamMemberId: 'm1',
       reason: 'Annual Leave',
-      leaveType: 'Privilege Leave'
+      leaveType: 'Privilege Leave',
+      createdBy: component.state.currentRole()
     }));
     expect(component.showLeaveModal()).toBeFalse();
+  });
+
+  it('should include Developer in createdBy when Developer logs leave', () => {
+    spyOn(stateService, 'submitLeave');
+    spyOn(component.state, 'currentRole').and.returnValue('Developer');
+
+    component.openCreateLeave();
+    component.onSaveLeave({
+      teamMemberId: 'm1',
+      startDate: '2026-09-15',
+      endDate: '2026-09-16',
+      leaveSlot: 'FullDay',
+      reason: 'Medical Leave',
+      leaveType: 'Sick Leave'
+    });
+
+    expect(stateService.submitLeave).toHaveBeenCalledWith(jasmine.objectContaining({
+      teamMemberId: 'm1',
+      createdBy: 'Developer'
+    }));
   });
 
   it('should dispatch updateLeave when editing an existing leave', () => {

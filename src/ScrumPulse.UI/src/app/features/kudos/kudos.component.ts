@@ -38,7 +38,9 @@ export class KudosComponent {
         badge: kudosData.badge,
         message: kudosData.message
       });
-      this.notification.showSuccess('Kudos Awarded', 'Appreciation badge published to Kudos Wall.', 'gift');
+      const recipient = this.state.squadMembers().find(m => m.id === kudosData.receiverId);
+      const recipientName = recipient ? recipient.name : 'Team member';
+      this.notification.showSuccess('Kudos Awarded', `Kudos for ${recipientName} added successfully.`, 'gift');
       this.showKudosModal.set(false);
     }
   }

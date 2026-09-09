@@ -13,6 +13,7 @@ using ScrumPulse.Domain.Enums;
 public class LeavesController(
     IAppDbContext db,
     IMetricsCalculatorService metricsCalculatorService,
+    ITenantContext? tenantContext = null,
     ILogger<LeavesController>? logger = null) : BaseApiController
 {
     private const int MinValidCalendarYear = 2000;
@@ -75,11 +76,21 @@ public class LeavesController(
 
     [HttpPost]
     [ProducesResponseType(typeof(TeamLeaveDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TeamLeaveDto>> Submit([FromBody] SubmitLeaveRequest request, CancellationToken ct = default)
     {
+        if (request.TeamMemberId == Guid.Empty)
+        {
+            return BadRequest(new { message = "Please select a squad member" });
+        }
+
         var startDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
         var rawEnd = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
         var endDate = DateTime.SpecifyKind(rawEnd, DateTimeKind.Utc);
+
+        var creator = !string.IsNullOrWhiteSpace(request.CreatedBy)
+            ? request.CreatedBy.Trim()
+            : (!string.IsNullOrWhiteSpace(tenantContext?.CurrentUser) ? tenantContext.CurrentUser : "Developer");
 
         var leave = new TeamLeave
         {
@@ -90,7 +101,9 @@ public class LeavesController(
             LeaveType = ParseLeaveCategory(request.LeaveType),
             LeaveSlot = Enum.TryParse<LeaveSlotType>(request.LeaveSlot, true, out var slot) ? slot : LeaveSlotType.FullDay,
             Location = string.IsNullOrWhiteSpace(request.Location) ? "Offshore" : request.Location.Trim(),
-            IsApproved = true
+            IsApproved = true,
+            CreatedBy = creator,
+            UpdatedBy = creator
         };
         db.TeamLeaves.Add(leave);
         await db.SaveChangesAsync(ct);
@@ -113,6 +126,10 @@ public class LeavesController(
         var rawEnd = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
         var endDate = DateTime.SpecifyKind(rawEnd, DateTimeKind.Utc);
 
+        var updater = !string.IsNullOrWhiteSpace(request.CreatedBy)
+            ? request.CreatedBy.Trim()
+            : (!string.IsNullOrWhiteSpace(tenantContext?.CurrentUser) ? tenantContext.CurrentUser : "Developer");
+
         leave.TeamMemberId = request.TeamMemberId;
         leave.StartDate = startDate;
         leave.EndDate = endDate;
@@ -120,6 +137,11 @@ public class LeavesController(
         leave.LeaveType = ParseLeaveCategory(request.LeaveType);
         leave.LeaveSlot = Enum.TryParse<LeaveSlotType>(request.LeaveSlot, true, out var slot) ? slot : LeaveSlotType.FullDay;
         if (!string.IsNullOrWhiteSpace(request.Location)) leave.Location = request.Location.Trim();
+        leave.UpdatedBy = updater;
+        if (string.IsNullOrWhiteSpace(leave.CreatedBy))
+        {
+            leave.CreatedBy = updater;
+        }
 
         await db.SaveChangesAsync(ct);
 

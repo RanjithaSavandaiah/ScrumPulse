@@ -21,6 +21,7 @@ export class TechDebtModalComponent implements OnInit {
 
   state = inject(ScrumStateService);
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   title: string = '';
   description: string = '';
@@ -57,7 +58,14 @@ export class TechDebtModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.title.trim()) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.title.trim()) {
+      this.validationError.set('Debt title is mandatory');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
 
     const payload: any = {

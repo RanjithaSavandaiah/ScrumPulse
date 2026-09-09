@@ -14,6 +14,13 @@
 
     <!-- Body -->
     <form (ngSubmit)="onSubmit()" class="modal-body form-grid">
+      @if (validationError()) {
+        <div class="validation-alert-banner animate-fade-in" style="grid-column: 1 / -1;">
+          <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+          <span>{{ validationError() }}</span>
+        </div>
+      }
+
       <!-- Title -->
       <div class="form-group full-width">
         <label for="techDebtTitleInput" class="form-label">Debt Title & Scope <span class="required-star">*</span></label>
@@ -111,7 +118,7 @@
         </div>
         <div class="footer-right">
           <button type="button" (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
-          <button type="submit" [disabled]="!title.trim() || isSubmitting()" class="btn-primary">
+          <button type="submit" [disabled]="isSubmitting()" class="btn-primary">
             <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
             {{ isSubmitting() ? 'Saving...' : (techDebt ? 'Save Changes' : 'Log Tech Debt') }}
           </button>

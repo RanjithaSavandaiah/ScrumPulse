@@ -21,6 +21,15 @@ export class AddWorkItemModalComponent implements OnInit {
   state = inject(ScrumStateService);
   isSubmitting = signal(false);
   showDeleteConfirm = signal(false);
+  validationError = signal<string | null>(null);
+
+  get isUserStory(): boolean {
+    return this.item.type === 0;
+  }
+
+  get isAcceptanceCriteriaMissing(): boolean {
+    return this.isUserStory && !this.item.acceptanceCriteria?.trim();
+  }
 
   @Input() editItem: WorkItem | null = null;
   @Input() members: TeamMember[] = [];
@@ -175,8 +184,17 @@ export class AddWorkItemModalComponent implements OnInit {
 
   onSubmit(): void {
     if (this.isSubmitting()) return;
-    if (!this.item.title.trim()) return;
+    if (!this.item.title.trim()) {
+      this.validationError.set('Work item title is mandatory');
+      return;
+    }
 
+    if (this.isAcceptanceCriteriaMissing) {
+      this.validationError.set('Acceptance criteria is mandatory to add user story');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.item);
   }

@@ -92,17 +92,22 @@ export class StandupComponent implements OnDestroy {
   }
 
   onSaveStandup(standupData: { teamMemberId: string; yesterdaySummary: string; todayPlan: string; blockersText: string; moodScore: number }): void {
+    const member = this.state.squadMembers().find(m => m.id === standupData.teamMemberId);
+    const memberName = member ? member.name : 'Team member';
+
     const editItem = this.selectedEditStandup();
     if (editItem) {
       this.state.updateStandup(editItem.id, {
         ...standupData,
         sprintId: editItem.sprintId || this.state.activeSprint()?.id
       });
+      this.notification.showSuccess('Standup Updated', `Daily standup for ${memberName} updated successfully.`, 'zap');
     } else {
       this.state.submitStandup({
         ...standupData,
         sprintId: this.state.activeSprint()?.id
       });
+      this.notification.showSuccess('Standup Logged', `Daily standup for ${memberName} added successfully.`, 'zap');
     }
     this.showStandupModal.set(false);
     this.selectedEditStandup.set(null);

@@ -18,6 +18,7 @@ export class AddBlockerModalComponent implements OnInit {
   @Output() delete = new EventEmitter<string>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   blocker = {
     title: '',
@@ -82,7 +83,18 @@ export class AddBlockerModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.blocker.title.trim()) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.blocker.title?.trim()) {
+      this.validationError.set('Blocker title is mandatory');
+      return;
+    }
+    if (!this.blocker.description?.trim()) {
+      this.validationError.set('Blocker context is mandatory');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.blocker);
   }

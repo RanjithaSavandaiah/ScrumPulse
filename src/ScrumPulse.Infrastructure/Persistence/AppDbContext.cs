@@ -84,7 +84,7 @@ public class AppDbContext : DbContext, IAppDbContext
         var now = DateTime.UtcNow;
         var currentUser = !string.IsNullOrWhiteSpace(_tenantContext?.CurrentUser)
             ? _tenantContext.CurrentUser
-            : "Scrum Master";
+            : "Developer";
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {

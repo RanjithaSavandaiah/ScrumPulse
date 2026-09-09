@@ -5,11 +5,13 @@ import { of } from 'rxjs';
 import { catchError, map, mergeMap, switchMap } from 'rxjs/operators';
 import { WorkItemActions } from './work-items.actions';
 import { WorkItem } from '../../models/scrum.models';
+import { NotificationService } from '../../services/notification.service';
 
 @Injectable()
 export class WorkItemsEffects {
   private actions$ = inject(Actions);
   private http = inject(HttpClient);
+  private notification = inject(NotificationService);
   private apiUrl = '/api';
 
   loadWorkItems$ = createEffect(() =>
@@ -33,6 +35,8 @@ export class WorkItemsEffects {
           map(created => WorkItemActions.createWorkItemSuccess({ item: created })),
           catchError(err => {
             console.error('[WorkItemsEffects] Failed to create work item:', err);
+            const msg = err?.message || 'Failed to create work item';
+            this.notification.showError('Validation Error', msg, 'alert-triangle');
             return of();
           })
         )

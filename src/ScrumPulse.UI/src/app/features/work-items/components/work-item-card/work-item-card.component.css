@@ -101,6 +101,20 @@
   margin-top: 2px;
 }
 
+.step-timestamp {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.stage-step.completed .step-timestamp {
+  color: #34d399;
+  font-weight: 500;
+}
+
 .card-footer {
   display: flex;
   justify-content: space-between;

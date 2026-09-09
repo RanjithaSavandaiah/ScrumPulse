@@ -36,7 +36,7 @@ describe('GiveKudosModalComponent', () => {
     expect(component.kudos.message).toBe(component.presets[0]);
   });
 
-  it('should emit save when form is submitted with message', () => {
+  it('should emit save when form is submitted with valid fields', () => {
     spyOn(component.save, 'emit');
 
     component.kudos.senderId = 'm-1';
@@ -44,7 +44,29 @@ describe('GiveKudosModalComponent', () => {
     component.kudos.badge = 1;
     component.kudos.message = 'Great work on the release';
 
-    component.save.emit(component.kudos);
+    component.onSubmit();
     expect(component.save.emit).toHaveBeenCalledWith(component.kudos);
+    expect(component.validationError()).toBeNull();
+  });
+
+  it('should validate mandatory fields on submit', () => {
+    spyOn(component.save, 'emit');
+
+    component.kudos.senderId = '';
+    component.onSubmit();
+    expect(component.validationError()).toBe('Please select who is giving kudos');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    component.kudos.senderId = 'm-1';
+    component.kudos.receiverId = '';
+    component.onSubmit();
+    expect(component.validationError()).toBe('Please select teammate to appreciate');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    component.kudos.receiverId = 'm-2';
+    component.kudos.message = '   ';
+    component.onSubmit();
+    expect(component.validationError()).toBe('Appreciation message is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
   });
 });

@@ -37,6 +37,31 @@ public class WorkItemsController(
             if (cached != null) return Ok(cached);
         }
 
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadRequest(new { message = "Work item title is mandatory" });
+        }
+
+        if (request.Type == WorkItemType.UserStory)
+        {
+            var hasAcceptanceCriteria = false;
+            const string marker = "**Acceptance Criteria (DoR):**";
+            var idx = request.Description?.IndexOf(marker, StringComparison.OrdinalIgnoreCase) ?? -1;
+            if (idx >= 0)
+            {
+                var acContent = request.Description![(idx + marker.Length)..].Trim();
+                if (!string.IsNullOrWhiteSpace(acContent))
+                {
+                    hasAcceptanceCriteria = true;
+                }
+            }
+
+            if (!hasAcceptanceCriteria)
+            {
+                return BadRequest(new { message = "Acceptance criteria is mandatory to add user story" });
+            }
+        }
+
         // Deduplication guard for rapid double-clicks within a short time window
         var window = DateTime.UtcNow.AddSeconds(-2);
         var duplicate = await db.WorkItems
@@ -61,9 +86,35 @@ public class WorkItemsController(
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(WorkItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WorkItemDto>> Update(Guid id, [FromBody] UpdateWorkItemRequest request, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadRequest(new { message = "Work item title is mandatory" });
+        }
+
+        if (request.Type == WorkItemType.UserStory)
+        {
+            var hasAcceptanceCriteria = false;
+            const string marker = "**Acceptance Criteria (DoR):**";
+            var idx = request.Description?.IndexOf(marker, StringComparison.OrdinalIgnoreCase) ?? -1;
+            if (idx >= 0)
+            {
+                var acContent = request.Description![(idx + marker.Length)..].Trim();
+                if (!string.IsNullOrWhiteSpace(acContent))
+                {
+                    hasAcceptanceCriteria = true;
+                }
+            }
+
+            if (!hasAcceptanceCriteria)
+            {
+                return BadRequest(new { message = "Acceptance criteria is mandatory to add user story" });
+            }
+        }
+
         var workItem = await db.WorkItems
             .Include(item => item.Assignee)
             .Include(item => item.PrReviewer)

@@ -34,6 +34,7 @@ const TWO_DECIMAL_PLACES_ROUNDING_FACTOR = 100;
 export class EditSprintModalComponent implements OnInit {
   state = inject(ScrumStateService);
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   @Input() sprint: Sprint | null = null;
   @Output() close = new EventEmitter<void>();
@@ -219,8 +220,25 @@ export class EditSprintModalComponent implements OnInit {
 
   onSubmit(): void {
     if (this.isSubmitting()) return;
-    if (!this.canSubmit) return;
 
+    if (!this.name.trim()) {
+      this.validationError.set('Sprint name is mandatory');
+      return;
+    }
+    if (!this.startDate) {
+      this.validationError.set('Start date is mandatory');
+      return;
+    }
+    if (!this.endDate) {
+      this.validationError.set('End date is mandatory');
+      return;
+    }
+    if (new Date(this.endDate) < new Date(this.startDate)) {
+      this.validationError.set('End date cannot be earlier than start date');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
 
     // Ensure story points is non-zero if hours entered

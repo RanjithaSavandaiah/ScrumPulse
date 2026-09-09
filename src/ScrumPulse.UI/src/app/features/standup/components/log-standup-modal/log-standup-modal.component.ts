@@ -27,6 +27,7 @@ export class LogStandupModalComponent implements OnInit {
   @Output() delete = new EventEmitter<string>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   standup = {
     teamMemberId: '',
@@ -101,7 +102,22 @@ export class LogStandupModalComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.isSubmitting() || !this.standup.teamMemberId) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.standup.teamMemberId) {
+      this.validationError.set('Please select a team member');
+      return;
+    }
+    if (!this.standup.yesterdaySummary?.trim()) {
+      this.validationError.set("Yesterday's accomplishments is mandatory");
+      return;
+    }
+    if (!this.standup.todayPlan?.trim()) {
+      this.validationError.set("Today's commitment is mandatory");
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.standup);
   }

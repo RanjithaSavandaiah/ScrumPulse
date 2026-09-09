@@ -46,13 +46,16 @@ export class ReviewsComponent {
   }
 
   onSaveFeedback(feedbackData: any): void {
+    const member = this.state.squadMembers().find(m => m.id === feedbackData.teamMemberId);
+    const memberName = member ? member.name : 'Team member';
+
     const editItem = this.selectedFeedbackForEdit();
     if (editItem) {
       this.state.updateMonthlyFeedback(editItem.id, feedbackData);
-      this.notification.showSuccess('Review Updated', 'Monthly 1:1 feedback record updated.', 'file-text');
+      this.notification.showSuccess('Review Updated', `Monthly 1:1 review for ${memberName} updated successfully.`, 'file-text');
     } else {
       this.state.submitMonthlyFeedback(feedbackData);
-      this.notification.showSuccess('Review Saved', 'Monthly 1:1 feedback recorded successfully.', 'file-text');
+      this.notification.showSuccess('Review Saved', `Monthly 1:1 review for ${memberName} added successfully.`, 'file-text');
     }
     this.onCloseFeedbackModal();
   }

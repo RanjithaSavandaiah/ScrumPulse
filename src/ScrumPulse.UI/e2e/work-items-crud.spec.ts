@@ -145,6 +145,7 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     await page.locator('.type-card', { hasText: 'User Story' }).click();
     await page.locator('#workItemTitleInput').fill(storyTitle);
     await page.locator('#workItemDescTextarea').fill('PBI created specifically inside newly provisioned sprint.');
+    await page.locator('#workItemDoRTextarea').fill('Given new sprint, When user story added, Then criteria met.');
     await page.locator('.points-selector .point-btn', { hasText: '8' }).click();
     await page.locator('#workItemHoursInput').fill('16');
     await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
@@ -359,5 +360,144 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     await expect(matrixModal).not.toBeVisible({ timeout: 5000 });
     await page.locator('app-edit-sprint-modal .close-btn').click();
     await expect(page.locator('#sprintNameInput')).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('should block User Story creation without acceptance criteria and show validation error', async ({ page }) => {
+    // 1. Open Add Story modal
+    const addBtn = page.locator('.section-header button', { hasText: 'Add Story / Bug / PBI' });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // 2. Select User Story
+    await page.locator('.type-card', { hasText: 'User Story' }).click();
+
+    // 3. Fill Title and Description only (NO Acceptance Criteria)
+    const storyTitle = `User Story Without AC ${Date.now()}`;
+    await page.locator('#workItemTitleInput').fill(storyTitle);
+    await page.locator('#workItemDescTextarea').fill('Description without acceptance criteria');
+    await page.locator('#workItemDoRTextarea').fill('');
+
+    // 4. Attempt to save
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+
+    // 5. Verify validation error banner is visible and contains exact message
+    const errorAlert = page.locator('.validation-alert-banner');
+    await expect(errorAlert).toBeVisible();
+    await expect(errorAlert).toContainText('Acceptance criteria is mandatory to add user story');
+
+    // Verify modal is NOT closed and item is NOT created
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // 6. Now provide Acceptance Criteria
+    await page.locator('#workItemDoRTextarea').fill('Given valid credentials, When user signs in, Then dashboard is rendered');
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+
+    // 7. Verify modal closes and card is created
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible({ timeout: 5000 });
+    const createdCard = page.locator('.work-item-card', { hasText: storyTitle });
+    await expect(createdCard).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should allow Developer to edit User Story but hide delete action', async ({ page }) => {
+    // 1. Create a User Story as Scrum Master first
+    const addBtn = page.locator('.section-header button', { hasText: 'Add Story / Bug / PBI' });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+
+    const devStoryTitle = `Dev Editable Story ${Date.now()}`;
+    await page.locator('.type-card', { hasText: 'User Story' }).click();
+    await page.locator('#workItemTitleInput').fill(devStoryTitle);
+    await page.locator('#workItemDescTextarea').fill('Created for developer editing test');
+    await page.locator('#workItemDoRTextarea').fill('Given developer role, When editing, Then story updates');
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible({ timeout: 5000 });
+
+    const storyCard = page.locator('.work-item-card', { hasText: devStoryTitle });
+    await expect(storyCard).toBeVisible({ timeout: 10000 });
+
+    // 2. Switch role to Developer in navbar
+    const roleSelect = page.locator('[data-testid="role-select"]');
+    await expect(roleSelect).toBeVisible();
+    await roleSelect.selectOption('Developer');
+    await page.waitForTimeout(200);
+
+    // 3. Verify that on the User Story card, the Edit Story button IS VISIBLE for Developer
+    const editBtn = storyCard.locator('button.btn-edit', { hasText: 'Edit Story' });
+    await expect(editBtn).toBeVisible();
+    await editBtn.click();
+
+    // 4. Verify edit modal opens
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // Verify Delete Story button is NOT visible for Developer
+    const deleteBtn = page.locator('app-add-work-item-modal .modal-footer .btn-danger', { hasText: 'Delete Story' });
+    await expect(deleteBtn).not.toBeVisible();
+
+    // 5. Update title and save
+    const updatedDevTitle = `${devStoryTitle} - Edited By Developer`;
+    await page.locator('#workItemTitleInput').fill(updatedDevTitle);
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible({ timeout: 5000 });
+
+    // 6. Verify updated card on board
+    const updatedCard = page.locator('.work-item-card', { hasText: updatedDevTitle });
+    await expect(updatedCard).toBeVisible({ timeout: 10000 });
+  });
+
+  test('should validate mandatory title on Work Item and show meaningful success notification when added', async ({ page }) => {
+    // 1. Open Add Story modal
+    const addBtn = page.locator('.section-header button', { hasText: 'Add Story / Bug / PBI' });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // Leave title blank and click save
+    await page.locator('#workItemTitleInput').fill('');
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+
+    // Verify validation alert banner
+    const alertBanner = page.locator('app-add-work-item-modal .validation-alert-banner');
+    await expect(alertBanner).toBeVisible();
+    await expect(alertBanner).toContainText('Work item title is mandatory');
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    // Now fill title & required fields
+    const validTitle = `Mandatory Test PBI ${Date.now()}`;
+    await page.locator('#workItemTitleInput').fill(validTitle);
+    await page.locator('.type-card', { hasText: 'Tech Task' }).click();
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+
+    // Verify modal closes and success toast appears with meaningful message
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible({ timeout: 5000 });
+    const successToast = page.locator('.confirmation-popup-card .popup-message', { hasText: `"${validTitle}" added successfully.` });
+    await expect(successToast).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should validate mandatory sprint name and show meaningful success notification when added', async ({ page }) => {
+    const sprintModalBtn = page.locator('.section-header button', { hasText: 'Create Sprint' });
+    await expect(sprintModalBtn).toBeVisible();
+    await sprintModalBtn.click();
+
+    await expect(page.locator('#sprintNameInput')).toBeVisible();
+
+    // Leave sprint name empty and click create
+    await page.locator('#sprintNameInput').fill('');
+    await page.locator('app-edit-sprint-modal button.btn-primary', { hasText: 'Create Sprint' }).click();
+
+    // Verify validation banner
+    const sprintAlert = page.locator('app-edit-sprint-modal .validation-alert-banner');
+    await expect(sprintAlert).toBeVisible();
+    await expect(sprintAlert).toContainText('Sprint name is mandatory');
+
+    // Fill valid sprint name
+    const validSprint = `Sprint Valid ${Date.now()}`;
+    await page.locator('#sprintNameInput').fill(validSprint);
+    await page.locator('app-edit-sprint-modal button.btn-primary', { hasText: 'Create Sprint' }).click();
+
+    // Verify modal closes and success toast appears
+    await expect(page.locator('#sprintNameInput')).not.toBeVisible({ timeout: 5000 });
+    const sprintToast = page.locator('.confirmation-popup-card .popup-message', { hasText: `Sprint "${validSprint}" added successfully.` });
+    await expect(sprintToast).toBeVisible({ timeout: 5000 });
   });
 });

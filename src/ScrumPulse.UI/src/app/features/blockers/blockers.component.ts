@@ -61,7 +61,7 @@ export class BlockersComponent {
         sprintId: this.state.activeSprint()?.id,
         raisedById: this.state.squadMembers()[0]?.id
       });
-      this.notification.showSuccess('Blocker Logged', `Blocker "${blockerData.title}" logged on SLA Radar.`, 'shield-alert');
+      this.notification.showSuccess('Blocker Logged', `Blocker "${blockerData.title}" added successfully.`, 'shield-alert');
     }
 
     this.onCloseBlockerModal();
@@ -72,8 +72,10 @@ export class BlockersComponent {
   }
 
   onConfirmResolve(event: { id: string; notes: string }): void {
+    const target = this.selectedBlockerForResolution();
+    const title = target?.title || 'Item';
     this.state.resolveBlocker(event.id, event.notes);
-    this.notification.showSuccess('Blocker Resolved', 'Blocker marked as resolved on SLA Radar.', 'check-circle');
+    this.notification.showSuccess('Blocker Resolved', `Blocker "${title}" resolved successfully.`, 'check-circle');
     this.selectedBlockerForResolution.set(null);
   }
 

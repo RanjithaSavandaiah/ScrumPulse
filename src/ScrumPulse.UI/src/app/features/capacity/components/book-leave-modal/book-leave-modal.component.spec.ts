@@ -92,4 +92,29 @@ describe('BookLeaveModalComponent', () => {
     component.onDelete();
     expect(component.delete.emit).toHaveBeenCalledWith('leave-99');
   });
+
+  it('should validate mandatory fields on confirm submit', () => {
+    spyOn(component.save, 'emit');
+
+    // Missing team member
+    component.leave.teamMemberId = '';
+    component.onConfirmSubmit();
+    expect(component.validationError()).toBe('Please select a team member');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    // Missing reason
+    component.leave.teamMemberId = 'm-1';
+    component.leave.reason = '   ';
+    component.onConfirmSubmit();
+    expect(component.validationError()).toBe('Reason is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    // Inverted date range
+    component.leave.reason = 'Vacation';
+    component.leave.startDate = '2026-09-20';
+    component.leave.endDate = '2026-09-10';
+    component.onConfirmSubmit();
+    expect(component.validationError()).toBe('End date cannot be earlier than start date');
+    expect(component.save.emit).not.toHaveBeenCalled();
+  });
 });

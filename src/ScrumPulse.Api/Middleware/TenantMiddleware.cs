@@ -56,7 +56,7 @@ public class TenantMiddleware(RequestDelegate next)
         }
         else
         {
-            tenantContext.CurrentUser = "Scrum Master";
+            tenantContext.CurrentUser = "Developer";
         }
 
         await next(context);

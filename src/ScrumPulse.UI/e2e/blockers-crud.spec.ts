@@ -97,4 +97,63 @@ test.describe('Blocker SLA Radar End-to-End Lifecycle', () => {
     // Verify Blocker is completely deleted
     await expect(page.locator('app-blocker-card', { hasText: updatedTitle })).not.toBeVisible({ timeout: 10000 });
   });
+
+  test('should enforce mandatory field validation on blocker creation and resolution, and display meaningful success notification', async ({ page }) => {
+    // 1. Click Log Blocker
+    const logBtn = page.locator('.blockers-section .section-header button', { hasText: 'Log Blocker' });
+    await expect(logBtn).toBeVisible();
+    await logBtn.click();
+
+    await expect(page.locator('#blockerSummaryInput')).toBeVisible();
+
+    // 2. Click save with empty fields
+    await page.locator('#blockerSummaryInput').fill('');
+    await page.locator('app-add-blocker-modal .btn-save').click();
+
+    // 3. Assert title validation banner
+    const alertBanner = page.locator('app-add-blocker-modal .validation-alert-banner');
+    await expect(alertBanner).toBeVisible();
+    await expect(alertBanner).toContainText('Blocker title is mandatory');
+
+    // 4. Fill title, leave context blank
+    const blockerTitle = `Mandatory Validation Blocker ${Date.now()}`;
+    await page.locator('#blockerSummaryInput').fill(blockerTitle);
+    await page.locator('#blockerContextTextarea').fill('');
+    await page.locator('app-add-blocker-modal .btn-save').click();
+    await expect(alertBanner).toContainText('Blocker context is mandatory');
+
+    // 5. Fill context and save
+    await page.locator('#blockerContextTextarea').fill('Root cause investigation in progress.');
+    await page.locator('app-add-blocker-modal .btn-save').click();
+    await expect(page.locator('#blockerSummaryInput')).not.toBeVisible({ timeout: 5000 });
+
+    // Verify success toast appears with meaningful name
+    const createToast = page.locator('.confirmation-popup-card .popup-message', { hasText: `Blocker "${blockerTitle}" added successfully.` });
+    await expect(createToast).toBeVisible({ timeout: 5000 });
+
+    // 6. Find card and test resolution validation
+    const card = page.locator('app-blocker-card', { hasText: blockerTitle });
+    await expect(card).toBeVisible({ timeout: 10000 });
+
+    const resolveBtn = card.locator('.btn-resolve');
+    await resolveBtn.click();
+    await expect(page.locator('#resolutionNotesTextarea')).toBeVisible();
+
+    // Clear resolution notes and submit
+    await page.locator('#resolutionNotesTextarea').fill('');
+    await page.locator('app-resolve-blocker-modal .btn-confirm').click();
+
+    const resolveAlert = page.locator('app-resolve-blocker-modal .validation-alert-banner');
+    await expect(resolveAlert).toBeVisible();
+    await expect(resolveAlert).toContainText('Resolution notes are mandatory');
+
+    // Fill valid notes and resolve
+    await page.locator('#resolutionNotesTextarea').fill('Resolved with proper config.');
+    await page.locator('app-resolve-blocker-modal .btn-confirm').click();
+    await expect(page.locator('#resolutionNotesTextarea')).not.toBeVisible({ timeout: 5000 });
+
+    // Verify resolve success toast
+    const resolveToast = page.locator('.confirmation-popup-card .popup-message', { hasText: `Blocker "${blockerTitle}" resolved successfully.` });
+    await expect(resolveToast).toBeVisible({ timeout: 5000 });
+  });
 });

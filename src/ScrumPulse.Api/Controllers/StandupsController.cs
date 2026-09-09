@@ -41,8 +41,24 @@ public class StandupsController(IAppDbContext db) : BaseApiController
 
     [HttpPost]
     [ProducesResponseType(typeof(DailyStandupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DailyStandupDto>> Submit([FromBody] SubmitStandupRequest request, CancellationToken ct)
     {
+        if (request.TeamMemberId == Guid.Empty)
+        {
+            return BadRequest(new { message = "Please select a team member" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.YesterdaySummary))
+        {
+            return BadRequest(new { message = "Yesterday summary is mandatory" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TodayPlan))
+        {
+            return BadRequest(new { message = "Today plan is mandatory" });
+        }
+
         var standup = new DailyStandup
         {
             TeamMemberId = request.TeamMemberId,
@@ -64,9 +80,25 @@ public class StandupsController(IAppDbContext db) : BaseApiController
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(DailyStandupDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DailyStandupDto>> Update(Guid id, [FromBody] SubmitStandupRequest request, CancellationToken ct)
     {
+        if (request.TeamMemberId == Guid.Empty)
+        {
+            return BadRequest(new { message = "Please select a team member" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.YesterdaySummary))
+        {
+            return BadRequest(new { message = "Yesterday summary is mandatory" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TodayPlan))
+        {
+            return BadRequest(new { message = "Today plan is mandatory" });
+        }
+
         var standup = await db.DailyStandups.FindAsync([id], ct);
         if (standup == null) return NotFound();
 

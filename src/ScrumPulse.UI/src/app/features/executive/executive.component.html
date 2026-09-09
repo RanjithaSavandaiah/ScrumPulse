@@ -215,6 +215,22 @@
         <span class="metric-sub">{{ previewTotalComments() > 0 ? (previewActionableComments() / previewTotalComments() * 100 | number:'1.0-0') : 0 }}% actionability index</span>
       </div>
     </div>
+
+    <div class="glass-panel metric-card" [class.metric-card-warning]="previewMissedStandups() > 0">
+      <div class="metric-icon-box" [style.color]="previewMissedStandups() > 0 ? 'var(--accent-danger)' : 'var(--accent-success)'">
+        <app-icon [name]="previewMissedStandups() > 0 ? 'alert-circle' : 'check-circle'" [size]="20"></app-icon>
+      </div>
+      <div class="metric-info">
+        <span class="metric-label">Standup & Updates Compliance</span>
+        <span class="metric-val">{{ previewComplianceRate() }}%</span>
+        <span class="metric-sub">
+          {{ previewLoggedStandups() }} / {{ previewExpectedStandups() }} logged &bull;
+          <span [style.color]="previewMissedStandups() > 0 ? 'var(--accent-danger)' : 'var(--text-muted)'" [style.fontWeight]="previewMissedStandups() > 0 ? '700' : 'normal'">
+            {{ previewMissedStandups() }} missed (not on leave)
+          </span>
+        </span>
+      </div>
+    </div>
   </div>
 
   <!-- Scope Preview Content (Work Items & PRs) -->
@@ -299,6 +315,48 @@
       </div>
     </div>
   </div>
+
+  <!-- Missed Standups Alert & Details Panel -->
+  @if (previewMissedStandups() > 0) {
+    <div class="glass-panel missed-standups-card animate-slide-up">
+      <div class="missed-standups-header">
+        <div class="missed-title-wrap">
+          <app-icon name="alert-circle" [size]="18" color="var(--accent-danger)"></app-icon>
+          <div>
+            <h4 class="missed-card-title">Missed Daily Standup Updates Detected ({{ previewMissedStandups() }} Days)</h4>
+            <p class="missed-card-subtitle">
+              Team member was not on leave on these working days, but daily standup update was not logged.
+            </p>
+          </div>
+        </div>
+        <span class="missed-compliance-badge">{{ previewComplianceRate() }}% Attendance Rate</span>
+      </div>
+      <div class="table-responsive">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Member / Scope</th>
+              <th>Leave Status</th>
+              <th>Update Status</th>
+              <th>Follow-up Recommendation</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (mDate of previewMissedDates(); track mDate) {
+              <tr>
+                <td><strong>{{ mDate | date:'mediumDate' }}</strong></td>
+                <td>{{ filteredPreview().memberLabel }}</td>
+                <td><span class="cat-pill">Not on Leave</span></td>
+                <td><span class="missed-tag">MISSED DAILY UPDATE</span></td>
+                <td>Review cadence accountability and check-in blockers</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
 
   <!-- Sprint Comparison Studio -->
   @if (showComparison()) {

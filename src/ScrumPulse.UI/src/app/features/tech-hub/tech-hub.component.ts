@@ -80,10 +80,10 @@ export class TechHubComponent {
   saveTechDebt(payload: any): void {
     if (payload.id) {
       this.state.updateTechDebt(payload.id, payload);
-      this.notification.showSuccess('Tech Debt Updated', `"${payload.title}" updated.`, 'wrench');
+      this.notification.showSuccess('Tech Debt Updated', `Tech debt "${payload.title}" updated successfully.`, 'wrench');
     } else {
       this.state.createTechDebt(payload);
-      this.notification.showSuccess('Tech Debt Logged', `"${payload.title}" logged in architecture backlog.`, 'wrench');
+      this.notification.showSuccess('Tech Debt Logged', `Tech debt "${payload.title}" added successfully.`, 'wrench');
     }
     this.closeTechDebtModal();
   }
@@ -144,10 +144,10 @@ export class TechHubComponent {
   saveTechTalk(payload: any): void {
     if (payload.id) {
       this.state.updateTechTalk(payload.id, payload);
-      this.notification.showSuccess('Tech Talk Updated', `"${payload.topic}" updated.`, 'book-open');
+      this.notification.showSuccess('Tech Talk Updated', `Tech talk "${payload.topic}" updated successfully.`, 'book-open');
     } else {
       this.state.createTechTalk(payload);
-      this.notification.showSuccess('Tech Talk Scheduled', `"${payload.topic}" added to knowledge sharing calendar.`, 'book-open');
+      this.notification.showSuccess('Tech Talk Scheduled', `Tech talk "${payload.topic}" added successfully.`, 'book-open');
     }
     this.closeTechTalkModal();
   }

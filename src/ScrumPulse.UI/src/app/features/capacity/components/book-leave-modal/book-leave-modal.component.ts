@@ -32,6 +32,7 @@ export class BookLeaveModalComponent implements OnInit {
   @Output() delete = new EventEmitter<string>();
 
   isSubmitting = signal(false);
+  validationError = signal<string | null>(null);
 
   leave: {
     teamMemberId: string;
@@ -166,7 +167,30 @@ export class BookLeaveModalComponent implements OnInit {
   }
 
   onConfirmSubmit(): void {
-    if (this.isSubmitting() || !this.canSubmit) return;
+    if (this.isSubmitting()) return;
+
+    if (!this.leave.teamMemberId) {
+      this.validationError.set('Please select a team member');
+      return;
+    }
+    if (!this.leave.startDate) {
+      this.validationError.set('Start date is mandatory');
+      return;
+    }
+    if (!this.leave.endDate) {
+      this.validationError.set('End date is mandatory');
+      return;
+    }
+    if (this.leave.leaveSlot === 'FullDay' && this.leave.endDate < this.leave.startDate) {
+      this.validationError.set('End date cannot be earlier than start date');
+      return;
+    }
+    if (!this.leave.reason?.trim()) {
+      this.validationError.set('Reason is mandatory');
+      return;
+    }
+
+    this.validationError.set(null);
     this.isSubmitting.set(true);
 
     if (this.leave.endDate < this.leave.startDate || this.leave.leaveSlot !== 'FullDay') {
@@ -175,7 +199,7 @@ export class BookLeaveModalComponent implements OnInit {
 
     const payload = {
       ...this.leave,
-      reason: this.leave.reason?.trim() || 'Planned Leave'
+      reason: this.leave.reason.trim()
     };
 
     this.save.emit(payload);

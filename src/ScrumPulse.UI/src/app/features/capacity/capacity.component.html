@@ -196,7 +196,7 @@
                 <div>{{ leave.reason || 'Planned Timeoff' }}</div>
                 @if (leave.createdBy) {
                   <small style="font-size: 0.72rem; opacity: 0.75; display: block; margin-top: 2px;">
-                    Logged by: {{ leave.createdBy }}
+                    Logged by: {{ leave.createdBy | roleLabel }}
                   </small>
                 }
               </td>

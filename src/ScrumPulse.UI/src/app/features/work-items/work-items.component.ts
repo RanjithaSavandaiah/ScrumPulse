@@ -192,6 +192,12 @@ export class WorkItemsComponent {
   }
 
   onEditItem(item: WorkItem) {
+    const isSm = this.state.canEditOrDelete();
+    const isDev = this.state.currentRole() === 'Developer';
+    const isStory = item.type === 'UserStory' || (item.type as any) === 0;
+    if (!isSm && !(isDev && isStory)) {
+      return;
+    }
     this.selectedItemForEdit.set(item);
     this.showNewItemModal.set(true);
   }
@@ -202,6 +208,12 @@ export class WorkItemsComponent {
   }
 
   onSaveItem(newItem: { title: string; description: string; acceptanceCriteria?: string; type: number; priority: number; storyPoints: number; estimatedHours?: number | null; assigneeId?: string; sprintId?: string }) {
+    // Validate mandatory acceptance criteria for User Stories
+    if (newItem.type === 0 && !newItem.acceptanceCriteria?.trim()) {
+      this.notification.showError('Validation Error', 'Acceptance criteria is mandatory to add user story', 'alert-triangle');
+      return;
+    }
+
     const combinedDesc = newItem.acceptanceCriteria?.trim()
       ? `${newItem.description}\n\n**Acceptance Criteria (DoR):**\n${newItem.acceptanceCriteria}`
       : newItem.description;
@@ -223,7 +235,7 @@ export class WorkItemsComponent {
         sprintId: targetSprint || null,
         assigneeId: newItem.assigneeId || null
       });
-      this.notification.showSuccess('Work Item Updated', `"${newItem.title.trim()}" has been updated.`);
+      this.notification.showSuccess('Work Item Updated', `"${newItem.title.trim()}" updated successfully.`);
     } else {
       this.state.createWorkItem({
         title: newItem.title.trim(),
@@ -235,7 +247,7 @@ export class WorkItemsComponent {
         sprintId: targetSprint || null,
         assigneeId: newItem.assigneeId || null
       });
-      this.notification.showSuccess('Work Item Added', `"${newItem.title.trim()}" added to sprint pipeline.`);
+      this.notification.showSuccess('Work Item Added', `"${newItem.title.trim()}" added successfully.`);
     }
 
     this.selectedItemForEdit.set(null);
@@ -271,7 +283,7 @@ export class WorkItemsComponent {
       this.notification.showSuccess('Sprint Updated', `Sprint "${sprintData.name || 'Sprint'}" updated successfully.`, 'calendar');
     } else {
       this.state.createSprint(sprintData);
-      this.notification.showSuccess('Sprint Created', `Sprint "${sprintData.name || 'Sprint'}" created successfully.`, 'calendar');
+      this.notification.showSuccess('Sprint Created', `Sprint "${sprintData.name || 'Sprint'}" added successfully.`, 'calendar');
     }
     this.closeSprintModal();
   }

@@ -11,7 +11,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         errorMessage = `Client Error: ${error.error.message}`;
       } else {
         // Server-side RFC 7807 problem details or standard error
-        if (error.error?.detail) {
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else if (error.error?.detail) {
           errorMessage = error.error.detail;
         } else if (error.error?.title) {
           errorMessage = error.error.title;

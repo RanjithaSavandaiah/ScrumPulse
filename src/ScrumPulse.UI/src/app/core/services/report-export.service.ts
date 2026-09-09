@@ -192,6 +192,14 @@ export class ReportExportService {
 
     const memberLabel = selectedMember ? `${this.cleanName(selectedMember.name)} (${this.getRoleLabel(selectedMember.role)})` : 'Entire Squad / All Developers';
 
+    const standupCompliance = this.calculateStandupCompliance(
+      options.memberId,
+      options,
+      standups,
+      leaves,
+      sprints
+    );
+
     return {
       selectedMember,
       memberLabel,
@@ -202,7 +210,158 @@ export class ReportExportService {
       leaves,
       reviews,
       kudos,
-      techTalks
+      techTalks,
+      standupCompliance
+    };
+  }
+
+  public calculateStandupCompliance(
+    memberId: string,
+    options: ExportFilterOptions,
+    standups: DailyStandup[],
+    leaves: TeamLeave[],
+    sprints: Sprint[]
+  ) {
+    const formatYmd = (d: Date): string => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const parseToLocalMidnight = (val: string | Date): Date => {
+      if (typeof val === 'string' && val.length >= 10 && val.includes('-')) {
+        const parts = val.substring(0, 10).split('-').map(Number);
+        if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+          return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+        }
+      }
+      const d = new Date(val);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    };
+
+    let rangeStart: Date;
+    let rangeEnd: Date;
+    const now = new Date();
+
+    if (options.timeScopeType === 'SPRINT') {
+      const sp = sprints.find(s => s.id === options.sprintId) || sprints.find(s => s.isActive) || sprints[0];
+      if (sp && sp.startDate && sp.endDate) {
+        rangeStart = parseToLocalMidnight(sp.startDate);
+        rangeEnd = parseToLocalMidnight(sp.endDate);
+        rangeEnd.setHours(23, 59, 59, 999);
+      } else {
+        rangeStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        rangeStart.setHours(0, 0, 0, 0);
+        rangeEnd = now;
+      }
+    } else if (options.timeScopeType === 'MONTH' && options.month) {
+      const parts = options.month.split('-');
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      rangeStart = new Date(y, m - 1, 1, 0, 0, 0, 0);
+      rangeEnd = new Date(y, m, 0, 23, 59, 59, 999);
+    } else if (options.timeScopeType === 'QUARTER' && options.quarter) {
+      const parts = options.quarter.split('-Q');
+      const y = parseInt(parts[0], 10);
+      const q = parseInt(parts[1], 10);
+      const startMonth = (q - 1) * 3;
+      rangeStart = new Date(y, startMonth, 1, 0, 0, 0, 0);
+      rangeEnd = new Date(y, startMonth + 3, 0, 23, 59, 59, 999);
+    } else if (options.timeScopeType === 'CUSTOM' && options.startDate) {
+      rangeStart = parseToLocalMidnight(options.startDate);
+      rangeEnd = options.endDate ? parseToLocalMidnight(options.endDate) : new Date(now);
+      rangeEnd.setHours(23, 59, 59, 999);
+    } else {
+      const activeSp = sprints.find(s => s.isActive);
+      if (activeSp && activeSp.startDate) {
+        rangeStart = parseToLocalMidnight(activeSp.startDate);
+        rangeEnd = parseToLocalMidnight(activeSp.endDate || now);
+        rangeEnd.setHours(23, 59, 59, 999);
+      } else {
+        rangeStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        rangeStart.setHours(0, 0, 0, 0);
+        rangeEnd = now;
+      }
+    }
+
+    const effectiveNow = new Date();
+    effectiveNow.setHours(23, 59, 59, 999);
+    if (rangeEnd > effectiveNow) {
+      rangeEnd = effectiveNow;
+    }
+    if (rangeStart > rangeEnd) {
+      rangeStart = new Date(rangeEnd);
+      rangeStart.setHours(0, 0, 0, 0);
+    }
+
+    const memberStandups = memberId !== 'ALL'
+      ? standups.filter(s => s.teamMemberId === memberId)
+      : standups;
+
+    const memberLeaves = memberId !== 'ALL'
+      ? leaves.filter(l => l.teamMemberId === memberId)
+      : leaves;
+
+    const standupDateSet = new Set<string>();
+    for (const s of memberStandups) {
+      if (s.standupDate) {
+        const d = parseToLocalMidnight(s.standupDate);
+        if (!isNaN(d.getTime())) {
+          standupDateSet.add(formatYmd(d));
+        }
+      }
+    }
+
+    const isLeaveOnDay = (dayDate: Date): boolean => {
+      const dayTime = dayDate.getTime();
+      return memberLeaves.some(l => {
+        if (!l.startDate || !l.endDate) return false;
+        const s = parseToLocalMidnight(l.startDate);
+        const e = parseToLocalMidnight(l.endDate);
+        e.setHours(23, 59, 59, 999);
+        return dayTime >= s.getTime() && dayTime <= e.getTime();
+      });
+    };
+
+    let expectedDays = 0;
+    let loggedDays = 0;
+    let missedDays = 0;
+    let leaveDays = 0;
+    const missedDates: string[] = [];
+
+    const cur = new Date(rangeStart);
+    while (cur <= rangeEnd) {
+      const dayOfWeek = cur.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const dateStr = formatYmd(cur);
+        const onLeave = isLeaveOnDay(cur);
+
+        if (onLeave) {
+          leaveDays++;
+        } else {
+          expectedDays++;
+          if (standupDateSet.has(dateStr)) {
+            loggedDays++;
+          } else {
+            missedDays++;
+            missedDates.push(dateStr);
+          }
+        }
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const complianceRate = expectedDays > 0 ? Math.round((loggedDays / expectedDays) * 100) : 100;
+
+    return {
+      expectedDays,
+      loggedDays,
+      missedDays,
+      leaveDays,
+      complianceRate,
+      missedDates
     };
   }
 
@@ -210,6 +369,40 @@ export class ReportExportService {
     const labels = ['Problem Solver', 'Team Player', 'Goal Crusher', 'Quality Guardian', 'Innovation Star', 'Client Shoutout'];
     if (typeof badge === 'number') return labels[badge] || 'Kudos Recognition';
     return String(badge) || 'Kudos Recognition';
+  }
+
+  public buildWorkItemsRows(workItems: WorkItem[], memberLabel: string) {
+    return workItems.map(item => ({
+      'Key': item.key,
+      'Title': item.title,
+      'Type': String(item.type),
+      'Priority': String(item.priority),
+      'Story Points': item.storyPoints,
+      'Status': String(item.status),
+      'Assignee': item.assigneeName || memberLabel,
+      'PR Number': item.prNumber || 'N/A',
+      'PR Branch': item.prBranch || 'N/A',
+      'Target Branch': item.targetBranch || 'main',
+      'Created At': item.createdAtUtc ? new Date(item.createdAtUtc).toLocaleString() : '',
+      'Picked Up At': item.pickedUpAtUtc ? new Date(item.pickedUpAtUtc).toLocaleString() : '',
+      'PR Created At': item.prCreatedAtUtc ? new Date(item.prCreatedAtUtc).toLocaleString() : '',
+      'PR Approved At': item.prApprovedAtUtc ? new Date(item.prApprovedAtUtc).toLocaleString() : '',
+      'PR Merged At': item.prMergedAtUtc ? new Date(item.prMergedAtUtc).toLocaleString() : '',
+      'QA Started At': item.qaStartedAtUtc ? new Date(item.qaStartedAtUtc).toLocaleString() : '',
+      'Completed At': item.completedAtUtc ? new Date(item.completedAtUtc).toLocaleString() : '',
+      'Pickup Latency (Hours)': item.pickupLatencyHours ?? 'N/A',
+      'Dev Cycle Time (Hours)': item.devCycleTimeHours ?? 'N/A',
+      'PR Review Latency (Hours)': item.prReviewLatencyHours ?? 'N/A',
+      'PR Merge Latency (Hours)': item.prMergeLatencyHours ?? 'N/A',
+      'QA Testing Latency (Hours)': item.qaTestingLatencyHours ?? 'N/A',
+      'Total Cycle Time (Hours)': item.totalCycleTimeHours ?? 'N/A',
+      'DoR Criteria Defined': item.dorAcceptanceCriteriaDefined ? 'Yes' : 'No',
+      'DoD Unit Tests Passed': item.dodUnitTestsPassed ? 'Yes' : 'No',
+      'DoD Peer Review Done': item.dodPeerReviewCompleted ? 'Yes' : 'No',
+      'DoD Merged to Master': item.dodMergedToMaster ? 'Yes' : 'No',
+      'DoD Staging Verified': item.dodStagingVerified ? 'Yes' : 'No',
+      'Escaped Defect': item.isEscapedDefect ? 'YES' : 'NO'
+    }));
   }
 
   // ==========================================
@@ -245,7 +438,11 @@ export class ReportExportService {
       ['Review Discussions Received', totalComments],
       ['Actionable Code Review Feedback', actionableComments],
       ['Review Actionability Index', actionabilityRate],
-      ['Daily Standups Logged', data.standups.length],
+      ['Daily Standups Expected (Not on Leave)', `${data.standupCompliance.expectedDays} days`],
+      ['Daily Standups Logged', `${data.standupCompliance.loggedDays} updates`],
+      ['Missed Daily Standups / Updates', `${data.standupCompliance.missedDays} missed`],
+      ['Standup Attendance & Logging Compliance', `${data.standupCompliance.complianceRate}%`],
+      ['Dates with Missed Standup Updates', data.standupCompliance.missedDates.length > 0 ? data.standupCompliance.missedDates.join(', ') : 'None (100% compliant)'],
       ['Leaves / Planned PTO Records', data.leaves.length],
       ['Total Working Days on Leave', `${totalLeaveDays} days`],
       ['Monthly 1-on-1 Feedback Reviews', data.reviews.length],
@@ -257,33 +454,7 @@ export class ReportExportService {
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Overview Summary');
 
     // 2. Work Items Sheet
-    const workItemsRows = data.workItems.map(item => ({
-      'Key': item.key,
-      'Title': item.title,
-      'Type': String(item.type),
-      'Priority': String(item.priority),
-      'Story Points': item.storyPoints,
-      'Status': String(item.status),
-      'Assignee': item.assigneeName || data.memberLabel,
-      'PR Number': item.prNumber || 'N/A',
-      'PR Branch': item.prBranch || 'N/A',
-      'Target Branch': item.targetBranch || 'main',
-      'Created At': item.createdAtUtc ? new Date(item.createdAtUtc).toLocaleDateString() : '',
-      'Picked Up At': item.pickedUpAtUtc ? new Date(item.pickedUpAtUtc).toLocaleDateString() : '',
-      'Completed At': item.completedAtUtc ? new Date(item.completedAtUtc).toLocaleDateString() : '',
-      'Pickup Latency (Hours)': item.pickupLatencyHours ?? 'N/A',
-      'Dev Cycle Time (Hours)': item.devCycleTimeHours ?? 'N/A',
-      'PR Review Latency (Hours)': item.prReviewLatencyHours ?? 'N/A',
-      'PR Merge Latency (Hours)': item.prMergeLatencyHours ?? 'N/A',
-      'QA Testing Latency (Hours)': item.qaTestingLatencyHours ?? 'N/A',
-      'Total Cycle Time (Hours)': item.totalCycleTimeHours ?? 'N/A',
-      'DoR Criteria Defined': item.dorAcceptanceCriteriaDefined ? 'Yes' : 'No',
-      'DoD Unit Tests Passed': item.dodUnitTestsPassed ? 'Yes' : 'No',
-      'DoD Peer Review Done': item.dodPeerReviewCompleted ? 'Yes' : 'No',
-      'DoD Merged to Master': item.dodMergedToMaster ? 'Yes' : 'No',
-      'DoD Staging Verified': item.dodStagingVerified ? 'Yes' : 'No',
-      'Escaped Defect': item.isEscapedDefect ? 'YES' : 'NO'
-    }));
+    const workItemsRows = this.buildWorkItemsRows(data.workItems, data.memberLabel);
     const wsWorkItems = XLSX.utils.json_to_sheet(workItemsRows.length > 0 ? workItemsRows : [{ 'Info': 'No work items found for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsWorkItems, 'Work Items & Lifecycle');
 
@@ -304,15 +475,28 @@ export class ReportExportService {
     XLSX.utils.book_append_sheet(wb, wsPrs, 'Pull Requests & Reviews');
 
     // 4. Daily Standups Sheet
-    const standupRows = data.standups.map(standup => ({
+    const loggedStandupRows = data.standups.map(standup => ({
       'Date': standup.standupDate ? new Date(standup.standupDate).toLocaleDateString() : '',
       'Member': standup.teamMemberName,
+      'Status': 'LOGGED',
       'Yesterday Accomplishments': standup.yesterdaySummary,
       'Today Focus Plan': standup.todayPlan,
       'Impediments / Blockers': standup.blockersText || 'None',
       'Mood Score (1-10)': standup.moodScore
     }));
-    const wsStandups = XLSX.utils.json_to_sheet(standupRows.length > 0 ? standupRows : [{ 'Info': 'No standups found for this selection' }]);
+
+    const missedStandupRows = data.standupCompliance.missedDates.map(mDate => ({
+      'Date': new Date(mDate).toLocaleDateString(),
+      'Member': data.memberLabel,
+      'Status': 'MISSED (Not on leave)',
+      'Yesterday Accomplishments': 'MISSED — Person was not on leave and missed daily standup update',
+      'Today Focus Plan': 'MISSED UPDATE',
+      'Impediments / Blockers': 'Missed Standup Cadence',
+      'Mood Score (1-10)': 0
+    }));
+
+    const allStandupRows = [...loggedStandupRows, ...missedStandupRows];
+    const wsStandups = XLSX.utils.json_to_sheet(allStandupRows.length > 0 ? allStandupRows : [{ 'Info': 'No standups found for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsStandups, 'Daily Standups');
 
     // 5. Leaves & Capacity Sheet
@@ -434,7 +618,8 @@ export class ReportExportService {
         ['Pull Requests Created', `${totalPrs} PRs`, 'Continuous Integration Stream'],
         ['Review Discussions Received', `${totalComments} comments`, 'Code Review Engagement'],
         ['Actionable Code Improvements', `${actionableComments} comments`, `Actionability: ${actionabilityRate}`],
-        ['Daily Standups Recorded', `${data.standups.length} updates`, 'Daily Cadence & Impediments'],
+        ['Daily Standups Logged / Expected', `${data.standupCompliance.loggedDays} / ${data.standupCompliance.expectedDays} updates (${data.standupCompliance.complianceRate}% Rate)`, 'Daily Cadence & Accountability'],
+        ['Missed Daily Standups (Not on Leave)', `${data.standupCompliance.missedDays} missed updates`, data.standupCompliance.missedDays > 0 ? 'Requires Follow-up' : '100% Compliant Cadence'],
         ['Planned Leave Days', `${totalLeaveDays} days`, 'Capacity Adjustments'],
         ['Monthly 1-on-1 Reviews', `${data.reviews.length} sessions`, 'Continuous Mentoring & Growth'],
         ['Peer Kudos & Recognitions', `${data.kudos.length} awards`, 'Culture & Collaboration'],
@@ -456,17 +641,18 @@ export class ReportExportService {
 
     const workItemsBody = data.workItems.map(item => [
       item.key,
-      item.title.length > 35 ? item.title.substring(0, 32) + '...' : item.title,
+      item.title.length > 26 ? item.title.substring(0, 23) + '...' : item.title,
       String(item.type),
       `${item.storyPoints} Pts`,
       String(item.status),
-      item.totalCycleTimeHours ? `${item.totalCycleTimeHours}h` : 'In Progress'
+      item.pickedUpAtUtc ? new Date(item.pickedUpAtUtc).toLocaleDateString() : '—',
+      item.completedAtUtc ? new Date(item.completedAtUtc).toLocaleDateString() : (item.totalCycleTimeHours ? `${item.totalCycleTimeHours}h` : 'In Progress')
     ]);
 
     autoTable(doc, {
       startY: currentY,
-      head: [['Key', 'Title & Deliverable', 'Category', 'Points', 'Status', 'Cycle Time']],
-      body: workItemsBody.length > 0 ? workItemsBody : [['-', 'No work items found for this selection', '-', '-', '-', '-']],
+      head: [['Key', 'Title & Deliverable', 'Category', 'Points', 'Status', 'Picked Up', 'Completed / Cycle']],
+      body: workItemsBody.length > 0 ? workItemsBody : [['-', 'No work items found for this selection', '-', '-', '-', '-', '-']],
       theme: 'striped',
       headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
       styles: { fontSize: 8, cellPadding: 4 }
@@ -523,6 +709,35 @@ export class ReportExportService {
         theme: 'striped',
         headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] },
         styles: { fontSize: 8, cellPadding: 4 }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 25;
+    }
+
+    // Missed Standups Alert Table (Person not on leave and missed daily update)
+    if (data.standupCompliance.missedDates.length > 0) {
+      checkPageBreak(90);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(220, 38, 38);
+      doc.text(`Missed Daily Standups & Updates (${data.standupCompliance.missedDays} working days missed without leave)`, 30, currentY);
+      doc.setTextColor(30, 41, 59);
+      currentY += 10;
+
+      const missedBody = data.standupCompliance.missedDates.map(mDate => [
+        new Date(mDate).toLocaleDateString(),
+        data.memberLabel,
+        'Not on Leave',
+        'MISSED UPDATE',
+        'Daily standup was not logged on this working day'
+      ]);
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Missed Date', 'Team Member', 'Leave Status', 'Update Status', 'Agile Telemetry']],
+        body: missedBody,
+        theme: 'striped',
+        headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 3.5 }
       });
       currentY = (doc as any).lastAutoTable.finalY + 25;
     }

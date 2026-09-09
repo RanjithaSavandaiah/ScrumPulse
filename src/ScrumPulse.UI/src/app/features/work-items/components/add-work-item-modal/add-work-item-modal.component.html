@@ -11,6 +11,13 @@
     </div>
 
     <div class="modal-body">
+      @if (validationError(); as err) {
+        <div class="validation-alert-banner animate-fade-in">
+          <app-icon name="alert-circle" [size]="16" color="#ef4444"></app-icon>
+          <span>{{ err }}</span>
+        </div>
+      }
+
       <!-- Target Sprint & Category Row -->
       <div class="split-controls">
         <div class="control-col">
@@ -83,15 +90,28 @@
 
       <!-- Acceptance Criteria (DoR) -->
       <div class="form-group">
-        <label for="workItemDoRTextarea" class="input-label">Acceptance Criteria</label>
+        <label for="workItemDoRTextarea" class="input-label">
+          Acceptance Criteria
+          @if (isUserStory) {
+            <span style="color: var(--accent-danger); font-weight: 600;">* Mandatory for User Story</span>
+          }
+        </label>
         <textarea
           id="workItemDoRTextarea"
           name="workItemDoRTextarea"
           [(ngModel)]="item.acceptanceCriteria"
+          (ngModelChange)="validationError.set(null)"
           placeholder="Given / When / Then criteria required for Definition of Ready (DoR)..."
           class="interactive-input"
+          [class.input-error]="isAcceptanceCriteriaMissing && validationError()"
           rows="2"
         ></textarea>
+        @if (validationError(); as err) {
+          <div class="field-error-msg animate-fade-in" style="display: flex; align-items: center; gap: 0.35rem; color: var(--accent-danger); font-size: 0.8rem; margin-top: 0.35rem;">
+            <app-icon name="alert-circle" [size]="14" color="var(--accent-danger)"></app-icon>
+            <span>{{ err }}</span>
+          </div>
+        }
       </div>
 
       <!-- Story Points & Hour Estimation Split Row -->
@@ -180,7 +200,7 @@
     <!-- Footer Actions -->
     <div class="modal-footer">
       <div class="footer-left">
-        @if (editItem) {
+        @if (editItem && state.canEditOrDelete()) {
           <button type="button" (click)="onDeletePrompt()" class="btn-danger">
             <app-icon name="trash-2" [size]="16"></app-icon> Delete Story
           </button>
@@ -188,7 +208,7 @@
       </div>
       <div class="footer-right">
         <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
-        <button (click)="onSubmit()" [disabled]="!item.title.trim() || isSubmitting()" class="btn-primary btn-save">
+        <button (click)="onSubmit()" [disabled]="isSubmitting()" class="btn-primary btn-save">
           <app-icon [name]="isSubmitting() ? 'loader' : 'check'" [size]="16"></app-icon>
           {{ isSubmitting() ? 'Saving...' : (editItem ? 'Save Changes' : 'Add to Sprint Pipeline') }}
         </button>

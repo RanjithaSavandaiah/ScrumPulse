@@ -19,6 +19,13 @@ export class WorkItemCardComponent {
   @Output() openGates = new EventEmitter<WorkItem>();
   @Output() editItem = new EventEmitter<WorkItem>();
 
+  canEditItem(item: WorkItem): boolean {
+    if (this.state.canEditOrDelete()) return true;
+    const isDev = this.state.currentRole() === 'Developer';
+    const isUserStory = item.type === 'UserStory' || (item.type as any) === 0;
+    return isDev && isUserStory;
+  }
+
   getAssigneeName(item: WorkItem): string {
     if (!item.assigneeId) return item.assigneeName || 'Unassigned';
     const member = this.state.members().find(member => member.id === item.assigneeId);

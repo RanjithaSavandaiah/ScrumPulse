@@ -26,21 +26,21 @@ describe('tenantInterceptor', () => {
     localStorage.clear();
   });
 
-  it('should attach default ScrumMaster role headers when localStorage is empty', (done) => {
+  it('should attach default Developer role headers when localStorage is empty', (done) => {
     httpClient.get('/api/sprints').subscribe(response => {
       expect(response).toBeTruthy();
       done();
     });
 
     const req = httpTestingController.expectOne('/api/sprints');
-    expect(req.request.headers.get('X-User-Role')).toBe('ScrumMaster');
-    expect(req.request.headers.get('X-User-Name')).toBe('ScrumMaster');
+    expect(req.request.headers.get('X-User-Role')).toBe('Developer');
+    expect(req.request.headers.get('X-User-Name')).toBe('Developer');
     expect(req.request.headers.has('X-Team-Id')).toBeFalse();
     req.flush([]);
   });
 
   it('should attach custom role and team id headers from localStorage', (done) => {
-    localStorage.setItem('scrumpulse_current_role', 'Developer');
+    localStorage.setItem('scrumpulse_current_role', 'ScrumMaster');
     localStorage.setItem('scrumpulse_current_team_id', 'squad-alpha-123');
 
     httpClient.get('/api/work-items').subscribe(response => {
@@ -49,8 +49,8 @@ describe('tenantInterceptor', () => {
     });
 
     const req = httpTestingController.expectOne('/api/work-items');
-    expect(req.request.headers.get('X-User-Role')).toBe('Developer');
-    expect(req.request.headers.get('X-User-Name')).toBe('Developer');
+    expect(req.request.headers.get('X-User-Role')).toBe('ScrumMaster');
+    expect(req.request.headers.get('X-User-Name')).toBe('ScrumMaster');
     expect(req.request.headers.get('X-Team-Id')).toBe('squad-alpha-123');
     req.flush([]);
   });

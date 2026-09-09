@@ -129,4 +129,106 @@ describe('ReportExportService', () => {
     expect(dataDifferentMonth.workItems.length).toBe(0);
     expect(dataDifferentMonth.prLogs.length).toBe(0);
   });
+
+  describe('calculateStandupCompliance', () => {
+    it('should calculate expected days, missed days, and compliance rate excluding approved leaves and weekends', () => {
+      // 2026-09-01 is Tuesday, 2026-09-04 is Friday (4 weekdays: 01, 02, 03, 04)
+      const options: ExportFilterOptions = {
+        memberId: 'm-1',
+        timeScopeType: 'CUSTOM',
+        startDate: '2026-09-01',
+        endDate: '2026-09-04'
+      };
+
+      const standups: any[] = [
+        { teamMemberId: 'm-1', standupDate: '2026-09-01T09:00:00Z', yesterdaySummary: 'Done 1', todayPlan: 'Plan 1' },
+        { teamMemberId: 'm-1', standupDate: '2026-09-02T09:00:00Z', yesterdaySummary: 'Done 2', todayPlan: 'Plan 2' }
+      ];
+
+      const leaves: any[] = [
+        { teamMemberId: 'm-1', startDate: '2026-09-03T00:00:00Z', endDate: '2026-09-03T23:59:59Z', isApproved: true }
+      ];
+
+      const compliance = service.calculateStandupCompliance('m-1', options, standups, leaves, []);
+
+      // Expected: 4 weekdays minus 1 leave day = 3 expected days
+      expect(compliance.expectedDays).toBe(3);
+      expect(compliance.leaveDays).toBe(1);
+      // Logged: 2 days (Sep 1 and Sep 2)
+      expect(compliance.loggedDays).toBe(2);
+      // Missed: 1 day (Sep 4, since Sep 3 was leave)
+      expect(compliance.missedDays).toBe(1);
+      expect(compliance.complianceRate).toBe(67); // Math.round(2 / 3 * 100) = 67%
+      expect(compliance.missedDates).toEqual(['2026-09-04']);
+    });
+
+    it('should report 100% compliance when member logs updates on all working days not on leave', () => {
+      const options: ExportFilterOptions = {
+        memberId: 'm-1',
+        timeScopeType: 'CUSTOM',
+        startDate: '2026-09-01',
+        endDate: '2026-09-02'
+      };
+
+      const standups: any[] = [
+        { teamMemberId: 'm-1', standupDate: '2026-09-01T09:00:00Z' },
+        { teamMemberId: 'm-1', standupDate: '2026-09-02T09:00:00Z' }
+      ];
+
+      const compliance = service.calculateStandupCompliance('m-1', options, standups, [], []);
+      expect(compliance.expectedDays).toBe(2);
+      expect(compliance.loggedDays).toBe(2);
+      expect(compliance.missedDays).toBe(0);
+      expect(compliance.complianceRate).toBe(100);
+      expect(compliance.missedDates.length).toBe(0);
+    });
+  });
+
+  describe('buildWorkItemsRows', () => {
+    it('should format all 6 stage timestamps in Excel rows when present', () => {
+      const itemWithStages: WorkItem = {
+        ...mockWorkItem,
+        pickedUpAtUtc: '2026-09-01T10:00:00Z',
+        prCreatedAtUtc: '2026-09-02T11:00:00Z',
+        prApprovedAtUtc: '2026-09-02T15:30:00Z',
+        prMergedAtUtc: '2026-09-03T09:00:00Z',
+        qaStartedAtUtc: '2026-09-03T10:30:00Z',
+        completedAtUtc: '2026-09-04T16:00:00Z'
+      };
+
+      const rows = service.buildWorkItemsRows([itemWithStages], 'Alice (Developer)');
+      expect(rows.length).toBe(1);
+      const row = rows[0];
+
+      expect(row['Picked Up At']).toContain('2026');
+      expect(row['PR Created At']).toContain('2026');
+      expect(row['PR Approved At']).toContain('2026');
+      expect(row['PR Merged At']).toContain('2026');
+      expect(row['QA Started At']).toContain('2026');
+      expect(row['Completed At']).toContain('2026');
+    });
+
+    it('should return empty string for timestamps when stages are not yet reached', () => {
+      const pendingItem: WorkItem = {
+        ...mockWorkItem,
+        pickedUpAtUtc: undefined,
+        prCreatedAtUtc: undefined,
+        prApprovedAtUtc: undefined,
+        prMergedAtUtc: undefined,
+        qaStartedAtUtc: undefined,
+        completedAtUtc: undefined
+      };
+
+      const rows = service.buildWorkItemsRows([pendingItem], 'Alice (Developer)');
+      expect(rows.length).toBe(1);
+      const row = rows[0];
+
+      expect(row['Picked Up At']).toBe('');
+      expect(row['PR Created At']).toBe('');
+      expect(row['PR Approved At']).toBe('');
+      expect(row['PR Merged At']).toBe('');
+      expect(row['QA Started At']).toBe('');
+      expect(row['Completed At']).toBe('');
+    });
+  });
 });

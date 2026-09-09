@@ -6,10 +6,10 @@ import { HttpInterceptorFn } from '@angular/common/http';
  */
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
   let teamId: string | null = null;
-  let role = 'ScrumMaster';
+  let role = 'Developer';
   try {
     teamId = localStorage.getItem('scrumpulse_current_team_id');
-    role = localStorage.getItem('scrumpulse_current_role') || 'ScrumMaster';
+    role = localStorage.getItem('scrumpulse_current_role') || 'Developer';
   } catch (err) {
     console.warn('[tenantInterceptor] Failed to read tenant/role from localStorage:', err);
   }

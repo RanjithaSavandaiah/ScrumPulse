@@ -25,14 +25,25 @@ describe('AddRetroCardModalComponent', () => {
     expect(component.card.content).toBe(component.presets[0]);
   });
 
-  it('should emit save when submitted with content', () => {
+  it('should emit save when submitted with valid content', () => {
     spyOn(component.save, 'emit');
 
     component.card.content = 'Improved CI workflow';
     component.card.category = 0;
     component.card.isAnonymous = false;
 
-    component.save.emit(component.card);
+    component.onSubmit();
     expect(component.save.emit).toHaveBeenCalledWith(component.card);
+    expect(component.validationError()).toBeNull();
+  });
+
+  it('should validate mandatory note content on submit', () => {
+    spyOn(component.save, 'emit');
+
+    component.card.content = '   ';
+    component.onSubmit();
+
+    expect(component.validationError()).toBe('Retrospective note content is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
   });
 });

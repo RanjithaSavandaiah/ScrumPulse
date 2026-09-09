@@ -38,7 +38,7 @@ describe('ResolveBlockerModalComponent', () => {
     expect(component.notes).toBe(component.presets[0]);
   });
 
-  it('should emit resolve event on confirmation', () => {
+  it('should emit resolve event on confirmation with valid notes', () => {
     spyOn(component.resolve, 'emit');
 
     component.notes = 'Fixed credentials';
@@ -48,5 +48,16 @@ describe('ResolveBlockerModalComponent', () => {
       id: 'b-1',
       notes: 'Fixed credentials'
     });
+    expect(component.validationError()).toBeNull();
+  });
+
+  it('should validate mandatory resolution notes', () => {
+    spyOn(component.resolve, 'emit');
+
+    component.notes = '   ';
+    component.onConfirm();
+
+    expect(component.validationError()).toBe('Resolution notes are mandatory');
+    expect(component.resolve.emit).not.toHaveBeenCalled();
   });
 });

@@ -16,11 +16,23 @@ public class BlockersController(
         Ok(await mediator.QueryAsync(new GetBlockersQuery(sprintId), ct));
 
     [HttpPost]
+    [ProducesResponseType(typeof(BlockerDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BlockerDto>> Create(
         [FromBody] CreateBlockerRequest request,
         [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey,
         CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadRequest(new { message = "Blocker title is mandatory" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            return BadRequest(new { message = "Blocker context is mandatory" });
+        }
+
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
             var cached = await idempotencyStore.GetResponseAsync<BlockerDto>(idempotencyKey);
@@ -38,8 +50,16 @@ public class BlockersController(
     }
 
     [HttpPost("{id:guid}/resolve")]
+    [ProducesResponseType(typeof(BlockerDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BlockerDto>> Resolve(Guid id, [FromBody] ResolveBlockerRequest request, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(request.ResolutionNotes))
+        {
+            return BadRequest(new { message = "Resolution notes are mandatory" });
+        }
+
         var result = await mediator.SendAsync(new ResolveBlockerCommand(id, request), ct);
         if (result == null) return NotFound();
         return Ok(result);

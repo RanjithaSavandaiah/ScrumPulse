@@ -223,6 +223,13 @@
         </div>
 
         <div class="modal-body">
+          @if (actionValidationError()) {
+            <div class="validation-alert-banner animate-fade-in">
+              <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+              <span>{{ actionValidationError() }}</span>
+            </div>
+          }
+
           <div class="form-group">
             <label for="retroActionTitleInput" class="input-label">Action Item Description *</label>
             <input
@@ -263,7 +270,7 @@
 
         <div class="modal-footer">
           <button (click)="showActionModal.set(false)" class="btn-secondary">Cancel</button>
-          <button (click)="onSaveAction()" [disabled]="!actionForm.title.trim()" class="btn-primary btn-save">
+          <button (click)="onSaveAction()" class="btn-primary btn-save">
             <app-icon name="check" [size]="16"></app-icon> {{ editingAction() ? 'Save Changes' : 'Create Action Item' }}
           </button>
         </div>

@@ -72,8 +72,9 @@ describe('StandupComponent', () => {
     expect(component.selectedEditStandup()).toBe(mockStandup);
   });
 
-  it('should dispatch submitStandup when creating a new standup entry', () => {
+  it('should dispatch submitStandup and notify when creating a new standup entry', () => {
     spyOn(stateService, 'submitStandup');
+    spyOn(component.notification, 'showSuccess');
 
     component.openCreateStandup();
     component.onSaveStandup({
@@ -88,6 +89,11 @@ describe('StandupComponent', () => {
       teamMemberId: 'm1',
       yesterdaySummary: 'PR reviewed'
     }));
+    expect(component.notification.showSuccess).toHaveBeenCalledWith(
+      'Standup Logged',
+      jasmine.stringMatching(/added successfully\./),
+      'zap'
+    );
     expect(component.showStandupModal()).toBeFalse();
   });
 

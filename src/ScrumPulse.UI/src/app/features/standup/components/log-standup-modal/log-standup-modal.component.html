@@ -14,6 +14,13 @@
     </div>
 
     <div class="modal-body">
+      @if (validationError()) {
+        <div class="validation-alert-banner animate-fade-in">
+          <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+          <span>{{ validationError() }}</span>
+        </div>
+      }
+
       <!-- Member Selector Dropdown & Chips -->
       <div class="form-group">
         <label for="standupMemberSelect" class="input-label">Select Team Member</label>
@@ -129,7 +136,7 @@
       </div>
       <div class="footer-right">
         <button (click)="close.emit()" [disabled]="isSubmitting()" type="button" class="btn-secondary">Cancel</button>
-        <button (click)="onSubmit()" type="button" [disabled]="!standup.teamMemberId || isSubmitting()" class="btn-primary btn-save">
+        <button (click)="onSubmit()" type="button" [disabled]="isSubmitting()" class="btn-primary btn-save">
           <app-icon [name]="isSubmitting() ? 'loader' : (isEditMode ? 'check' : 'plus')" [size]="16"></app-icon>
           {{ isSubmitting() ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Submit Standup') }}
         </button>

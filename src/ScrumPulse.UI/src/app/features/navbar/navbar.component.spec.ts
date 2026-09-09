@@ -75,13 +75,38 @@ describe('NavbarComponent', () => {
     spyOn(stateService, 'canEditOrDelete').and.returnValue(true);
     const mockTeam: Team = { id: 't-1', name: 'Spartans', slug: 'spartans', description: '', joinCode: 'SPAR-1', isActive: true, createdAtUtc: '' };
     spyOn(stateService, 'createTeam').and.returnValue(of(mockTeam));
+    const notifySpy = spyOn(component.notification, 'showSuccess');
 
     component.openSquadModal('create');
     component.newSquadName.set('Spartans');
     component.handleCreateSquad();
 
     expect(stateService.createTeam).toHaveBeenCalledWith(jasmine.objectContaining({ name: 'Spartans' }));
+    expect(notifySpy).toHaveBeenCalledWith('Squad Created', 'Squad "Spartans" added successfully.', 'users');
     expect(component.showSquadModal()).toBeFalse();
+  });
+
+  it('should set error message if squad name is empty on squad creation', () => {
+    spyOn(stateService, 'canEditOrDelete').and.returnValue(true);
+    spyOn(stateService, 'createTeam');
+
+    component.openSquadModal('create');
+    component.newSquadName.set('   ');
+    component.handleCreateSquad();
+
+    expect(stateService.createTeam).not.toHaveBeenCalled();
+    expect(component.squadError()).toBe('Squad name is mandatory');
+  });
+
+  it('should set error message if join code is empty on squad join', () => {
+    spyOn(stateService, 'joinTeam');
+
+    component.openSquadModal('join');
+    component.joinCodeInput.set('   ');
+    component.handleJoinSquad();
+
+    expect(stateService.joinTeam).not.toHaveBeenCalled();
+    expect(component.squadError()).toBe('Join code is mandatory');
   });
 
   it('should prevent duplicate squad creation when submission is already in flight', () => {

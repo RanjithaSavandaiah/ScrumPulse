@@ -25,5 +25,6 @@ public record SubmitLeaveRequest(
     string? Reason = "Planned Leave",
     string? LeaveType = "Privilege Leave",
     string? Location = "Offshore",
-    string LeaveSlot = "FullDay"
+    string LeaveSlot = "FullDay",
+    string? CreatedBy = null
 );

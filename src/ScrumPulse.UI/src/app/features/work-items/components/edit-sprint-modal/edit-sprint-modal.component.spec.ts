@@ -46,12 +46,34 @@ describe('EditSprintModalComponent', () => {
     }));
   });
 
-  it('should not emit save when name is blank', () => {
+  it('should not emit save when name is blank and set validation error', () => {
     spyOn(component.save, 'emit');
 
     component.name = '   ';
     component.onSubmit();
 
+    expect(component.save.emit).not.toHaveBeenCalled();
+    expect(component.validationError()).toBe('Sprint name is mandatory');
+  });
+
+  it('should validate start date, end date, and date sequence', () => {
+    spyOn(component.save, 'emit');
+
+    component.name = 'Sprint 35';
+    component.startDate = '';
+    component.onSubmit();
+    expect(component.validationError()).toBe('Start date is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    component.startDate = '2026-09-10';
+    component.endDate = '';
+    component.onSubmit();
+    expect(component.validationError()).toBe('End date is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    component.endDate = '2026-09-01';
+    component.onSubmit();
+    expect(component.validationError()).toBe('End date cannot be earlier than start date');
     expect(component.save.emit).not.toHaveBeenCalled();
   });
 });

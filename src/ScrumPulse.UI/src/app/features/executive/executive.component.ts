@@ -187,6 +187,13 @@ export class ExecutiveComponent implements OnInit {
   previewTotalComments = computed(() => this.previewPrLogs().reduce((accumulatedComments, pr) => accumulatedComments + (pr.totalCommentsCount || 0), 0));
   previewActionableComments = computed(() => this.previewPrLogs().reduce((accumulatedActionable, pr) => accumulatedActionable + (pr.actionableCommentsCount || 0), 0));
 
+  previewStandupCompliance = computed(() => this.filteredPreview().standupCompliance);
+  previewMissedStandups = computed(() => this.previewStandupCompliance().missedDays);
+  previewComplianceRate = computed(() => this.previewStandupCompliance().complianceRate);
+  previewLoggedStandups = computed(() => this.previewStandupCompliance().loggedDays);
+  previewExpectedStandups = computed(() => this.previewStandupCompliance().expectedDays);
+  previewMissedDates = computed(() => this.previewStandupCompliance().missedDates);
+
   applyCustomPreset(days: number): void {
     const range = getDatePresetRange(days);
     this.startDate.set(range.startDate);
@@ -219,7 +226,16 @@ export class ExecutiveComponent implements OnInit {
   copiedSummary = signal<boolean>(false);
 
   copySummary(): void {
-    const summaryText = this.state.executiveReport()?.executiveSummaryMarkdown;
+    let summaryText = this.state.executiveReport()?.executiveSummaryMarkdown || '';
+    const compliance = this.previewStandupCompliance();
+    const missedInfo = `\n\n### Standup Attendance & Updates Telemetry\n` +
+      `- Daily Standups Expected (Not on Leave): ${compliance.expectedDays} days\n` +
+      `- Daily Standups Logged: ${compliance.loggedDays} updates\n` +
+      `- Missed Daily Standups / Updates: ${compliance.missedDays} missed\n` +
+      `- Standup Attendance & Logging Compliance: ${compliance.complianceRate}%\n` +
+      (compliance.missedDates.length > 0 ? `- Dates with Missed Standup Updates: ${compliance.missedDates.join(', ')}\n` : '- Missed Dates: None (100% compliant)\n');
+
+    summaryText = summaryText ? (summaryText + missedInfo) : missedInfo.trim();
     if (summaryText) {
       navigator.clipboard.writeText(summaryText);
       this.copiedSummary.set(true);

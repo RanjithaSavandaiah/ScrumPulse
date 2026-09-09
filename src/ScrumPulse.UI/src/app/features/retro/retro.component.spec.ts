@@ -145,6 +145,7 @@ describe('RetroComponent', () => {
     component.actionForm.title = '   ';
     component.onSaveAction();
     expect(stateService.createRetroAction).not.toHaveBeenCalled();
+    expect(component.actionValidationError()).toBe('Action item title is mandatory');
 
     // Valid create
     component.actionForm.title = 'Review flaky test report';

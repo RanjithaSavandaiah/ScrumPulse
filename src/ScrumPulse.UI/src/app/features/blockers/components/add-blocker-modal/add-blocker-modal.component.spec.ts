@@ -38,6 +38,27 @@ describe('AddBlockerModalComponent', () => {
     expect(component.save.emit).toHaveBeenCalledWith(component.blocker);
   });
 
+  it('should validate mandatory title and description on onSubmit', () => {
+    spyOn(component.save, 'emit');
+
+    component.blocker.title = '';
+    component.blocker.description = 'Timeout';
+    component.onSubmit();
+    expect(component.validationError()).toBe('Blocker title is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    component.blocker.title = 'Database unreachable';
+    component.blocker.description = '  ';
+    component.onSubmit();
+    expect(component.validationError()).toBe('Blocker context is mandatory');
+    expect(component.save.emit).not.toHaveBeenCalled();
+
+    component.blocker.description = 'Urgent connection needed';
+    component.onSubmit();
+    expect(component.validationError()).toBeNull();
+    expect(component.save.emit).toHaveBeenCalledWith(component.blocker);
+  });
+
   it('should emit close event', () => {
     spyOn(component.close, 'emit');
     component.close.emit();

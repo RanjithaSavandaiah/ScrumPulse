@@ -64,13 +64,19 @@ public class ExecutiveReportsController(
         if (sprint == null) return NotFound();
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Key,Title,Type,Status,Priority,StoryPoints,Assignee,DevCycleHours,PrReviewLatencyHours,TotalCycleHours,IsEscapedDefect,DaysInStatus");
+        sb.AppendLine("Key,Title,Type,Status,Priority,StoryPoints,Assignee,PickedUpAtUtc,PrCreatedAtUtc,PrApprovedAtUtc,PrMergedAtUtc,QaStartedAtUtc,CompletedAtUtc,DevCycleHours,PrReviewLatencyHours,TotalCycleHours,IsEscapedDefect,DaysInStatus");
 
         foreach (var item in sprint.WorkItems.OrderBy(workItem => workItem.Key))
         {
             var cleanTitle = item.Title.Replace("\"", "\"\"");
             var cleanAssignee = (item.Assignee?.Name ?? "Unassigned").Replace("\"", "\"\"");
-            sb.AppendLine($"\"{item.Key}\",\"{cleanTitle}\",{item.Type},{item.Status},{item.Priority},{item.StoryPoints},\"{cleanAssignee}\",{item.DevCycleTimeHours ?? 0},{item.PrReviewLatencyHours ?? 0},{item.TotalCycleTimeHours ?? 0},{item.IsEscapedDefect},{item.DaysInCurrentStatus}");
+            var pickedUp = item.PickedUpAtUtc?.ToString("o") ?? "";
+            var prCreated = item.PrCreatedAtUtc?.ToString("o") ?? "";
+            var prApproved = item.PrApprovedAtUtc?.ToString("o") ?? "";
+            var prMerged = item.PrMergedAtUtc?.ToString("o") ?? "";
+            var qaStarted = item.QaStartedAtUtc?.ToString("o") ?? "";
+            var completed = item.CompletedAtUtc?.ToString("o") ?? "";
+            sb.AppendLine($"\"{item.Key}\",\"{cleanTitle}\",{item.Type},{item.Status},{item.Priority},{item.StoryPoints},\"{cleanAssignee}\",\"{pickedUp}\",\"{prCreated}\",\"{prApproved}\",\"{prMerged}\",\"{qaStarted}\",\"{completed}\",{item.DevCycleTimeHours ?? 0},{item.PrReviewLatencyHours ?? 0},{item.TotalCycleTimeHours ?? 0},{item.IsEscapedDefect},{item.DaysInCurrentStatus}");
         }
 
         var preamble = System.Text.Encoding.UTF8.GetPreamble();

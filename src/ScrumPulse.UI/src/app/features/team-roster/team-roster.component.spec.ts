@@ -117,6 +117,7 @@ describe('TeamRosterComponent', () => {
     component.onSaveMember();
 
     expect(stateService.createTeamMember).not.toHaveBeenCalled();
+    expect(component.addMemberError()).toBe('Squad member name is mandatory');
   });
 
   it('should handle member deletion workflow', () => {

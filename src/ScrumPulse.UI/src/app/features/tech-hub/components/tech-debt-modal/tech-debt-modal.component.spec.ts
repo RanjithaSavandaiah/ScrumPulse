@@ -45,12 +45,13 @@ describe('TechDebtModalComponent', () => {
     }));
   });
 
-  it('should not emit save when title is empty', () => {
+  it('should not emit save when title is empty and show validation error', () => {
     spyOn(component.save, 'emit');
 
     component.title = '   ';
     component.onSubmit();
 
     expect(component.save.emit).not.toHaveBeenCalled();
+    expect(component.validationError()).toBe('Debt title is mandatory');
   });
 });

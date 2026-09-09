@@ -39,14 +39,51 @@ describe('LogStandupModalComponent', () => {
     expect(component.standup.todayPlan).toBe(component.todayPresets[0]);
   });
 
-  it('should emit save when submitted', () => {
+  it('should emit save when submitted with valid fields', () => {
     spyOn(component.save, 'emit');
 
     component.standup.teamMemberId = 'm-1';
     component.standup.yesterdaySummary = 'Testing';
     component.standup.todayPlan = 'Deployment';
 
-    component.save.emit(component.standup);
+    component.onSubmit();
     expect(component.save.emit).toHaveBeenCalledWith(component.standup);
+    expect(component.validationError()).toBeNull();
+  });
+
+  it('should display error when teamMemberId is missing', () => {
+    spyOn(component.save, 'emit');
+
+    component.standup.teamMemberId = '';
+    component.standup.yesterdaySummary = 'Completed ticket';
+    component.standup.todayPlan = 'Start next task';
+
+    component.onSubmit();
+    expect(component.validationError()).toBe('Please select a team member');
+    expect(component.save.emit).not.toHaveBeenCalled();
+  });
+
+  it('should display error when yesterday accomplishments is missing', () => {
+    spyOn(component.save, 'emit');
+
+    component.standup.teamMemberId = 'm-1';
+    component.standup.yesterdaySummary = '   ';
+    component.standup.todayPlan = 'Start next task';
+
+    component.onSubmit();
+    expect(component.validationError()).toBe("Yesterday's accomplishments is mandatory");
+    expect(component.save.emit).not.toHaveBeenCalled();
+  });
+
+  it('should display error when today commitment is missing', () => {
+    spyOn(component.save, 'emit');
+
+    component.standup.teamMemberId = 'm-1';
+    component.standup.yesterdaySummary = 'Completed ticket';
+    component.standup.todayPlan = '';
+
+    component.onSubmit();
+    expect(component.validationError()).toBe("Today's commitment is mandatory");
+    expect(component.save.emit).not.toHaveBeenCalled();
   });
 });

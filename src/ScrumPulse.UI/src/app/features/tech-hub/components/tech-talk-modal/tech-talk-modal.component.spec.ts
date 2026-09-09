@@ -47,7 +47,7 @@ describe('TechTalkModalComponent', () => {
     }));
   });
 
-  it('should not emit save when topic or presenterId is blank', () => {
+  it('should not emit save when topic or presenterId is blank and show validation error', () => {
     spyOn(component.save, 'emit');
 
     component.topic = '   ';
@@ -55,5 +55,6 @@ describe('TechTalkModalComponent', () => {
     component.onSubmit();
 
     expect(component.save.emit).not.toHaveBeenCalled();
+    expect(component.validationError()).toBe('Tech talk topic is mandatory');
   });
 });
