@@ -122,8 +122,8 @@ public class WorkItemsController(
 
         if (workItem == null) return NotFound();
 
-        workItem.Title = request.Title;
-        workItem.Description = request.Description;
+        workItem.Title = request.Title ?? workItem.Title;
+        workItem.Description = request.Description ?? string.Empty;
         workItem.Type = request.Type;
         workItem.Priority = request.Priority;
         workItem.StoryPoints = request.StoryPoints;
