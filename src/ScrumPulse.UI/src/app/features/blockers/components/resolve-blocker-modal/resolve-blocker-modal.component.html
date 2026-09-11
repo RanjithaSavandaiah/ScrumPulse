@@ -44,6 +44,29 @@
         ></textarea>
       </div>
 
+      <!-- Final Blocked Hours -->
+      <div class="form-group">
+        <label for="resolveBlockedHoursInput" class="input-label">
+          Final Blocked Hours (Impediment Duration)
+        </label>
+        <div class="input-with-hint">
+          <input
+            type="number"
+            id="resolveBlockedHoursInput"
+            name="resolveBlockedHoursInput"
+            [(ngModel)]="blockedHours"
+            min="0"
+            max="200"
+            step="0.5"
+            placeholder="e.g. 8"
+            class="interactive-input"
+          />
+          <span class="input-hint-badge" style="font-size: 0.75rem; color: var(--accent-warning); margin-top: 4px; display: block;">
+            ⏱️ Total working hours lost to this impediment, deducted from sprint capacity.
+          </span>
+        </div>
+      </div>
+
       <!-- Quick Resolution Presets -->
       <div class="form-group">
         <label class="input-label">Quick Resolution Presets</label>

@@ -46,11 +46,12 @@ export class BlockersComponent {
     this.showNewBlockerModal.set(false);
   }
 
-  onSaveBlocker(blockerData: { title: string; description: string; category: number; slaHoursLimit: number }): void {
+  onSaveBlocker(blockerData: { title: string; description: string; category: number; slaHoursLimit: number; blockedHours?: number }): void {
     const editItem = this.selectedBlockerForEdit();
     if (editItem) {
       this.state.updateBlocker(editItem.id, {
         ...blockerData,
+        blockedHours: blockerData.blockedHours || 0,
         sprintId: editItem.sprintId || this.state.activeSprint()?.id,
         raisedById: editItem.raisedById || this.state.squadMembers()[0]?.id
       });
@@ -58,6 +59,7 @@ export class BlockersComponent {
     } else {
       this.state.createBlocker({
         ...blockerData,
+        blockedHours: blockerData.blockedHours || 0,
         sprintId: this.state.activeSprint()?.id,
         raisedById: this.state.squadMembers()[0]?.id
       });
@@ -71,10 +73,10 @@ export class BlockersComponent {
     this.selectedBlockerForResolution.set(blocker);
   }
 
-  onConfirmResolve(event: { id: string; notes: string }): void {
+  onConfirmResolve(event: { id: string; notes: string; blockedHours?: number }): void {
     const target = this.selectedBlockerForResolution();
     const title = target?.title || 'Item';
-    this.state.resolveBlocker(event.id, event.notes);
+    this.state.resolveBlocker(event.id, event.notes, event.blockedHours);
     this.notification.showSuccess('Blocker Resolved', `Blocker "${title}" resolved successfully.`, 'check-circle');
     this.selectedBlockerForResolution.set(null);
   }

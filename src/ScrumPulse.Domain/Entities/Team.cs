@@ -13,4 +13,6 @@ public class Team : BaseEntity
     public string Description { get; set; } = string.Empty;
     public string JoinCode { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public string? DorChecklistJson { get; set; }
+    public string? DodChecklistJson { get; set; }
 }

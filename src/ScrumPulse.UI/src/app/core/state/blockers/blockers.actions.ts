@@ -17,7 +17,7 @@ export const BlockerActions = createActionGroup({
     'Delete Blocker': props<{ id: string }>(),
     'Delete Blocker Success': props<{ id: string }>(),
 
-    'Resolve Blocker': props<{ id: string; notes?: string }>(),
+    'Resolve Blocker': props<{ id: string; notes?: string; blockedHours?: number }>(),
     'Resolve Blocker Success': props<{ blocker: Blocker }>()
   }
 });

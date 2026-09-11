@@ -8,7 +8,12 @@
       <p class="section-subtitle">Scrum Master Management &bull; Add, assign, and manage team members and squad affiliations</p>
     </div>
     @if (state.canEditOrDelete()) {
-      <div>
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        @if (state.currentTeam()) {
+          <button (click)="showConfigureGatesModal.set(true)" class="btn-secondary" title="Configure squad Definition of Ready (DoR) & Definition of Done (DoD)">
+            <app-icon name="shield-check" [size]="16" color="var(--accent-secondary)"></app-icon> Configure Quality Gates
+          </button>
+        }
         <button (click)="openAddModal()" class="btn-primary">
           <app-icon name="plus" [size]="16"></app-icon> Add Team Member
         </button>
@@ -293,5 +298,13 @@
       (confirm)="onConfirmDeleteMember()"
       (cancel)="onCancelDeleteMember()"
     ></app-confirm-modal>
+  }
+
+  <!-- Configure Team Quality Gates (DoR & DoD) Modal -->
+  @if (showConfigureGatesModal() && state.currentTeam(); as curTeam) {
+    <app-configure-gates-modal
+      [team]="curTeam"
+      (close)="showConfigureGatesModal.set(false)"
+    ></app-configure-gates-modal>
   }
 </section>

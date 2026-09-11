@@ -6,6 +6,7 @@ import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { IconComponent, IconName } from '../../core/components/icon/icon.component';
 import { ConfirmModalComponent } from '../../core/components/confirm-modal/confirm-modal.component';
+import { ConfigureGatesModalComponent } from '../work-items/components/configure-gates-modal/configure-gates-modal.component';
 import { RoleType, TeamMember } from '../../core/models/scrum.models';
 import { CORE_PIPES } from '../../core/pipes';
 import { isLeadershipRole } from '../../core/utils/format-utils';
@@ -16,7 +17,7 @@ export const MAX_AVATAR_INITIALS_LENGTH = 2;
 @Component({
   selector: 'app-team-roster',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, ConfirmModalComponent, ...CORE_PIPES],
+  imports: [CommonModule, FormsModule, IconComponent, ConfirmModalComponent, ConfigureGatesModalComponent, ...CORE_PIPES],
   templateUrl: './team-roster.component.html',
   styleUrl: './team-roster.component.css'
 })
@@ -25,6 +26,7 @@ export class TeamRosterComponent {
   notification = inject(NotificationService);
 
   showAddModal = signal(false);
+  showConfigureGatesModal = signal(false);
   addMemberError = signal<string | null>(null);
   isSubmitting = signal(false);
   memberToDelete = signal<TeamMember | null>(null);

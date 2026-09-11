@@ -76,6 +76,7 @@ export interface WorkItem {
   totalCycleTimeHours?: number;
   estimatedHours?: number;
   daysInCurrentStatus?: number;
+  qualityGateResults?: Record<string, boolean>;
 }
 
 export interface Blocker {
@@ -95,6 +96,7 @@ export interface Blocker {
   isResolved: boolean;
   hoursWaiting: number;
   isSlaBreached: boolean;
+  blockedHours?: number;
 }
 
 export interface DailyStandup {
@@ -135,6 +137,8 @@ export interface SprintCapacity {
   totalAvailableHours: number;
   recommendedStoryPoints: number;
   committedStoryPoints: number;
+  totalBlockerHours?: number;
+  netAvailableHours?: number;
   memberBreakdown: {
     memberId: string;
     memberName: string;
@@ -142,6 +146,8 @@ export interface SprintCapacity {
     leaveDays: number;
     availableHours: number;
     suggestedPoints: number;
+    blockerHours?: number;
+    netAvailableHours?: number;
   }[];
 }
 
@@ -255,6 +261,9 @@ export interface ExecutiveReport {
   escapedDefectsCount: number;
   inSprintBugsCount: number;
   executiveSummaryMarkdown: string;
+  totalBlockedHours?: number;
+  lostStoryPointsCapacity?: number;
+  blockerCapacityImpactSummary?: string;
 }
 
 export interface SprintVelocityDataPoint {
@@ -326,6 +335,18 @@ export interface DeveloperPrMetrics {
   prs: PullRequestLog[];
 }
 
+export interface QualityGateCriterion {
+  id: string;
+  label: string;
+  description?: string;
+  isRequired?: boolean;
+}
+
+export interface ConfigureTeamGatesRequest {
+  dorCriteria: QualityGateCriterion[];
+  dodCriteria: QualityGateCriterion[];
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -334,6 +355,8 @@ export interface Team {
   joinCode: string;
   isActive: boolean;
   createdAtUtc: string;
+  dorCriteria?: QualityGateCriterion[];
+  dodCriteria?: QualityGateCriterion[];
 }
 
 export interface CreateTeamRequest {

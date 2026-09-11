@@ -5,6 +5,12 @@
       <h4 class="blocker-title">{{ blocker.title }}</h4>
     </div>
     <div class="header-right">
+      @if (blocker.blockedHours && blocker.blockedHours > 0) {
+        <span class="glass-badge blocked-hours-badge" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; font-weight: 600;" [title]="'Capacity impact: -' + blocker.blockedHours + 'h lost'">
+          <app-icon name="alert-circle" [size]="12" color="#f87171"></app-icon>
+          {{ blocker.blockedHours }}h blocked (-{{ blocker.blockedHours }}h capacity)
+        </span>
+      }
       <span class="glass-badge status-badge" [style.color]="blocker.isResolved ? 'var(--accent-success)' : (blocker.isSlaBreached ? 'var(--accent-danger)' : 'var(--accent-warning)')">
         @if (blocker.isSlaBreached) {
           <app-icon name="alert-triangle" [size]="12"></app-icon>

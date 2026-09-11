@@ -156,4 +156,12 @@ describe('TeamRosterComponent', () => {
     component.onAssignSquadId('m1', null);
     expect(stateService.assignMemberSquad).toHaveBeenCalledWith('m1', null);
   });
+
+  it('should toggle configure quality gates modal signal in team roster', () => {
+    expect(component.showConfigureGatesModal()).toBeFalse();
+    component.showConfigureGatesModal.set(true);
+    expect(component.showConfigureGatesModal()).toBeTrue();
+    component.showConfigureGatesModal.set(false);
+    expect(component.showConfigureGatesModal()).toBeFalse();
+  });
 });

@@ -38,15 +38,17 @@ describe('ResolveBlockerModalComponent', () => {
     expect(component.notes).toBe(component.presets[0]);
   });
 
-  it('should emit resolve event on confirmation with valid notes', () => {
+  it('should emit resolve event on confirmation with valid notes and blockedHours', () => {
     spyOn(component.resolve, 'emit');
 
     component.notes = 'Fixed credentials';
+    component.blockedHours = 4.5;
     component.onConfirm();
 
     expect(component.resolve.emit).toHaveBeenCalledWith({
       id: 'b-1',
-      notes: 'Fixed credentials'
+      notes: 'Fixed credentials',
+      blockedHours: 4.5
     });
     expect(component.validationError()).toBeNull();
   });

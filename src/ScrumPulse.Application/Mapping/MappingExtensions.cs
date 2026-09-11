@@ -28,7 +28,8 @@ public static class MappingExtensions
         item.PrReviewLatencyHours, item.PrMergeLatencyHours,
         item.QaTestingLatencyHours, item.TotalCycleTimeHours,
         item.EstimatedHours,
-        item.DaysInCurrentStatus
+        item.DaysInCurrentStatus,
+        GetQualityGateResults(item)
     );
 
     public static IEnumerable<WorkItemDto> ToDtos(this IEnumerable<WorkItem> items) =>
@@ -39,7 +40,8 @@ public static class MappingExtensions
         blocker.SlaHoursLimit, blocker.WorkItemId, blocker.WorkItem?.Key,
         blocker.RaisedById, blocker.RaisedBy?.Name, blocker.SprintId,
         blocker.RaisedAtUtc, blocker.ResolvedAtUtc, blocker.ResolutionNotes,
-        blocker.IsResolved, blocker.HoursWaiting, blocker.IsSlaBreached
+        blocker.IsResolved, blocker.HoursWaiting, blocker.IsSlaBreached,
+        blocker.BlockedHours
     );
 
     public static IEnumerable<BlockerDto> ToDtos(this IEnumerable<Blocker> blockers) =>
@@ -153,9 +155,89 @@ public static class MappingExtensions
 
     public static TeamDto ToDto(this Team team) => new(
         team.Id, team.Name, team.Slug, team.Description,
-        team.JoinCode, team.IsActive, team.CreatedAtUtc
+        team.JoinCode, team.IsActive, team.CreatedAtUtc,
+        GetTeamDorCriteria(team),
+        GetTeamDodCriteria(team)
     );
 
     public static IEnumerable<TeamDto> ToDtos(this IEnumerable<Team> teams) =>
         teams.Select(team => team.ToDto());
+
+    public static readonly List<QualityGateCriterionDto> DefaultDorCriteria =
+    [
+        new("dor-ac", "Acceptance Criteria clearly defined", "Clear Given/When/Then acceptance criteria verified by Product Owner", true),
+        new("dor-dep", "Cross-team dependencies identified", "External blockers and upstream API dependencies resolved", true),
+        new("dor-wireframe", "Wireframe / Architecture diagram attached", "Visual designs, API contracts, or architecture schematics attached", false),
+        new("dor-points", "Story points & estimations sized", "Team consensus reached on Fibonacci story point estimation", true)
+    ];
+
+    public static readonly List<QualityGateCriterionDto> DefaultDodCriteria =
+    [
+        new("dod-tests", "Automated unit & integration tests passing", "Target code coverage achieved and regression suite green in CI", true),
+        new("dod-review", "Peer code review completed & approved", "At least one senior peer review approval with resolved comments", true),
+        new("dod-master", "Merged to master branch", "Clean PR merge to target deployment branch without merge conflicts", true),
+        new("dod-staging", "QA tested & verified on Staging", "Exploratory QA and staging verification signed off", true),
+        new("dod-docs", "Documentation & release notes updated", "Confluence, README, or API swagger schema updated", false)
+    ];
+
+    private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+
+    public static List<QualityGateCriterionDto> GetTeamDorCriteria(Team team)
+    {
+        if (string.IsNullOrWhiteSpace(team.DorChecklistJson)) return DefaultDorCriteria;
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<QualityGateCriterionDto>>(team.DorChecklistJson, JsonOpts);
+            return parsed != null && parsed.Count > 0 ? parsed : DefaultDorCriteria;
+        }
+        catch
+        {
+            return DefaultDorCriteria;
+        }
+    }
+
+    public static List<QualityGateCriterionDto> GetTeamDodCriteria(Team team)
+    {
+        if (string.IsNullOrWhiteSpace(team.DodChecklistJson)) return DefaultDodCriteria;
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<List<QualityGateCriterionDto>>(team.DodChecklistJson, JsonOpts);
+            return parsed != null && parsed.Count > 0 ? parsed : DefaultDodCriteria;
+        }
+        catch
+        {
+            return DefaultDodCriteria;
+        }
+    }
+
+    public static Dictionary<string, bool> GetQualityGateResults(WorkItem item)
+    {
+        Dictionary<string, bool> results;
+        if (!string.IsNullOrWhiteSpace(item.QualityGateResultsJson))
+        {
+            try
+            {
+                results = JsonSerializer.Deserialize<Dictionary<string, bool>>(item.QualityGateResultsJson) ?? [];
+            }
+            catch
+            {
+                results = [];
+            }
+        }
+        else
+        {
+            results = [];
+        }
+
+        // Ensure baseline legacy criteria are synced
+        results.TryAdd("dor-ac", item.DorAcceptanceCriteriaDefined);
+        results.TryAdd("dor-dep", item.DorDependenciesIdentified);
+        results.TryAdd("dor-wireframe", item.DorWireframeAvailable);
+        results.TryAdd("dod-tests", item.DodUnitTestsPassed);
+        results.TryAdd("dod-review", item.DodPeerReviewCompleted);
+        results.TryAdd("dod-master", item.DodMergedToMaster);
+        results.TryAdd("dod-staging", item.DodStagingVerified);
+
+        return results;
+    }
 }

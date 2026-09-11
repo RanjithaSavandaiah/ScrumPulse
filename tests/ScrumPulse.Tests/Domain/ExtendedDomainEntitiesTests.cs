@@ -173,4 +173,43 @@ public class ExtendedDomainEntitiesTests
         Assert.Equal("PLT9X2", team.JoinCode);
         Assert.True(team.IsActive);
     }
+
+    [Fact]
+    public void Team_QualityGates_InitializesChecklistsAndJsonProperly()
+    {
+        var team = new Team
+        {
+            Id = Guid.NewGuid(),
+            Name = "Apollo Squad",
+            Slug = "apollo-squad",
+            JoinCode = "APOLLO",
+            IsActive = true,
+            DorChecklistJson = "[{\"id\":\"dor-sec\",\"label\":\"Security Review\",\"isRequired\":true}]",
+            DodChecklistJson = "[{\"id\":\"dod-perf\",\"label\":\"Perf Baseline Met\",\"isRequired\":false}]"
+        };
+
+        Assert.NotNull(team.DorChecklistJson);
+        Assert.Contains("Security Review", team.DorChecklistJson);
+        Assert.Contains("dor-sec", team.DorChecklistJson);
+
+        Assert.NotNull(team.DodChecklistJson);
+        Assert.Contains("Perf Baseline Met", team.DodChecklistJson);
+        Assert.Contains("dod-perf", team.DodChecklistJson);
+    }
+
+    [Fact]
+    public void WorkItem_QualityGateResults_StoresCustomCheckDictionary()
+    {
+        var item = new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            Key = "SP-450",
+            Title = "Custom gates verification",
+            QualityGateResultsJson = "{\"dor-sec\":true,\"dod-perf\":false}"
+        };
+
+        Assert.NotNull(item.QualityGateResultsJson);
+        Assert.Contains("\"dor-sec\":true", item.QualityGateResultsJson);
+        Assert.Contains("\"dod-perf\":false", item.QualityGateResultsJson);
+    }
 }

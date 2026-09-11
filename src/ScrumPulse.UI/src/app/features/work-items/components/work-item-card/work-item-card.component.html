@@ -45,32 +45,32 @@
   <div class="stage-timeline">
     <div class="stage-step" [class.completed]="item.pickedUpAtUtc">
       <div class="step-title">1. Picked Up</div>
-      <div class="step-val">{{ item.pickupLatencyHours ? item.pickupLatencyHours + 'h latency' : (item.pickedUpAtUtc ? 'Active' : 'Pending') }}</div>
+      <div class="step-val">{{ getStepLatencyText(item, 1) }}</div>
       <div class="step-timestamp" data-testid="stage-timestamp-picked-up">{{ item.pickedUpAtUtc ? (item.pickedUpAtUtc | date:'MMM d, y, h:mm a') : '—' }}</div>
     </div>
     <div class="stage-step" [class.completed]="item.prCreatedAtUtc">
       <div class="step-title">2. PR Created</div>
-      <div class="step-val">{{ item.devCycleTimeHours ? item.devCycleTimeHours + 'h dev' : (item.prCreatedAtUtc ? 'Active' : 'Pending') }}</div>
+      <div class="step-val">{{ getStepLatencyText(item, 2) }}</div>
       <div class="step-timestamp" data-testid="stage-timestamp-pr-created">{{ item.prCreatedAtUtc ? (item.prCreatedAtUtc | date:'MMM d, y, h:mm a') : '—' }}</div>
     </div>
     <div class="stage-step" [class.completed]="item.prApprovedAtUtc">
       <div class="step-title">3. PR Approved</div>
-      <div class="step-val">{{ item.prReviewLatencyHours ? item.prReviewLatencyHours + 'h review' : (item.prApprovedAtUtc ? 'Active' : 'Pending') }}</div>
+      <div class="step-val">{{ getStepLatencyText(item, 3) }}</div>
       <div class="step-timestamp" data-testid="stage-timestamp-pr-approved">{{ item.prApprovedAtUtc ? (item.prApprovedAtUtc | date:'MMM d, y, h:mm a') : '—' }}</div>
     </div>
     <div class="stage-step" [class.completed]="item.prMergedAtUtc">
       <div class="step-title">4. Merged to Master</div>
-      <div class="step-val">{{ item.prMergeLatencyHours ? item.prMergeLatencyHours + 'h merge' : (item.prMergedAtUtc ? 'Active' : 'Pending') }}</div>
+      <div class="step-val">{{ getStepLatencyText(item, 4) }}</div>
       <div class="step-timestamp" data-testid="stage-timestamp-pr-merged">{{ item.prMergedAtUtc ? (item.prMergedAtUtc | date:'MMM d, y, h:mm a') : '—' }}</div>
     </div>
     <div class="stage-step" [class.completed]="item.qaStartedAtUtc">
       <div class="step-title">5. In QA Testing</div>
-      <div class="step-val">{{ item.qaTestingLatencyHours ? item.qaTestingLatencyHours + 'h testing' : (item.qaStartedAtUtc ? 'Active' : 'Pending') }}</div>
+      <div class="step-val">{{ getStepLatencyText(item, 5) }}</div>
       <div class="step-timestamp" data-testid="stage-timestamp-qa-started">{{ item.qaStartedAtUtc ? (item.qaStartedAtUtc | date:'MMM d, y, h:mm a') : '—' }}</div>
     </div>
     <div class="stage-step" [class.completed]="item.completedAtUtc">
       <div class="step-title">6. Marked Done</div>
-      <div class="step-val">{{ item.totalCycleTimeHours ? item.totalCycleTimeHours + 'h total' : (item.completedAtUtc ? 'Done' : 'Pending') }}</div>
+      <div class="step-val">{{ getStepLatencyText(item, 6) }}</div>
       <div class="step-timestamp" data-testid="stage-timestamp-completed">{{ item.completedAtUtc ? (item.completedAtUtc | date:'MMM d, y, h:mm a') : '—' }}</div>
     </div>
   </div>

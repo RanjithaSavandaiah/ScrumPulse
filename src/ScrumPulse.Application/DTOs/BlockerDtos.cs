@@ -19,7 +19,8 @@ public record BlockerDto(
     string? ResolutionNotes,
     bool IsResolved,
     double HoursWaiting,
-    bool IsSlaBreached
+    bool IsSlaBreached,
+    double BlockedHours = 0
 );
 
 public record CreateBlockerRequest(
@@ -29,7 +30,11 @@ public record CreateBlockerRequest(
     [Range(1, 168)] int SlaHoursLimit,
     Guid? WorkItemId,
     [Required] Guid RaisedById,
-    Guid? SprintId
+    Guid? SprintId,
+    double BlockedHours = 0
 );
 
-public record ResolveBlockerRequest([Required][StringLength(2000)] string ResolutionNotes);
+public record ResolveBlockerRequest(
+    [Required][StringLength(2000)] string ResolutionNotes,
+    double? BlockedHours = null
+);

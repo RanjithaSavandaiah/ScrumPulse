@@ -64,6 +64,13 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
             leaves = [];
         }
 
+        // Query blockers for sprint to factor impediment impact into capacity calibration
+        var blockers = await db.Blockers
+            .Where(blocker => blocker.SprintId == sprintId)
+            .AsNoTracking()
+            .ToListAsync(ct);
+        double totalBlockerHoursAll = Math.Round(blockers.Sum(blocker => blocker.BlockedHours), 1);
+
         var memberBreakdown = new List<MemberCapacityDto>();
         double totalLeaveDaysAll = 0;
         double totalAvailableHoursAll = 0;
@@ -91,15 +98,23 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
             int suggestedPoints = (int)Math.Round(availableHours / HoursPerStoryPoint);
             totalSuggestedPointsAll += suggestedPoints;
 
+            double memberBlockerHours = Math.Round(blockers.Where(b => b.RaisedById == member.Id).Sum(b => b.BlockedHours), 1);
+            double memberNetAvailableHours = Math.Max(0.0, Math.Round(availableHours - memberBlockerHours, 1));
+
             memberBreakdown.Add(new MemberCapacityDto(
                 member.Id,
                 member.Name,
                 workingDays,
                 memberLeaveDays,
                 availableHours,
-                suggestedPoints
+                suggestedPoints,
+                memberBlockerHours,
+                memberNetAvailableHours
             ));
         }
+
+        double finalNetHours = Math.Max(0.0, Math.Round(totalAvailableHoursAll - totalBlockerHoursAll, 1));
+        int finalCalibratedPoints = (int)Math.Round(finalNetHours / HoursPerStoryPoint);
 
         return new SprintCapacityDto(
             sprintId,
@@ -108,9 +123,11 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
             members.Count,
             totalLeaveDaysAll,
             Math.Round(totalAvailableHoursAll, 1),
-            totalSuggestedPointsAll,
-            sprint?.CommittedStoryPoints ?? totalSuggestedPointsAll,
-            memberBreakdown
+            finalCalibratedPoints,
+            sprint?.CommittedStoryPoints ?? finalCalibratedPoints,
+            memberBreakdown,
+            totalBlockerHoursAll,
+            finalNetHours
         );
     }
 
@@ -139,6 +156,12 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         double avgTotal = avgPickup + avgDev + avgReview + avgMerge + avgQa;
         double avgBlockerRes = blockers.Where(blocker => blocker.IsResolved).Select(blocker => blocker.HoursWaiting).DefaultIfEmpty(0).Average();
 
+        double totalBlockedHours = Math.Round(blockers.Sum(blocker => blocker.BlockedHours), 1);
+        int lostStoryPoints = (int)Math.Round(totalBlockedHours / HoursPerStoryPoint);
+        string blockerCapacityImpactSummary = totalBlockedHours > 0
+            ? $"Because of blockers for {totalBlockedHours} hours, our capacity went down by {totalBlockedHours}h (estimated ~{lostStoryPoints} story points delivery slowdown)."
+            : "No blocker hours recorded this sprint. Capacity operated without impediment drag.";
+
         string markdownSummary = $"""
         # Sprint Executive Progress & Value Summary
         **Sprint:** {sprint?.Name ?? "Active Sprint"} | **Generated:** {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC
@@ -153,6 +176,7 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
           - *QA Staging Verification:* {Math.Round(avgQa, 1)} hrs
           - *Total Average Cycle Time:* {Math.Round(avgTotal, 1)} hrs
         - **Blocker Resolution SLA:** {activeBlockers} active blockers currently open.
+        - **Impediment Impact:** {blockerCapacityImpactSummary}
         - **Quality & Escaped Defects:** {escapedDefects} escaped defects recorded (Zero-defect target maintained).
         
         ## Recommendations for Next Sprint
@@ -179,7 +203,10 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
             Math.Round(avgBlockerRes, 1),
             escapedDefects,
             inSprintBugs,
-            markdownSummary
+            markdownSummary,
+            totalBlockedHours,
+            lostStoryPoints,
+            blockerCapacityImpactSummary
         );
     }
 

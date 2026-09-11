@@ -72,8 +72,8 @@ export class BlockersEffects {
   resolveBlocker$ = createEffect(() =>
     this.actions$.pipe(
       ofType(BlockerActions.resolveBlocker),
-      mergeMap(({ id, notes }) =>
-        this.http.post<Blocker>(`${this.apiUrl}/blockers/${id}/resolve`, { resolutionNotes: notes || '' }).pipe(
+      mergeMap(({ id, notes, blockedHours }) =>
+        this.http.post<Blocker>(`${this.apiUrl}/blockers/${id}/resolve`, { resolutionNotes: notes || '', blockedHours }).pipe(
           map(resolved => BlockerActions.resolveBlockerSuccess({ blocker: resolved })),
           catchError(err => {
             console.error('[BlockersEffects] Failed to resolve blocker:', err);

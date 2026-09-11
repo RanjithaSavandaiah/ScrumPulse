@@ -1,7 +1,7 @@
-import { Component, Input, computed } from '@angular/core';
+import { Component, Input, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from '../../../../core/components/icon/icon.component';
-import { Sprint, WorkItem, TeamLeave, TeamMember } from '../../../../core/models/scrum.models';
+import { Sprint, WorkItem, TeamLeave, TeamMember, Blocker } from '../../../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../../../core/utils/date-utils';
 import { cleanName, isDeliveryRole } from '../../../../core/utils/format-utils';
 import { DEFAULT_DAILY_WORKING_HOURS, HOURS_PER_STORY_POINT_BENCHMARK } from '../../../../core/constants/scrum.constants';
@@ -39,28 +39,52 @@ const PACE_VARIANCE_TOLERANCE_POINTS = 3;
   styleUrl: './sprint-burndown-chart.component.css'
 })
 export class SprintBurndownChartComponent {
-  @Input({ required: true }) sprint!: Sprint;
-  @Input() workItems: WorkItem[] = [];
-  @Input() leaves: TeamLeave[] = [];
-  @Input() members: TeamMember[] = [];
+  sprintSignal = signal<Sprint | null>(null);
+  workItemsSignal = signal<WorkItem[]>([]);
+  leavesSignal = signal<TeamLeave[]>([]);
+  membersSignal = signal<TeamMember[]>([]);
+  blockersSignal = signal<Blocker[]>([]);
+
+  @Input({ required: true }) set sprint(val: Sprint) { this.sprintSignal.set(val); }
+  get sprint(): Sprint { return this.sprintSignal()!; }
+
+  @Input() set workItems(val: WorkItem[]) { this.workItemsSignal.set(val || []); }
+  get workItems(): WorkItem[] { return this.workItemsSignal(); }
+
+  @Input() set leaves(val: TeamLeave[]) { this.leavesSignal.set(val || []); }
+  get leaves(): TeamLeave[] { return this.leavesSignal(); }
+
+  @Input() set members(val: TeamMember[]) { this.membersSignal.set(val || []); }
+  get members(): TeamMember[] { return this.membersSignal(); }
+
+  @Input() set blockers(val: Blocker[]) { this.blockersSignal.set(val || []); }
+  get blockers(): Blocker[] { return this.blockersSignal(); }
 
   protected readonly Math = Math;
 
-  // 1. Capacity Auto-Calculation from Leaves
+  // 1. Capacity Auto-Calculation from Leaves & Blockers
   capacityAnalysis = computed(() => {
-    const allMembers = (this.members && this.members.length > 0 ? this.members : []).filter(member => (member.isActive ?? true));
+    const sp = this.sprintSignal();
+    const membersList = this.membersSignal();
+    const leavesList = this.leavesSignal();
+    const workItemsList = this.workItemsSignal();
+    const blockersList = this.blockersSignal();
+
+    const allMembers = (membersList && membersList.length > 0 ? membersList : []).filter(member => (member.isActive ?? true));
     const devMembers = allMembers.filter(member => (member.role || '').toLowerCase() === 'developer');
     const deliveryMembers = allMembers.filter(member => isDeliveryRole(member.role));
     const targetDevs = devMembers.length > 0 ? devMembers : deliveryMembers;
     const memberCount = targetDevs.length;
 
-    if (!this.sprint) {
+    if (!sp) {
       return {
         workingDays: 0,
         memberCount,
         grossHours: 0,
         totalLeaveDays: 0,
         leaveHoursDeducted: 0,
+        blockerHoursDeducted: 0,
+        blockerCount: 0,
         netAvailableHours: 0,
         committedPoints: 0,
         deliveredPoints: 0,
@@ -70,15 +94,15 @@ export class SprintBurndownChartComponent {
       };
     }
 
-    const start = new Date(this.sprint.startDate || Date.now());
-    const end = new Date(this.sprint.endDate || (Date.now() + TWO_WEEKS_IN_MS));
+    const start = new Date(sp.startDate || Date.now());
+    const end = new Date(sp.endDate || (Date.now() + TWO_WEEKS_IN_MS));
     const workingDays = calculateWorkingDays(start, end);
-    const hoursPerDay: number = this.sprint?.dailyWorkingHours && this.sprint.dailyWorkingHours > 0
-      ? this.sprint.dailyWorkingHours
+    const hoursPerDay: number = sp.dailyWorkingHours && sp.dailyWorkingHours > 0
+      ? sp.dailyWorkingHours
       : DEFAULT_DAILY_WORKING_HOURS;
 
     // Filter leaves that intersect this sprint window
-    const relevantLeaves = this.leaves.filter(leave => {
+    const relevantLeaves = leavesList.filter(leave => {
       if (!leave.isApproved) return false;
       const lStart = new Date(leave.startDate);
       const lEnd = new Date(leave.endDate);
@@ -109,12 +133,16 @@ export class SprintBurndownChartComponent {
     // Configurable productive hours per day (default 8.5h)
     const grossHours = Math.round(workingDays * memberCount * hoursPerDay * ONE_DECIMAL_PLACE_ROUNDING_FACTOR) / ONE_DECIMAL_PLACE_ROUNDING_FACTOR;
     const leaveHoursDeducted = Math.round(totalLeaveDays * hoursPerDay * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR;
-    const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR);
+
+    // Deduct blocker hours (impediment loss)
+    const relevantBlockers = (blockersList || []).filter(b => b.sprintId === sp.id || (!b.sprintId && sp.isActive));
+    const blockerHoursDeducted = Math.round(relevantBlockers.reduce((sum, b) => sum + (b.blockedHours || 0), 0) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR;
+    const netAvailableHours = Math.max(0, Math.round((grossHours - leaveHoursDeducted - blockerHoursDeducted) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR);
 
     // Sprint Items Story Points
-    const sprintItems = this.workItems.filter(item => item.sprintId === this.sprint.id || (!item.sprintId && this.sprint.isActive));
+    const sprintItems = workItemsList.filter(item => item.sprintId === sp.id || (!item.sprintId && sp.isActive));
     const totalScope = sprintItems.reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
-    const committedPoints = this.sprint.committedStoryPoints || totalScope;
+    const committedPoints = sp.committedStoryPoints || totalScope;
     const deliveredPoints = sprintItems
       .filter(item => String(item.status).toLowerCase().includes('done'))
       .reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0);
@@ -129,6 +157,8 @@ export class SprintBurndownChartComponent {
       grossHours,
       totalLeaveDays,
       leaveHoursDeducted,
+      blockerHoursDeducted,
+      blockerCount: relevantBlockers.length,
       netAvailableHours,
       committedPoints,
       deliveredPoints,
@@ -141,11 +171,13 @@ export class SprintBurndownChartComponent {
   // 2. Day-by-Day Burndown Trend Data
   burndownData = computed(() => {
     const analysis = this.capacityAnalysis();
+    const sp = this.sprintSignal();
+    const workItemsList = this.workItemsSignal();
     const totalCommitted = analysis.committedPoints;
     const workingDays = analysis.workingDays;
-    const start = new Date(this.sprint.startDate || Date.now());
-    const end = new Date(this.sprint.endDate || (Date.now() + TWO_WEEKS_IN_MS));
-    const sprintItems = this.workItems.filter(item => item.sprintId === this.sprint.id || (!item.sprintId && this.sprint.isActive));
+    const start = new Date(sp?.startDate || Date.now());
+    const end = new Date(sp?.endDate || (Date.now() + TWO_WEEKS_IN_MS));
+    const sprintItems = workItemsList.filter(item => (sp && item.sprintId === sp.id) || (!item.sprintId && sp?.isActive));
 
     const today = new Date();
     today.setHours(23, 59, 59, 999);

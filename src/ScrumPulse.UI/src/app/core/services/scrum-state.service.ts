@@ -60,11 +60,27 @@ import {
   TeamMember,
   TechDebtItem,
   TechTalkLog,
-  WorkItem,
   TeamPerformanceSummary,
   TeamHighlight,
-  SprintGrowthSnapshot
+  SprintGrowthSnapshot,
+  QualityGateCriterion,
+  ConfigureTeamGatesRequest
 } from '../models/scrum.models';
+
+export const DEFAULT_DOR_CRITERIA: QualityGateCriterion[] = [
+  { id: 'dor-ac', label: 'Acceptance Criteria clearly defined', description: 'Clear Given/When/Then acceptance criteria verified by Product Owner', isRequired: true },
+  { id: 'dor-dep', label: 'Cross-team dependencies identified', description: 'External blockers and upstream API dependencies resolved', isRequired: true },
+  { id: 'dor-wireframe', label: 'Wireframe / Architecture diagram attached', description: 'Visual designs, API contracts, or architecture schematics attached', isRequired: false },
+  { id: 'dor-points', label: 'Story points & estimations sized', description: 'Team consensus reached on Fibonacci story point estimation', isRequired: true }
+];
+
+export const DEFAULT_DOD_CRITERIA: QualityGateCriterion[] = [
+  { id: 'dod-tests', label: 'Automated unit & integration tests passing', description: 'Target code coverage achieved and regression suite green in CI', isRequired: true },
+  { id: 'dod-review', label: 'Peer code review completed & approved', description: 'At least one senior peer review approval with resolved comments', isRequired: true },
+  { id: 'dod-master', label: 'Merged to master branch', description: 'Clean PR merge to target deployment branch without merge conflicts', isRequired: true },
+  { id: 'dod-staging', label: 'QA tested & verified on Staging', description: 'Exploratory QA and staging verification signed off', isRequired: true },
+  { id: 'dod-docs', label: 'Documentation & release notes updated', description: 'Confluence, README, or API swagger schema updated', isRequired: false }
+];
 
 const MAX_SAY_DO_PERCENTAGE = 100;
 const PERCENTAGE_FACTOR = 100;
@@ -85,6 +101,17 @@ export class ScrumStateService {
   readonly activeSprint = this.store.selectSignal(selectActiveSprint);
   readonly teams = signal<Team[]>([]);
   readonly currentTeam = signal<Team | null>(null);
+
+  readonly currentTeamDorCriteria = computed<QualityGateCriterion[]>(() => {
+    const team = this.currentTeam();
+    return team?.dorCriteria && team.dorCriteria.length > 0 ? team.dorCriteria : DEFAULT_DOR_CRITERIA;
+  });
+
+  readonly currentTeamDodCriteria = computed<QualityGateCriterion[]>(() => {
+    const team = this.currentTeam();
+    return team?.dodCriteria && team.dodCriteria.length > 0 ? team.dodCriteria : DEFAULT_DOD_CRITERIA;
+  });
+
   readonly members = this.store.selectSignal(selectAllMembers);
   readonly squadMembers = computed(() => {
     const team = this.currentTeam();
@@ -143,6 +170,13 @@ export class ScrumStateService {
     const resolvedBlockers = blockers.filter(blocker => blocker.isResolved);
     const avgBlockerResolution = calcAvg(resolvedBlockers.map(blocker => blocker.hoursWaiting));
 
+    const sprintBlockers = active ? blockers.filter(b => b.sprintId === active.id) : blockers;
+    const totalBlockedHours = Math.round(sprintBlockers.reduce((sum, b) => sum + (b.blockedHours || 0), 0) * 10) / 10;
+    const lostStoryPoints = Math.round(totalBlockedHours / 8);
+    const blockerImpactText = totalBlockedHours > 0
+      ? `Because of blockers for ${totalBlockedHours} hours, our capacity went down by ${totalBlockedHours}h (estimated ~${lostStoryPoints} story points delivery slowdown).`
+      : 'No blocker hours recorded this sprint. Capacity operated without impediment drag.';
+
     return {
       sprintId: active?.id || 'all',
       sprintName: active?.name || 'Sprint Board',
@@ -161,7 +195,10 @@ export class ScrumStateService {
       avgBlockerResolutionHours: avgBlockerResolution,
       escapedDefectsCount: items.filter(item => item.isEscapedDefect).length,
       inSprintBugsCount: items.filter(item => item.type === 'Bug').length,
-      executiveSummaryMarkdown: `### Executive Sprint Governance Summary\n- **Delivered Velocity:** ${delivered} Story Points completed.\n- **Active In-Flight:** ${inFlight} Story Points.\n- **Blocker Resolution:** ${activeBlockers} active blockers currently under SLA monitoring.`
+      totalBlockedHours,
+      lostStoryPointsCapacity: lostStoryPoints,
+      blockerCapacityImpactSummary: blockerImpactText,
+      executiveSummaryMarkdown: `### Executive Sprint Governance Summary\n- **Delivered Velocity:** ${delivered} Story Points completed.\n- **Active In-Flight:** ${inFlight} Story Points.\n- **Impediment Impact:** ${blockerImpactText}\n- **Blocker Resolution:** ${activeBlockers} active blockers currently under SLA monitoring.`
     };
   });
 
@@ -277,8 +314,8 @@ export class ScrumStateService {
     this.store.dispatch(BlockerActions.deleteBlocker({ id }));
   }
 
-  resolveBlocker(id: string, notes?: string): void {
-    this.store.dispatch(BlockerActions.resolveBlocker({ id, notes }));
+  resolveBlocker(id: string, notes?: string, blockedHours?: number): void {
+    this.store.dispatch(BlockerActions.resolveBlocker({ id, notes, blockedHours }));
   }
 
   // Standup
@@ -537,6 +574,19 @@ export class ScrumStateService {
         }
         this.selectTeam(team);
         return team;
+      })
+    );
+  }
+
+  configureTeamQualityGates(teamId: string, dorCriteria: QualityGateCriterion[], dodCriteria: QualityGateCriterion[]): Observable<Team> {
+    const payload: ConfigureTeamGatesRequest = { dorCriteria, dodCriteria };
+    return this.http.put<Team>(`${this.apiUrl}/teams/${teamId}/quality-gates`, payload).pipe(
+      map(updatedTeam => {
+        this.teams.update(list => list.map(t => t.id === updatedTeam.id ? updatedTeam : t));
+        if (this.currentTeam()?.id === updatedTeam.id) {
+          this.currentTeam.set(updatedTeam);
+        }
+        return updatedTeam;
       })
     );
   }

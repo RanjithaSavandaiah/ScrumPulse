@@ -583,8 +583,34 @@
     </div>
   }
 
-  <!-- Narrative Report Section -->
-  @if (state.executiveReport()) {
+  <!-- Blocker & Capacity Drag Impact Panel -->
+  @if (state.executiveReport(); as rep) {
+    <div class="glass-panel blocker-drag-panel" style="margin-bottom: 24px; padding: 18px 24px; border-left: 4px solid #f87171; background: rgba(239, 68, 68, 0.06); border-radius: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <app-icon name="shield-alert" [size]="20" color="#f87171"></app-icon>
+          <h4 style="margin: 0; font-size: 1.05rem; font-weight: 600; color: #f87171;">
+            Impediment Capacity Drag & Slowdown Analysis
+          </h4>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="glass-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight: 600; padding: 4px 10px; border-radius: 6px;">
+            {{ rep.totalBlockedHours || 0 }}h Blocked
+          </span>
+          <span class="glass-badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-weight: 600; padding: 4px 10px; border-radius: 6px;">
+            ~{{ rep.lostStoryPointsCapacity || 0 }} pts lost
+          </span>
+        </div>
+      </div>
+      <p class="blocker-drag-statement" style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-primary);">
+        @if ((rep.totalBlockedHours || 0) > 0) {
+          <strong>Because of blockers for {{ rep.totalBlockedHours }} hours, our capacity went down by {{ rep.totalBlockedHours }}h (work was slowed down by an estimated ~{{ rep.lostStoryPointsCapacity || 0 }} story points).</strong>
+        } @else {
+          <span>No blocker hours recorded this sprint. Capacity operated without impediment drag.</span>
+        }
+      </p>
+    </div>
+
     <div class="glass-panel narrative-panel">
       <div class="narrative-header">
         <h4 class="narrative-title">
@@ -592,7 +618,7 @@
           Sprint Governance Briefing
         </h4>
       </div>
-      <pre class="narrative-content">{{ state.executiveReport()?.executiveSummaryMarkdown }}</pre>
+      <pre class="narrative-content">{{ rep.executiveSummaryMarkdown }}</pre>
     </div>
   }
 </section>

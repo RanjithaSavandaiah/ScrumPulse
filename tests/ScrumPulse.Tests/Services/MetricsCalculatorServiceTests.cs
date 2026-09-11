@@ -88,9 +88,10 @@ public class MetricsCalculatorServiceTests
         };
         db.Sprints.Add(sprint);
 
-        var baseTime = new DateTime(2026, 8, 1, 9, 0, 0, DateTimeKind.Utc);
+        var baseTime = new DateTime(2026, 8, 3, 9, 0, 0, DateTimeKind.Utc); // Monday 9:00 AM
 
         // 2 completed items = 16 points (80% Say-Do)
+        // Item 1: Pickup 2.0h, Dev 10.0h, Review 4.0h, Merge 1.0h, QA 3.0h
         var item1 = new WorkItem
         {
             Id = Guid.NewGuid(),
@@ -99,14 +100,15 @@ public class MetricsCalculatorServiceTests
             Title = "Feature Alpha",
             Status = WorkItemStatus.Done,
             StoryPoints = 8,
-            CreatedAtUtc = baseTime,
-            PickedUpAtUtc = baseTime.AddHours(2.0),
-            PrCreatedAtUtc = baseTime.AddHours(12.0),
-            PrApprovedAtUtc = baseTime.AddHours(16.0),
-            PrMergedAtUtc = baseTime.AddHours(17.0),
-            QaStartedAtUtc = baseTime.AddHours(17.0),
-            CompletedAtUtc = baseTime.AddHours(20.0)
+            CreatedAtUtc = baseTime,                                          // Monday 09:00
+            PickedUpAtUtc = new DateTime(2026, 8, 3, 11, 0, 0, DateTimeKind.Utc), // Monday 11:00 (2.0h)
+            PrCreatedAtUtc = new DateTime(2026, 8, 4, 12, 30, 0, DateTimeKind.Utc), // Mon 11:00-17:30 (6.5h) + Tue 09:00-12:30 (3.5h) = 10.0h
+            PrApprovedAtUtc = new DateTime(2026, 8, 4, 16, 30, 0, DateTimeKind.Utc), // Tue 12:30-16:30 = 4.0h
+            PrMergedAtUtc = new DateTime(2026, 8, 4, 17, 30, 0, DateTimeKind.Utc), // Tue 16:30-17:30 = 1.0h
+            QaStartedAtUtc = new DateTime(2026, 8, 4, 17, 30, 0, DateTimeKind.Utc),
+            CompletedAtUtc = new DateTime(2026, 8, 5, 12, 0, 0, DateTimeKind.Utc)  // Wed 09:00-12:00 = 3.0h (overnight Tue 17:30-Wed 09:00 excluded)
         };
+        // Item 2: Pickup 3.0h, Dev 12.0h, Review 5.0h, Merge 1.0h, QA 4.0h
         var item2 = new WorkItem
         {
             Id = Guid.NewGuid(),
@@ -115,13 +117,13 @@ public class MetricsCalculatorServiceTests
             Title = "Feature Beta",
             Status = WorkItemStatus.Done,
             StoryPoints = 8,
-            CreatedAtUtc = baseTime,
-            PickedUpAtUtc = baseTime.AddHours(3.0),
-            PrCreatedAtUtc = baseTime.AddHours(15.0),
-            PrApprovedAtUtc = baseTime.AddHours(20.0),
-            PrMergedAtUtc = baseTime.AddHours(21.0),
-            QaStartedAtUtc = baseTime.AddHours(21.0),
-            CompletedAtUtc = baseTime.AddHours(25.0)
+            CreatedAtUtc = baseTime,                                          // Monday 09:00
+            PickedUpAtUtc = new DateTime(2026, 8, 3, 12, 0, 0, DateTimeKind.Utc), // Monday 12:00 (3.0h)
+            PrCreatedAtUtc = new DateTime(2026, 8, 4, 15, 30, 0, DateTimeKind.Utc), // Mon 12:00-17:30 (5.5h) + Tue 09:00-15:30 (6.5h) = 12.0h
+            PrApprovedAtUtc = new DateTime(2026, 8, 5, 12, 0, 0, DateTimeKind.Utc), // Tue 15:30-17:30 (2.0h) + Wed 09:00-12:00 (3.0h) = 5.0h
+            PrMergedAtUtc = new DateTime(2026, 8, 5, 13, 0, 0, DateTimeKind.Utc), // Wed 12:00-13:00 = 1.0h
+            QaStartedAtUtc = new DateTime(2026, 8, 5, 13, 0, 0, DateTimeKind.Utc),
+            CompletedAtUtc = new DateTime(2026, 8, 5, 17, 0, 0, DateTimeKind.Utc)  // Wed 13:00-17:00 = 4.0h
         };
         // 1 in-flight item = 4 points
         var item3 = new WorkItem
@@ -374,5 +376,180 @@ public class MetricsCalculatorServiceTests
         Assert.Equal(0, blockerMetric.ValueSprintB);
         Assert.Equal(-2, blockerMetric.Delta);
         Assert.True(blockerMetric.IsImprovement);
+    }
+
+    [Fact]
+    public async Task CalculateSprintCapacityAsync_DeductsBlockerHoursAndCalibratesCapacity()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var sprintId = Guid.NewGuid();
+        var sprint = new Sprint
+        {
+            Id = sprintId,
+            Name = "Sprint Capacity Impediment Test",
+            StartDate = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc),
+            DailyWorkingHours = 8.0,
+            CommittedStoryPoints = 40
+        };
+        db.Sprints.Add(sprint);
+
+        var memberId = Guid.NewGuid();
+        var member = new TeamMember
+        {
+            Id = memberId,
+            Name = "Jane Engineer",
+            Role = RoleType.Developer,
+            IsActive = true
+        };
+        db.TeamMembers.Add(member);
+
+        // Blocker with 16 blocked hours (2 full working days lost)
+        var blocker = new Blocker
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprintId,
+            RaisedById = memberId,
+            Title = "Staging Cluster Down",
+            Description = "Kubernetes nodes crashing",
+            BlockedHours = 16.0,
+            SlaHoursLimit = 8
+        };
+        db.Blockers.Add(blocker);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+
+        // Act
+        var capacity = await service.CalculateSprintCapacityAsync(sprintId);
+
+        // Assert
+        Assert.NotNull(capacity);
+        Assert.Equal(16.0, capacity.TotalBlockerHours);
+        Assert.True(capacity.NetAvailableHours < capacity.TotalAvailableHours);
+        Assert.Equal(Math.Round(capacity.TotalAvailableHours - 16.0, 1), capacity.NetAvailableHours);
+
+        // Member breakdown reflects blocker hours
+        var memberCap = Assert.Single(capacity.MemberBreakdown);
+        Assert.Equal(16.0, memberCap.BlockerHours);
+        Assert.Equal(Math.Round(memberCap.AvailableHours - 16.0, 1), memberCap.NetAvailableHours);
+    }
+
+    [Fact]
+    public async Task GenerateExecutiveReportAsync_CalculatesBlockerCapacityDragAndImpactStatement()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var sprintId = Guid.NewGuid();
+        var sprint = new Sprint
+        {
+            Id = sprintId,
+            Name = "Sprint Executive Blocker Test",
+            Goal = "Velocity stability",
+            CommittedStoryPoints = 30
+        };
+        db.Sprints.Add(sprint);
+
+        var blocker1 = new Blocker
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprintId,
+            Title = "API Spec Delay",
+            Description = "Waiting on 3rd party",
+            BlockedHours = 12.0
+        };
+        var blocker2 = new Blocker
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprintId,
+            Title = "Database Migration Lock",
+            Description = "Deadlock on staging",
+            BlockedHours = 4.0
+        };
+        db.Blockers.AddRange(blocker1, blocker2);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+
+        // Act
+        var report = await service.GenerateExecutiveReportAsync(sprintId);
+
+        // Assert
+        Assert.NotNull(report);
+        Assert.Equal(16.0, report.TotalBlockedHours);
+        Assert.Equal(2, report.LostStoryPointsCapacity); // 16h / 8h per story point = 2 pts
+        Assert.Contains("Because of blockers for 16 hours, our capacity went down by 16h", report.BlockerCapacityImpactSummary);
+        Assert.Contains("Because of blockers for 16 hours, our capacity went down by 16h", report.ExecutiveSummaryMarkdown);
+    }
+
+    [Fact]
+    public async Task GenerateExecutiveReportAsync_ZeroBlockers_HasZeroDragAndNoSlowdownNarrative()
+    {
+        using var db = CreateInMemoryDbContext();
+        var sprintId = Guid.NewGuid();
+        var sprint = new Sprint
+        {
+            Id = sprintId,
+            Name = "Sprint Zero Blocker Test",
+            CommittedStoryPoints = 20
+        };
+        db.Sprints.Add(sprint);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+        var report = await service.GenerateExecutiveReportAsync(sprintId);
+
+        Assert.NotNull(report);
+        Assert.Equal(0, report.TotalBlockedHours);
+        Assert.Equal(0, report.LostStoryPointsCapacity);
+        Assert.Contains("No blocker hours recorded", report.BlockerCapacityImpactSummary);
+    }
+
+    [Fact]
+    public async Task CalculateSprintCapacityAsync_BlockerHoursExceedGross_ClampsNetCapacityToZero()
+    {
+        using var db = CreateInMemoryDbContext();
+        var sprintId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+
+        var member = new TeamMember
+        {
+            Id = memberId,
+            Name = "Dev Single",
+            IsActive = true
+        };
+        db.TeamMembers.Add(member);
+
+        var sprint = new Sprint
+        {
+            Id = sprintId,
+            Name = "Short Sprint",
+            StartDate = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 9, 2, 0, 0, 0, DateTimeKind.Utc), // 2 days * 8h = 16h
+            DailyWorkingHours = 8.0,
+            IsActive = true
+        };
+        db.Sprints.Add(sprint);
+
+        // Blocker with 50 hours (exceeding 16h gross)
+        var blocker = new Blocker
+        {
+            Id = Guid.NewGuid(),
+            SprintId = sprintId,
+            Title = "Major Fire",
+            Description = "Total lockdown",
+            BlockedHours = 50.0
+        };
+        db.Blockers.Add(blocker);
+        await db.SaveChangesAsync();
+
+        var service = new MetricsCalculatorService(db);
+        var capacity = await service.CalculateSprintCapacityAsync(sprintId);
+
+        Assert.NotNull(capacity);
+        Assert.Equal(16.0, capacity.TotalAvailableHours);
+        Assert.Equal(50.0, capacity.TotalBlockerHours);
+        Assert.Equal(0.0, capacity.NetAvailableHours); // Clamped via Math.Max(0, ...)
     }
 }

@@ -10,6 +10,7 @@ import { QualityGatesModalComponent } from './components/quality-gates-modal/qua
 import { SprintBurndownChartComponent } from './components/sprint-burndown-chart/sprint-burndown-chart.component';
 import { EditSprintModalComponent } from './components/edit-sprint-modal/edit-sprint-modal.component';
 import { EstimationMatrixModalComponent } from './components/estimation-matrix-modal/estimation-matrix-modal.component';
+import { ConfigureGatesModalComponent } from './components/configure-gates-modal/configure-gates-modal.component';
 import { Sprint, WorkItem } from '../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../core/utils/date-utils';
 import { isDeliveryRole } from '../../core/utils/format-utils';
@@ -41,6 +42,7 @@ const MAX_VELOCITY_RATIO_PERCENTAGE = 100;
     SprintBurndownChartComponent,
     EditSprintModalComponent,
     EstimationMatrixModalComponent,
+    ConfigureGatesModalComponent,
     ...CORE_PIPES
   ],
   templateUrl: './work-items.component.html',
@@ -52,7 +54,8 @@ export class WorkItemsComponent {
 
   showNewItemModal = signal(false);
   showEditSprintModal = signal(false);
-  showEstimationMatrixModal = signal(false);
+  showEstimationMatrixModal = signal<boolean>(false);
+  showConfigureGatesModal = signal<boolean>(false);
   selectedSprintForEdit = signal<Sprint | null>(null);
   showBurndownChart = signal(true);
 
@@ -101,7 +104,10 @@ export class WorkItemsComponent {
     const hoursPerDay = sp?.dailyWorkingHours && sp.dailyWorkingHours > 0 ? sp.dailyWorkingHours : DEFAULT_DAILY_WORKING_HOURS;
     const grossHours = Math.round(workingDays * memberCount * hoursPerDay * ONE_DECIMAL_PLACE_ROUNDING_FACTOR) / ONE_DECIMAL_PLACE_ROUNDING_FACTOR;
     const leaveHours = Math.round(totalLeaveDays * hoursPerDay * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR;
-    const netHours = Math.max(0, Math.round((grossHours - leaveHours) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR);
+
+    const sprintBlockers = sp ? this.state.blockers().filter(b => b.sprintId === sp.id) : this.state.blockers();
+    const blockerHours = Math.round(sprintBlockers.reduce((sum, b) => sum + (b.blockedHours || 0), 0) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR;
+    const netHours = Math.max(0, Math.round((grossHours - leaveHours - blockerHours) * TWO_DECIMAL_PLACES_ROUNDING_FACTOR) / TWO_DECIMAL_PLACES_ROUNDING_FACTOR);
 
     const sprintItems = sp ? this.state.workItems().filter(item => item.sprintId === sp.id) : this.state.workItems();
     const committed = sp?.committedStoryPoints || sprintItems.reduce((accumulatedPoints, item) => accumulatedPoints + (item.storyPoints || 0), 0) || 0;
@@ -113,6 +119,7 @@ export class WorkItemsComponent {
       grossHours,
       totalLeaveDays,
       leaveHours,
+      blockerHours,
       netHours,
       committed,
       delivered,
@@ -305,7 +312,8 @@ export class WorkItemsComponent {
       dodUnitTests: updatedItem.dodUnitTestsPassed,
       dodPeerReview: updatedItem.dodPeerReviewCompleted,
       dodMergedToMaster: updatedItem.dodMergedToMaster,
-      dodStagingVerified: updatedItem.dodStagingVerified
+      dodStagingVerified: updatedItem.dodStagingVerified,
+      customCriteriaChecks: updatedItem.qualityGateResults
     });
     this.notification.showSuccess('Quality Gates Saved', `DoR / DoD criteria updated for "${updatedItem.title}".`, 'shield-check');
     this.selectedItemForGates = null;

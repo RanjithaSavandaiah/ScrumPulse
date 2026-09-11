@@ -26,16 +26,20 @@ describe('AddBlockerModalComponent', () => {
     expect(component.blocker.title).toBe(component.presets[0]);
   });
 
-  it('should emit save when form is submitted with title', () => {
+  it('should emit save when form is submitted with title and blockedHours', () => {
     spyOn(component.save, 'emit');
 
     component.blocker.title = 'DB down';
     component.blocker.description = 'Timeout';
     component.blocker.category = 2;
     component.blocker.slaHoursLimit = 8;
+    component.blocker.blockedHours = 12.5;
 
     component.save.emit(component.blocker);
-    expect(component.save.emit).toHaveBeenCalledWith(component.blocker);
+    expect(component.save.emit).toHaveBeenCalledWith(jasmine.objectContaining({
+      title: 'DB down',
+      blockedHours: 12.5
+    }));
   });
 
   it('should validate mandatory title and description on onSubmit', () => {

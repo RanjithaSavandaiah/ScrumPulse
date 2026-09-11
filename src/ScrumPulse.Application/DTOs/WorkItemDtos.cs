@@ -44,7 +44,8 @@ public record WorkItemDto(
     double? QaTestingLatencyHours,
     double? TotalCycleTimeHours,
     double? EstimatedHours = null,
-    double DaysInCurrentStatus = 0
+    double DaysInCurrentStatus = 0,
+    Dictionary<string, bool>? QualityGateResults = null
 );
 
 public record CreateWorkItemRequest(
@@ -92,5 +93,6 @@ public record UpdateQualityGatesRequest(
     bool DodUnitTests,
     bool DodPeerReview,
     bool DodMergedToMaster,
-    bool DodStagingVerified
+    bool DodStagingVerified,
+    Dictionary<string, bool>? CustomCriteriaChecks = null
 );

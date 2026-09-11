@@ -269,3 +269,76 @@ export function calculateWorkingDays(startDate?: string | Date | null, endDate?:
   }
   return Math.max(1, workingDays);
 }
+
+/**
+ * Calculates working business hours between two timestamps, excluding overnight non-working
+ * hours (default 5:30 PM to 9:00 AM) and weekend days (Saturdays and Sundays).
+ */
+export function calculateWorkingHours(
+  startDate?: string | Date | null,
+  endDate?: string | Date | null,
+  dailyWorkingHours = 8.5,
+  workDayStartHour = 9.0
+): number {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return 0;
+
+  const workDayEndHour = workDayStartHour + dailyWorkingHours; // 17.5 = 17:30
+
+  const isWorkingDay = (d: Date) => {
+    const day = d.getDay();
+    return day !== 0 && day !== 6;
+  };
+
+  const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDay = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+  const getDayDecimalHours = (d: Date) => d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+
+  // Same calendar day
+  if (startDay.getTime() === endDay.getTime()) {
+    if (!isWorkingDay(start)) return 0;
+    const startTod = getDayDecimalHours(start);
+    const endTod = getDayDecimalHours(end);
+    const effectiveStart = Math.max(workDayStartHour, Math.min(workDayEndHour, startTod));
+    const effectiveEnd = Math.max(workDayStartHour, Math.min(workDayEndHour, endTod));
+    if (effectiveEnd <= effectiveStart) return 0;
+    return Math.round((effectiveEnd - effectiveStart) * 10) / 10;
+  }
+
+  // Multi-day transition
+  let totalHours = 0;
+
+  // 1. Start day
+  if (isWorkingDay(start)) {
+    const startTod = getDayDecimalHours(start);
+    if (startTod < workDayEndHour) {
+      const effectiveStart = Math.max(workDayStartHour, startTod);
+      totalHours += Math.max(0, workDayEndHour - effectiveStart);
+    }
+  }
+
+  // 2. Full business days between
+  const cur = new Date(startDay);
+  cur.setDate(cur.getDate() + 1);
+  while (cur < endDay) {
+    if (isWorkingDay(cur)) {
+      totalHours += dailyWorkingHours;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // 3. End day
+  if (isWorkingDay(end)) {
+    const endTod = getDayDecimalHours(end);
+    if (endTod > workDayStartHour) {
+      const effectiveEnd = Math.min(workDayEndHour, endTod);
+      totalHours += Math.max(0, effectiveEnd - workDayStartHour);
+    }
+  }
+
+  return Math.round(Math.max(0, totalHours) * 10) / 10;
+}
+

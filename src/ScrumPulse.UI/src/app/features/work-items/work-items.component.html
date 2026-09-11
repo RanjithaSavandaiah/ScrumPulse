@@ -50,6 +50,17 @@
       </div>
 
       <!-- Action Buttons -->
+      @if (state.canEditOrDelete()) {
+        <button
+          id="btnConfigureTeamGates"
+          (click)="showConfigureGatesModal.set(true)"
+          class="btn-secondary btn-configure-gates"
+          title="Configure Definition of Ready (DoR) & Definition of Done (DoD) quality gates"
+        >
+          <app-icon name="shield-check" [size]="16" color="var(--accent-secondary)"></app-icon> Configure DoR / DoD
+        </button>
+      }
+
       <button (click)="showEstimationMatrixModal.set(true)" class="btn-secondary" title="View Fibonacci Reference Matrix and Effort Estimation Guide">
         <app-icon name="book-open" [size]="16" color="var(--accent-secondary)"></app-icon> Estimation Matrix
       </button>
@@ -124,11 +135,11 @@
             </span>
           </div>
 
-          <div class="metric-pill" title="Auto-deducted {{ sprintCapacitySummary().leaveHours }}h from {{ sprintCapacitySummary().totalLeaveDays }} leave days">
+          <div class="metric-pill" [title]="'Net: ' + sprintCapacitySummary().netHours + 'h (Gross ' + sprintCapacitySummary().grossHours + 'h - ' + sprintCapacitySummary().leaveHours + 'h leave - ' + sprintCapacitySummary().blockerHours + 'h blockers)'">
             <span class="pill-label">Net Capacity</span>
             <span class="pill-val capacity-green">
               {{ sprintCapacitySummary().netHours }}h
-              <small class="pill-sub">(-{{ sprintCapacitySummary().leaveHours }}h leave)</small>
+              <small class="pill-sub">(-{{ sprintCapacitySummary().leaveHours }}h leave, -{{ sprintCapacitySummary().blockerHours }}h blockers)</small>
             </span>
           </div>
         </div>
@@ -163,6 +174,7 @@
         [workItems]="state.workItems()"
         [leaves]="state.leaves()"
         [members]="state.squadMembers()"
+        [blockers]="state.blockers()"
       ></app-sprint-burndown-chart>
     }
   }
@@ -252,8 +264,10 @@
   @if (selectedItemForGates) {
     <app-quality-gates-modal
       [item]="selectedItemForGates"
+      [team]="state.currentTeam()"
       (close)="selectedItemForGates = null"
       (save)="onSaveQualityGates($event)"
+      (openConfigure)="showConfigureGatesModal.set(true)"
     ></app-quality-gates-modal>
   }
 
@@ -263,5 +277,13 @@
       [dailyWorkingHours]="state.activeSprint()?.dailyWorkingHours"
       (close)="showEstimationMatrixModal.set(false)"
     ></app-estimation-matrix-modal>
+  }
+
+  <!-- Configure Team Quality Gates (DoR & DoD) Modal -->
+  @if (showConfigureGatesModal() && state.currentTeam(); as curTeam) {
+    <app-configure-gates-modal
+      [team]="curTeam"
+      (close)="showConfigureGatesModal.set(false)"
+    ></app-configure-gates-modal>
   }
 </section>

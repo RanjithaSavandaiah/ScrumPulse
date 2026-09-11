@@ -18,7 +18,10 @@ public record ExecutiveReportDto(
     double AvgBlockerResolutionHours,
     int EscapedDefectsCount,
     int InSprintBugsCount,
-    string ExecutiveSummaryMarkdown
+    string ExecutiveSummaryMarkdown,
+    double TotalBlockedHours = 0,
+    int LostStoryPointsCapacity = 0,
+    string BlockerCapacityImpactSummary = ""
 );
 
 public record SprintVelocityDataPointDto(

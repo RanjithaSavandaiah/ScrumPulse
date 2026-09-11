@@ -164,4 +164,176 @@ public class TeamsControllerTests
         var totalSquads = await db.Teams.CountAsync(t => t.IsActive);
         Assert.Equal(1, totalSquads);
     }
+
+    [Fact]
+    public async Task ConfigureQualityGates_Success_UpdatesTeamCriteria()
+    {
+        using var db = CreateInMemoryDbContext();
+        var team = new Team { Name = "Titan Squad", Slug = "titan-squad", JoinCode = "TITAN1", IsActive = true };
+        db.Teams.Add(team);
+        await db.SaveChangesAsync();
+
+        var controller = new TeamsController(db);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "ScrumMaster";
+
+        var dor = new List<QualityGateCriterionDto>
+        {
+            new("dor-1", "Wireframe attached", "Figma link verified", true),
+            new("dor-2", "Acceptance criteria defined", null, true)
+        };
+        var dod = new List<QualityGateCriterionDto>
+        {
+            new("dod-1", "Automated tests passing", "100% green", true),
+            new("dod-2", "Staging verified", "QA approved", true)
+        };
+
+        var request = new ConfigureTeamGatesRequest(dor, dod);
+        var actionResult = await controller.ConfigureQualityGates(team.Id, request);
+
+        var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+        var updatedTeam = Assert.IsType<TeamDto>(okResult.Value);
+
+        Assert.NotNull(updatedTeam.DorCriteria);
+        Assert.Equal(2, updatedTeam.DorCriteria.Count);
+        Assert.Equal("Wireframe attached", updatedTeam.DorCriteria[0].Label);
+
+        Assert.NotNull(updatedTeam.DodCriteria);
+        Assert.Equal(2, updatedTeam.DodCriteria.Count);
+        Assert.Equal("Automated tests passing", updatedTeam.DodCriteria[0].Label);
+
+        // Verify persisted in DB
+        var inDb = await db.Teams.FindAsync(team.Id);
+        Assert.NotNull(inDb?.DorChecklistJson);
+        Assert.NotNull(inDb?.DodChecklistJson);
+    }
+
+    [Fact]
+    public async Task ConfigureQualityGates_Forbidden_WhenNotScrumMaster()
+    {
+        using var db = CreateInMemoryDbContext();
+        var team = new Team { Name = "Orion Squad", Slug = "orion-squad", JoinCode = "ORION1", IsActive = true };
+        db.Teams.Add(team);
+        await db.SaveChangesAsync();
+
+        var controller = new TeamsController(db);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "Developer";
+
+        var dor = new List<QualityGateCriterionDto> { new("dor-1", "AC defined", null, true) };
+        var dod = new List<QualityGateCriterionDto> { new("dod-1", "Unit tests", null, true) };
+
+        var request = new ConfigureTeamGatesRequest(dor, dod);
+        var actionResult = await controller.ConfigureQualityGates(team.Id, request);
+
+        var objResult = Assert.IsType<ObjectResult>(actionResult.Result);
+        Assert.Equal(403, objResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetQualityGates_ReturnsDefaults_WhenNoneConfigured()
+    {
+        using var db = CreateInMemoryDbContext();
+        var team = new Team { Name = "Vega Squad", Slug = "vega-squad", JoinCode = "VEGA99", IsActive = true };
+        db.Teams.Add(team);
+        await db.SaveChangesAsync();
+
+        var controller = new TeamsController(db);
+        var actionResult = await controller.GetQualityGates(team.Id);
+
+        var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+        var gates = Assert.IsType<ConfigureTeamGatesRequest>(okResult.Value);
+
+        Assert.NotEmpty(gates.DorCriteria);
+        Assert.NotEmpty(gates.DodCriteria);
+        Assert.Contains(gates.DorCriteria, c => c.Label.Contains("Acceptance Criteria"));
+        Assert.Contains(gates.DodCriteria, c => c.Label.Contains("Automated unit"));
+    }
+
+    [Fact]
+    public async Task ConfigureQualityGates_NotFound_WhenTeamDoesNotExist()
+    {
+        using var db = CreateInMemoryDbContext();
+        var controller = new TeamsController(db);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "ScrumMaster";
+
+        var request = new ConfigureTeamGatesRequest(
+            new List<QualityGateCriterionDto> { new("dor-1", "Test", null, true) },
+            new List<QualityGateCriterionDto> { new("dod-1", "Test", null, true) }
+        );
+
+        var actionResult = await controller.ConfigureQualityGates(Guid.NewGuid(), request);
+        Assert.IsType<NotFoundResult>(actionResult.Result);
+    }
+
+    [Fact]
+    public async Task ConfigureQualityGates_EmptyCriteria_ReturnsBadRequest()
+    {
+        using var db = CreateInMemoryDbContext();
+        var team = new Team
+        {
+            Name = "Phoenix Squad",
+            Slug = "phoenix-squad",
+            JoinCode = "PHX01",
+            IsActive = true,
+            DorChecklistJson = "[{\"id\":\"custom-1\",\"label\":\"Custom Gate\",\"isRequired\":true}]"
+        };
+        db.Teams.Add(team);
+        await db.SaveChangesAsync();
+
+        var controller = new TeamsController(db);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "ScrumMaster";
+
+        // Pass empty lists - validation should reject with BadRequest
+        var request = new ConfigureTeamGatesRequest(new List<QualityGateCriterionDto>(), new List<QualityGateCriterionDto>());
+        var actionResult = await controller.ConfigureQualityGates(team.Id, request);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(actionResult.Result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task GetQualityGates_ReturnsConfiguredCriteria_WhenTeamHasCustomGates()
+    {
+        using var db = CreateInMemoryDbContext();
+        var team = new Team
+        {
+            Name = "Nova Squad",
+            Slug = "nova-squad",
+            JoinCode = "NOVA1",
+            IsActive = true,
+            DorChecklistJson = "[{\"id\":\"dor-nova\",\"label\":\"Nova DoR Check\",\"isRequired\":true}]",
+            DodChecklistJson = "[{\"id\":\"dod-nova\",\"label\":\"Nova DoD Check\",\"isRequired\":false}]"
+        };
+        db.Teams.Add(team);
+        await db.SaveChangesAsync();
+
+        var controller = new TeamsController(db);
+        var actionResult = await controller.GetQualityGates(team.Id);
+
+        var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+        var gates = Assert.IsType<ConfigureTeamGatesRequest>(okResult.Value);
+
+        Assert.Single(gates.DorCriteria);
+        Assert.Equal("Nova DoR Check", gates.DorCriteria[0].Label);
+        Assert.True(gates.DorCriteria[0].IsRequired);
+
+        Assert.Single(gates.DodCriteria);
+        Assert.Equal("Nova DoD Check", gates.DodCriteria[0].Label);
+        Assert.False(gates.DodCriteria[0].IsRequired);
+    }
 }

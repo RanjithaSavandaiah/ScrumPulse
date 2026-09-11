@@ -120,4 +120,32 @@ describe('SprintBurndownChartComponent', () => {
     expect(burndown.getY(10)).toBeDefined();
     expect(['Ahead', 'OnTrack', 'Behind', 'Completed']).toContain(burndown.paceStatus);
   });
+
+  it('should deduct blocker hours from net capacity and display impediment drag callout', () => {
+    component.blockers = [
+      {
+        id: 'blk-1',
+        title: 'CI Pipeline Down',
+        description: 'Broken runner',
+        category: 'EnvironmentAccess',
+        slaHoursLimit: 4,
+        hoursWaiting: 8,
+        blockedHours: 16,
+        isResolved: false,
+        isSlaBreached: true,
+        raisedById: 'm-1',
+        raisedAtUtc: '2026-09-02T00:00:00Z',
+        sprintId: 'sprint-1'
+      }
+    ];
+    fixture.detectChanges();
+
+    const capacity = component.capacityAnalysis();
+    expect(capacity.blockerHoursDeducted).toBe(16);
+    expect(capacity.blockerCount).toBe(1);
+
+    const callout = fixture.nativeElement.querySelector('.blocker-slowdown-msg');
+    expect(callout).toBeTruthy();
+    expect(callout.textContent).toContain('Because of blockers for 16 hours, our capacity went down by 16h');
+  });
 });

@@ -1,0 +1,261 @@
+<div class="modal-backdrop">
+  <div class="glass-panel modal-content animate-fade-in">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="header-title-row">
+        <app-icon name="shield-check" [size]="24" color="var(--accent-primary)"></app-icon>
+        <div>
+          <h3 class="modal-title">Configure Quality Gates</h3>
+          <p class="modal-subtitle">
+            Set team standards for <strong>{{ team.name }}</strong> &bull; Definition of Ready &amp; Definition of Done
+          </p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="close-btn" title="Close modal">&times;</button>
+    </div>
+
+    <!-- Error Alert Banner -->
+    @if (errorMessage()) {
+      <div class="validation-alert-banner animate-fade-in">
+        <app-icon name="alert-circle" [size]="16" color="#f87171"></app-icon>
+        <span>{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Gate Type Tabs -->
+    <div class="gate-tabs-bar">
+      <button
+        type="button"
+        (click)="activeGateTab.set('dor')"
+        [class.active]="activeGateTab() === 'dor'"
+        class="gate-tab-btn"
+      >
+        <span class="tab-indicator dor-indicator"></span>
+        <span>Definition of Ready (DoR)</span>
+        <span class="badge-count">{{ dorList().length }}</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="activeGateTab.set('dod')"
+        [class.active]="activeGateTab() === 'dod'"
+        class="gate-tab-btn"
+      >
+        <span class="tab-indicator dod-indicator"></span>
+        <span>Definition of Done (DoD)</span>
+        <span class="badge-count">{{ dodList().length }}</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Info Guidance Banner -->
+      @if (activeGateTab() === 'dor') {
+        <div class="gate-guide-box dor-guide">
+          <app-icon name="zap" [size]="16" color="var(--accent-primary)"></app-icon>
+          <div class="guide-text">
+            <strong>Definition of Ready (DoR):</strong> Criteria stories and backlog items must fulfill before developers pick them up into an active sprint. Prevents mid-sprint requirement ambiguity.
+          </div>
+        </div>
+      } @else {
+        <div class="gate-guide-box dod-guide">
+          <app-icon name="check-circle" [size]="16" color="var(--accent-success)"></app-icon>
+          <div class="guide-text">
+            <strong>Definition of Done (DoD):</strong> Criteria items must satisfy before QA signoff and marking Done. Ensures consistent engineering quality, automated tests, and deployment hygiene.
+          </div>
+        </div>
+      }
+
+      <!-- Current Criteria List -->
+      <div class="criteria-list-container">
+        <div class="list-header-row">
+          <span class="list-header-title">Configured Standards ({{ activeGateTab() === 'dor' ? dorList().length : dodList().length }})</span>
+          <button (click)="resetToDefaults()" type="button" class="btn-reset-defaults" title="Reset to standard agile criteria">
+            <app-icon name="rotate-ccw" [size]="13"></app-icon> Reset to Defaults
+          </button>
+        </div>
+
+        @if (activeGateTab() === 'dor') {
+          <div class="criteria-list">
+            @for (item of dorList(); track item.id; let idx = $index) {
+              <div class="criterion-row glass-panel">
+                <div class="row-left">
+                  <span class="row-index">{{ idx + 1 }}</span>
+                  <div class="criterion-details">
+                    <span class="criterion-label">{{ item.label }}</span>
+                    @if (item.description) {
+                      <span class="criterion-desc">{{ item.description }}</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    (click)="toggleRequired(item)"
+                    class="badge-toggle"
+                    [class.required]="item.isRequired"
+                    title="Click to toggle required status"
+                  >
+                    {{ item.isRequired ? 'Mandatory' : 'Optional' }}
+                  </button>
+
+                    <div class="reorder-btns">
+                      <button
+                        type="button"
+                        (click)="moveUp('dor', idx)"
+                        [disabled]="idx === 0"
+                        class="btn-icon-sm"
+                        title="Move up"
+                      >
+                        <span class="arrow-icon">&#9650;</span>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="moveDown('dor', idx)"
+                        [disabled]="idx === dorList().length - 1"
+                        class="btn-icon-sm"
+                        title="Move down"
+                      >
+                        <span class="arrow-icon">&#9660;</span>
+                      </button>
+                    </div>
+
+                  <button
+                    type="button"
+                    (click)="removeCriterion('dor', idx)"
+                    class="btn-delete-criterion"
+                    title="Remove criterion"
+                  >
+                    <app-icon name="trash-2" [size]="14"></app-icon>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="criteria-list">
+            @for (item of dodList(); track item.id; let idx = $index) {
+              <div class="criterion-row glass-panel">
+                <div class="row-left">
+                  <span class="row-index">{{ idx + 1 }}</span>
+                  <div class="criterion-details">
+                    <span class="criterion-label">{{ item.label }}</span>
+                    @if (item.description) {
+                      <span class="criterion-desc">{{ item.description }}</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="row-actions">
+                  <button
+                    type="button"
+                    (click)="toggleRequired(item)"
+                    class="badge-toggle"
+                    [class.required]="item.isRequired"
+                    title="Click to toggle required status"
+                  >
+                    {{ item.isRequired ? 'Mandatory' : 'Optional' }}
+                  </button>
+
+                    <div class="reorder-btns">
+                      <button
+                        type="button"
+                        (click)="moveUp('dod', idx)"
+                        [disabled]="idx === 0"
+                        class="btn-icon-sm"
+                        title="Move up"
+                      >
+                        <span class="arrow-icon">&#9650;</span>
+                      </button>
+                      <button
+                        type="button"
+                        (click)="moveDown('dod', idx)"
+                        [disabled]="idx === dodList().length - 1"
+                        class="btn-icon-sm"
+                        title="Move down"
+                      >
+                        <span class="arrow-icon">&#9660;</span>
+                      </button>
+                    </div>
+
+                  <button
+                    type="button"
+                    (click)="removeCriterion('dod', idx)"
+                    class="btn-delete-criterion"
+                    title="Remove criterion"
+                  >
+                    <app-icon name="trash-2" [size]="14"></app-icon>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Add New Criterion Section -->
+      <div class="glass-panel add-criterion-box">
+        <h4 class="add-title">
+          <app-icon name="plus" [size]="16" color="var(--accent-primary)"></app-icon>
+          Add New {{ activeGateTab() === 'dor' ? 'Definition of Ready' : 'Definition of Done' }} Criterion
+        </h4>
+
+        <div class="add-inputs-grid">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="newCriterionLabel" class="input-label">Criterion Title / Rule</label>
+            <input
+              id="newCriterionLabel"
+              name="newCriterionLabel"
+              [ngModel]="newCriterionLabel()"
+              (ngModelChange)="newCriterionLabel.set($event)"
+              placeholder="e.g. {{ activeGateTab() === 'dor' ? 'Figma UI specs approved by Design Lead' : 'Automated load testing passed with <200ms latency' }}"
+              class="interactive-input"
+              (keydown.enter)="addCriterion()"
+            />
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="newCriterionDesc" class="input-label">Optional Guidance / Instructions</label>
+            <input
+              id="newCriterionDesc"
+              name="newCriterionDesc"
+              [ngModel]="newCriterionDesc()"
+              (ngModelChange)="newCriterionDesc.set($event)"
+              placeholder="Explain how engineers or QA verify this gate..."
+              class="interactive-input"
+              (keydown.enter)="addCriterion()"
+            />
+          </div>
+        </div>
+
+        <div class="add-footer-row">
+          <label class="required-checkbox-label">
+            <input
+              type="checkbox"
+              [ngModel]="newCriterionRequired()"
+              (ngModelChange)="newCriterionRequired.set($event)"
+            />
+            Mandatory gate (must be verified before stage transition)
+          </label>
+
+          <button
+            type="button"
+            (click)="addCriterion()"
+            class="btn-secondary btn-sm"
+          >
+            <app-icon name="plus" [size]="14"></app-icon> Add to {{ activeGateTab().toUpperCase() }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <button (click)="close.emit()" [disabled]="isSubmitting()" class="btn-secondary">Cancel</button>
+      <button (click)="onSave()" [disabled]="isSubmitting()" class="btn-primary btn-save">
+        <app-icon [name]="isSubmitting() ? 'loader' : 'shield-check'" [size]="16"></app-icon>
+        {{ isSubmitting() ? 'Saving Gates...' : 'Save Squad Gates' }}
+      </button>
+    </div>
+  </div>
+</div>

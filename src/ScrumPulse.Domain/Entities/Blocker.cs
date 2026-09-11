@@ -30,6 +30,12 @@ public class Blocker : BaseEntity
     /// <summary>Persisted flag indicating whether SLA was breached at resolution time.</summary>
     public bool WasSlaBreachedOnResolution { get; set; }
 
+    /// <summary>
+    /// Total productive working hours lost or blocked due to this impediment.
+    /// Directly deducts from sprint available capacity, burndown trajectory, and velocity.
+    /// </summary>
+    public double BlockedHours { get; set; } = 0;
+
     public bool IsResolved => ResolvedAtUtc.HasValue;
 
     public double HoursWaiting => Math.Round(

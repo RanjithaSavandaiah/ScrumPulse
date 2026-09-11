@@ -40,17 +40,30 @@ public class WorkItem : BaseEntity
     public bool DodPeerReviewCompleted { get; set; } = false;
     public bool DodMergedToMaster { get; set; } = false;
     public bool DodStagingVerified { get; set; } = false;
+    public string? QualityGateResultsJson { get; set; }
 
     public bool IsEscapedDefect { get; set; } = false;
     public string? DefectRootCause { get; set; }
 
-    // Computed Latencies
-    public double? PickupLatencyHours => PickedUpAtUtc.HasValue ? Math.Round((PickedUpAtUtc.Value - CreatedAtUtc).TotalHours, 1) : null;
-    public double? DevCycleTimeHours => (PrCreatedAtUtc.HasValue && PickedUpAtUtc.HasValue) ? Math.Round((PrCreatedAtUtc.Value - PickedUpAtUtc.Value).TotalHours, 1) : null;
-    public double? PrReviewLatencyHours => (PrApprovedAtUtc.HasValue && PrCreatedAtUtc.HasValue) ? Math.Round((PrApprovedAtUtc.Value - PrCreatedAtUtc.Value).TotalHours, 1) : null;
-    public double? PrMergeLatencyHours => (PrMergedAtUtc.HasValue && PrApprovedAtUtc.HasValue) ? Math.Round((PrMergedAtUtc.Value - PrApprovedAtUtc.Value).TotalHours, 1) : null;
-    public double? QaTestingLatencyHours => (CompletedAtUtc.HasValue && QaStartedAtUtc.HasValue) ? Math.Round((CompletedAtUtc.Value - QaStartedAtUtc.Value).TotalHours, 1) : null;
-    public double? TotalCycleTimeHours => (CompletedAtUtc.HasValue && PickedUpAtUtc.HasValue) ? Math.Round((CompletedAtUtc.Value - PickedUpAtUtc.Value).TotalHours, 1) : null;
+    // Computed Latencies (Working Hours Only)
+    public double? PickupLatencyHours => PickedUpAtUtc.HasValue 
+        ? WorkingHoursCalculator.CalculateWorkingHours(CreatedAtUtc, PickedUpAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 
+        : null;
+    public double? DevCycleTimeHours => (PrCreatedAtUtc.HasValue && PickedUpAtUtc.HasValue) 
+        ? WorkingHoursCalculator.CalculateWorkingHours(PickedUpAtUtc.Value, PrCreatedAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 
+        : null;
+    public double? PrReviewLatencyHours => (PrApprovedAtUtc.HasValue && PrCreatedAtUtc.HasValue) 
+        ? WorkingHoursCalculator.CalculateWorkingHours(PrCreatedAtUtc.Value, PrApprovedAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 
+        : null;
+    public double? PrMergeLatencyHours => (PrMergedAtUtc.HasValue && PrApprovedAtUtc.HasValue) 
+        ? WorkingHoursCalculator.CalculateWorkingHours(PrApprovedAtUtc.Value, PrMergedAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 
+        : null;
+    public double? QaTestingLatencyHours => (CompletedAtUtc.HasValue && QaStartedAtUtc.HasValue) 
+        ? WorkingHoursCalculator.CalculateWorkingHours(QaStartedAtUtc.Value, CompletedAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 
+        : null;
+    public double? TotalCycleTimeHours => (CompletedAtUtc.HasValue && PickedUpAtUtc.HasValue) 
+        ? WorkingHoursCalculator.CalculateWorkingHours(PickedUpAtUtc.Value, CompletedAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 
+        : null;
 
     // Status Aging & Bottleneck Tracking
     public DateTime StatusEnteredAtUtc => Status switch

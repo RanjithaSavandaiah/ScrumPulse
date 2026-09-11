@@ -500,4 +500,108 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     const sprintToast = page.locator('.confirmation-popup-card .popup-message', { hasText: `Sprint "${validSprint}" added successfully.` });
     await expect(sprintToast).toBeVisible({ timeout: 5000 });
   });
+
+  test('should accurately advance stages from Pick Up through Done, displaying actual working hours on completed steps and NEVER keeping previous steps Active', async ({ page }) => {
+    const uniqueTitle = `Stage Timing E2E ${Date.now()}`;
+
+    // 1. Add Story
+    const addBtn = page.locator('.section-header button', { hasText: 'Add Story / Bug / PBI' });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    await expect(page.locator('#workItemTitleInput')).toBeVisible();
+
+    await page.locator('.type-card', { hasText: 'User Story' }).click();
+    await page.locator('#workItemTitleInput').fill(uniqueTitle);
+    await page.locator('#workItemDescTextarea').fill('Working hours latency progression E2E verification.');
+    await page.locator('#workItemDoRTextarea').fill('Given realistic working hours, Then previous steps are never Active.');
+    await page.getByRole('button', { name: '3', exact: true }).click();
+    await page.locator('app-add-work-item-modal .modal-footer .btn-save').click();
+    await expect(page.locator('#workItemTitleInput')).not.toBeVisible();
+
+    const createdCard = page.locator('.work-item-card', { hasText: uniqueTitle });
+    await expect(createdCard).toBeVisible({ timeout: 10000 });
+
+    // Step 1: Pick Up Story (Backlog -> In Progress)
+    const pickUpBtn = createdCard.locator('button', { hasText: 'Pick Up Story' });
+    await expect(pickUpBtn).toBeVisible();
+    await pickUpBtn.click();
+    await expect(createdCard.locator('.status-badge')).toContainText(/InProgress|In Progress/, { timeout: 10000 });
+
+    // Stage 1 (Picked Up) must show latency (e.g. 0h latency), Stage 2 (PR Created) is Active
+    const step1Val = createdCard.locator('.stage-step').nth(0).locator('.step-val');
+    const step2Val = createdCard.locator('.stage-step').nth(1).locator('.step-val');
+    await expect(step1Val).toContainText(/latency/);
+    await expect(step1Val).not.toContainText('Active');
+    await expect(step2Val).toHaveText('Active');
+
+    // Step 2: Create PR (In Progress -> PrCreated)
+    const createPrBtn = createdCard.locator('button', { hasText: 'Create PR' });
+    await expect(createPrBtn).toBeVisible();
+    await createPrBtn.click();
+    await expect(createdCard.locator('.status-badge')).toContainText(/PrCreated|PR Created/, { timeout: 10000 });
+
+    // Stage 2 must now show dev time (e.g. 0h dev) and NOT Active! Stage 3 is now Active!
+    const step3Val = createdCard.locator('.stage-step').nth(2).locator('.step-val');
+    await expect(step2Val).toContainText(/dev/);
+    await expect(step2Val).not.toContainText('Active');
+    await expect(step3Val).toHaveText('Active');
+
+    // Step 3: Approve PR (PrCreated -> PrApproved)
+    const approvePrBtn = createdCard.locator('button', { hasText: 'Approve PR' });
+    await expect(approvePrBtn).toBeVisible();
+    await approvePrBtn.click();
+    await expect(createdCard.locator('.status-badge')).toContainText(/PrApproved|PR Approved/, { timeout: 10000 });
+
+    // Stage 3 must now show review time and NOT Active! Stage 4 is now Active!
+    const step4Val = createdCard.locator('.stage-step').nth(3).locator('.step-val');
+    await expect(step3Val).toContainText(/review/);
+    await expect(step3Val).not.toContainText('Active');
+    await expect(step4Val).toHaveText('Active');
+
+    // Step 4: Merge to Master (PrApproved -> Merged)
+    const mergeBtn = createdCard.locator('button', { hasText: 'Merge to Master' });
+    await expect(mergeBtn).toBeVisible();
+    await mergeBtn.click();
+    await expect(createdCard.locator('.status-badge')).toContainText(/Merged/, { timeout: 10000 });
+
+    // Stage 4 must now show merge time and NOT Active! Stage 5 is now Active!
+    const step5Val = createdCard.locator('.stage-step').nth(4).locator('.step-val');
+    await expect(step4Val).toContainText(/merge/);
+    await expect(step4Val).not.toContainText('Active');
+    await expect(step5Val).toHaveText('Active');
+
+    // Step 5: Start QA (Merged -> InQa)
+    const startQaBtn = createdCard.locator('button', { hasText: 'Start QA' });
+    await expect(startQaBtn).toBeVisible();
+    await startQaBtn.click();
+    await expect(createdCard.locator('.status-badge')).toContainText(/InQa|In QA Testing/, { timeout: 10000 });
+    await expect(step5Val).toHaveText('Active');
+
+    // Check DoD gates before final signoff
+    await createdCard.locator('button', { hasText: 'DoR / DoD Gates' }).click();
+    const gatesContent = page.locator('app-quality-gates-modal .modal-content');
+    await expect(gatesContent).toBeVisible();
+    await page.locator('#gateDodUnitTests').check();
+    await page.locator('#gateDodPeerReview').check();
+    await page.locator('#gateDodMergedMaster').check();
+    await page.locator('#gateDodStagingVerified').check();
+    await gatesContent.locator('button', { hasText: 'Save Gates' }).click();
+    await expect(gatesContent).not.toBeVisible();
+
+    // Step 6: Mark Done (InQa -> Done)
+    const markDoneBtn = createdCard.locator('button', { hasText: 'Mark Done' });
+    await expect(markDoneBtn).toBeVisible();
+    await markDoneBtn.click();
+    await expect(createdCard.locator('.status-badge')).toContainText(/Done/, { timeout: 10000 });
+
+    // Verification: none of the stages 1-6 show "Active"!
+    const allStepVals = await createdCard.locator('.step-val').allTextContents();
+    for (const val of allStepVals) {
+      expect(val).not.toContain('Active');
+    }
+
+    // Step 6 shows total
+    const step6Val = createdCard.locator('.stage-step').nth(5).locator('.step-val');
+    await expect(step6Val).toContainText(/total/);
+  });
 });

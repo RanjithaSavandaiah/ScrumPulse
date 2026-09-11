@@ -54,4 +54,80 @@ export class WorkItemCardComponent {
     if (typeof priorityLevel === 'number') return colors[priorityLevel] || 'var(--text-muted)';
     return 'var(--accent-warning)';
   }
+
+  getStepLatencyText(item: WorkItem, stepNumber: number): string {
+    const isDone = this.isStatus(item, 'Done', 6) || !!item.completedAtUtc;
+
+    switch (stepNumber) {
+      case 1: { // Picked Up
+        if (item.pickedUpAtUtc) {
+          const hours = item.pickupLatencyHours !== undefined && item.pickupLatencyHours !== null
+            ? item.pickupLatencyHours
+            : 0;
+          return `${hours}h latency`;
+        }
+        return 'Pending';
+      }
+      case 2: { // PR Created
+        if (item.prCreatedAtUtc) {
+          const hours = item.devCycleTimeHours !== undefined && item.devCycleTimeHours !== null
+            ? item.devCycleTimeHours
+            : 0;
+          return `${hours}h dev`;
+        }
+        if (this.isStatus(item, 'InProgress', 1)) {
+          return 'Active';
+        }
+        return 'Pending';
+      }
+      case 3: { // PR Approved
+        if (item.prApprovedAtUtc) {
+          const hours = item.prReviewLatencyHours !== undefined && item.prReviewLatencyHours !== null
+            ? item.prReviewLatencyHours
+            : 0;
+          return `${hours}h review`;
+        }
+        if (this.isStatus(item, 'PrCreated', 2)) {
+          return 'Active';
+        }
+        return 'Pending';
+      }
+      case 4: { // Merged to Master
+        if (item.prMergedAtUtc) {
+          const hours = item.prMergeLatencyHours !== undefined && item.prMergeLatencyHours !== null
+            ? item.prMergeLatencyHours
+            : 0;
+          return `${hours}h merge`;
+        }
+        if (this.isStatus(item, 'PrApproved', 3)) {
+          return 'Active';
+        }
+        return 'Pending';
+      }
+      case 5: { // In QA Testing
+        if (isDone) {
+          const hours = item.qaTestingLatencyHours !== undefined && item.qaTestingLatencyHours !== null
+            ? item.qaTestingLatencyHours
+            : 0;
+          return `${hours}h testing`;
+        }
+        if (item.qaStartedAtUtc || this.isStatus(item, 'InQa', 5, 'Merged', 4)) {
+          return 'Active';
+        }
+        return 'Pending';
+      }
+      case 6: { // Marked Done
+        if (isDone) {
+          const hours = item.totalCycleTimeHours !== undefined && item.totalCycleTimeHours !== null
+            ? item.totalCycleTimeHours
+            : 0;
+          return `${hours}h total`;
+        }
+        return 'Pending';
+      }
+      default:
+        return 'Pending';
+    }
+  }
 }
+

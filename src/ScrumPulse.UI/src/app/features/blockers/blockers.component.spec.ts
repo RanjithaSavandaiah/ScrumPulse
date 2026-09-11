@@ -84,6 +84,25 @@ describe('BlockersComponent', () => {
     expect(component.showNewBlockerModal()).toBeFalse();
   });
 
+  it('should pass blockedHours to createBlocker when provided', () => {
+    spyOn(stateService, 'createBlocker');
+
+    component.onOpenCreateModal();
+    component.onSaveBlocker({
+      title: 'Deployment server out of disk',
+      description: 'Staging agent out of memory',
+      category: 2,
+      slaHoursLimit: 8,
+      blockedHours: 14.5
+    });
+
+    expect(stateService.createBlocker).toHaveBeenCalledWith(jasmine.objectContaining({
+      title: 'Deployment server out of disk',
+      blockedHours: 14.5
+    }));
+    expect(component.showNewBlockerModal()).toBeFalse();
+  });
+
   it('should dispatch updateBlocker when editing existing blocker', () => {
     spyOn(stateService, 'updateBlocker');
 
@@ -92,12 +111,14 @@ describe('BlockersComponent', () => {
       title: 'VPN timeout on staging server - updated',
       description: 'Issue persists after restart',
       category: 2,
-      slaHoursLimit: 12
+      slaHoursLimit: 12,
+      blockedHours: 9.0
     });
 
     expect(stateService.updateBlocker).toHaveBeenCalledWith('b1', jasmine.objectContaining({
       title: 'VPN timeout on staging server - updated',
-      sprintId: 's1'
+      sprintId: 's1',
+      blockedHours: 9.0
     }));
     expect(component.showNewBlockerModal()).toBeFalse();
   });
@@ -108,8 +129,8 @@ describe('BlockersComponent', () => {
     component.onOpenResolveModal(mockBlocker);
     expect(component.selectedBlockerForResolution()).toBe(mockBlocker);
 
-    component.onConfirmResolve({ id: 'b1', notes: 'Whitelisted IP in staging security group' });
-    expect(stateService.resolveBlocker).toHaveBeenCalledWith('b1', 'Whitelisted IP in staging security group');
+    component.onConfirmResolve({ id: 'b1', notes: 'Whitelisted IP in staging security group', blockedHours: 6.0 });
+    expect(stateService.resolveBlocker).toHaveBeenCalledWith('b1', 'Whitelisted IP in staging security group', 6.0);
     expect(component.selectedBlockerForResolution()).toBeNull();
   });
 

@@ -200,6 +200,12 @@ export class ReportExportService {
       sprints
     );
 
+    // Filter Blockers
+    let blockers = this.state.blockers();
+    if (options.sprintId && options.sprintId !== 'ALL') {
+      blockers = blockers.filter(b => b.sprintId === options.sprintId);
+    }
+
     return {
       selectedMember,
       memberLabel,
@@ -211,7 +217,8 @@ export class ReportExportService {
       reviews,
       kudos,
       techTalks,
-      standupCompliance
+      standupCompliance,
+      blockers
     };
   }
 
@@ -549,6 +556,20 @@ export class ReportExportService {
     }));
     const wsTechTalks = XLSX.utils.json_to_sheet(techTalkRows.length > 0 ? techTalkRows : [{ 'Info': 'No tech talks hosted for this selection' }]);
     XLSX.utils.book_append_sheet(wb, wsTechTalks, 'Tech Talks & Knowledge Hub');
+
+    // 9. Impediments & Blocker Hours Drag Sheet
+    const blockerRows = (data.blockers || []).map(blocker => ({
+      'Blocker Summary': blocker.title,
+      'Category': blocker.category,
+      'Blocked Hours': blocker.blockedHours || 0,
+      'SLA Target (Hours)': blocker.slaHoursLimit,
+      'Status': blocker.isResolved ? 'Resolved' : 'Active',
+      'Hours Waiting': blocker.hoursWaiting,
+      'Resolution Actions': blocker.resolutionNotes || '',
+      'Reporter': blocker.raisedByName || 'Team Member'
+    }));
+    const wsBlockers = XLSX.utils.json_to_sheet(blockerRows.length > 0 ? blockerRows : [{ 'Info': 'No blockers recorded for this selection' }]);
+    XLSX.utils.book_append_sheet(wb, wsBlockers, 'Blockers & Impediments');
 
     const cleanFilename = `ScrumPulse_${data.memberLabel.replace(/[^a-zA-Z0-9]/g, '_')}_${data.scopeLabel.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
     XLSX.writeFile(wb, cleanFilename);

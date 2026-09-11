@@ -158,22 +158,26 @@ public class ControllerTests
             SlaHoursLimit: 4,
             WorkItemId: null,
             RaisedById: memberId,
-            SprintId: null
+            SprintId: null,
+            BlockedHours: 8.5
         );
 
         var createResult = await controller.Create(createRequest, "idemp-blocker-1");
         var blockerDto = ExtractValue(createResult);
         Assert.False(blockerDto.IsResolved);
+        Assert.Equal(8.5, blockerDto.BlockedHours);
 
-        // Resolve
-        var resolveRequest = new ResolveBlockerRequest("Credentials provided via Azure KeyVault");
+        // Resolve with explicit blocked hours
+        var resolveRequest = new ResolveBlockerRequest("Credentials provided via Azure KeyVault", BlockedHours: 12.0);
         var resolveResult = await controller.Resolve(blockerDto.Id, resolveRequest);
         var resolvedDto = ExtractValue(resolveResult);
         Assert.True(resolvedDto.IsResolved);
+        Assert.Equal(12.0, resolvedDto.BlockedHours);
 
         var resolvedBlocker = await db.Blockers.FindAsync(blockerDto.Id);
         Assert.NotNull(resolvedBlocker);
         Assert.True(resolvedBlocker.IsResolved);
+        Assert.Equal(12.0, resolvedBlocker.BlockedHours);
         Assert.Equal("Credentials provided via Azure KeyVault", resolvedBlocker.ResolutionNotes);
     }
 
@@ -1127,5 +1131,194 @@ public class ControllerTests
         var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.NotNull(badRequest.Value);
     }
+
+    [Fact]
+    public async Task WorkItemsController_UpdateQualityGates_WithCustomCriteriaChecks_PersistsResultsAndSyncsLegacyBooleans()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var item = new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            Key = "SP-101",
+            Title = "Custom Quality Gates Feature",
+            Type = WorkItemType.UserStory,
+            Status = WorkItemStatus.InProgress,
+            StoryPoints = 3
+        };
+        db.WorkItems.Add(item);
+        await db.SaveChangesAsync();
+
+        var customChecks = new Dictionary<string, bool>
+        {
+            ["dor-ac"] = true,
+            ["dor-threat-model"] = true,
+            ["dod-unit-tests"] = true,
+            ["dod-perf-benchmarks"] = false
+        };
+
+        var request = new UpdateQualityGatesRequest(
+            DorAcceptanceCriteria: true,
+            DorDependencies: false,
+            DorWireframe: false,
+            DodUnitTests: true,
+            DodPeerReview: false,
+            DodMergedToMaster: false,
+            DodStagingVerified: false,
+            CustomCriteriaChecks: customChecks
+        );
+
+        var actionResult = await controller.UpdateQualityGates(item.Id, request, Ct);
+        var updatedDto = ExtractValue(actionResult);
+
+        Assert.True(updatedDto.DorAcceptanceCriteriaDefined);
+        Assert.True(updatedDto.DodUnitTestsPassed);
+        Assert.NotNull(updatedDto.QualityGateResults);
+        Assert.True(updatedDto.QualityGateResults["dor-threat-model"]);
+        Assert.False(updatedDto.QualityGateResults["dod-perf-benchmarks"]);
+
+        // Verify in database
+        var inDb = await db.WorkItems.FindAsync(item.Id);
+        Assert.NotNull(inDb?.QualityGateResultsJson);
+        Assert.Contains("\"dor-threat-model\":true", inDb.QualityGateResultsJson);
+        Assert.Contains("\"dod-perf-benchmarks\":false", inDb.QualityGateResultsJson);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_UpdateQualityGates_NotFound_WhenItemDoesNotExist()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var request = new UpdateQualityGatesRequest(
+            DorAcceptanceCriteria: true,
+            DorDependencies: false,
+            DorWireframe: false,
+            DodUnitTests: true,
+            DodPeerReview: false,
+            DodMergedToMaster: false,
+            DodStagingVerified: false
+        );
+
+        var actionResult = await controller.UpdateQualityGates(Guid.NewGuid(), request, Ct);
+        Assert.IsType<NotFoundResult>(actionResult.Result);
+    }
+
+    [Fact]
+    public async Task BlockersController_Update_WithBlockedHours_PersistsCorrectly()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new BlockersController(mediator, store);
+        var memberId = Guid.NewGuid();
+
+        var createRequest = new CreateBlockerRequest(
+            Title: "Auth token timeout",
+            Description: "Expired JWT tokens causing 401",
+            Category: BlockerCategory.EnvironmentAccess,
+            SlaHoursLimit: 4,
+            WorkItemId: null,
+            RaisedById: memberId,
+            SprintId: null,
+            BlockedHours: 2.5
+        );
+
+        var createResult = await controller.Create(createRequest, "idemp-update-1");
+        var created = ExtractValue(createResult);
+        Assert.Equal(2.5, created.BlockedHours);
+
+        var updateRequest = new CreateBlockerRequest(
+            Title: "Auth token timeout - Escalated to DevOps",
+            Description: "Expired JWT tokens causing 401 - investigating auth server",
+            Category: BlockerCategory.EnvironmentAccess,
+            SlaHoursLimit: 8,
+            WorkItemId: null,
+            RaisedById: memberId,
+            SprintId: null,
+            BlockedHours: 7.0
+        );
+
+        var updateResult = await controller.Update(created.Id, updateRequest);
+        var updated = ExtractValue(updateResult);
+        Assert.Equal("Auth token timeout - Escalated to DevOps", updated.Title);
+        Assert.Equal(7.0, updated.BlockedHours);
+
+        var inDb = await db.Blockers.FindAsync(created.Id);
+        Assert.NotNull(inDb);
+        Assert.Equal(7.0, inDb.BlockedHours);
+    }
+
+    [Fact]
+    public async Task BlockersController_Resolve_WithNullBlockedHours_RetainsExistingBlockedHours()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new BlockersController(mediator, store);
+        var memberId = Guid.NewGuid();
+
+        var createRequest = new CreateBlockerRequest(
+            Title: "Third-party webhook outage",
+            Description: "Stripe test webhooks failing",
+            Category: BlockerCategory.ThirdPartyApi,
+            SlaHoursLimit: 12,
+            WorkItemId: null,
+            RaisedById: memberId,
+            SprintId: null,
+            BlockedHours: 11.5
+        );
+
+        var createResult = await controller.Create(createRequest, "idemp-webhook-1");
+        var created = ExtractValue(createResult);
+        Assert.Equal(11.5, created.BlockedHours);
+
+        // Resolve without providing new BlockedHours (null)
+        var resolveRequest = new ResolveBlockerRequest("Stripe restored service and webhooks resent", BlockedHours: null);
+        var resolveResult = await controller.Resolve(created.Id, resolveRequest);
+        var resolved = ExtractValue(resolveResult);
+
+        Assert.True(resolved.IsResolved);
+        Assert.Equal(11.5, resolved.BlockedHours); // Retained original 11.5h
+
+        var inDb = await db.Blockers.FindAsync(created.Id);
+        Assert.NotNull(inDb);
+        Assert.Equal(11.5, inDb.BlockedHours);
+    }
+
+    [Fact]
+    public async Task BlockersController_GetAll_ReturnsBlockedHoursInDto()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new BlockersController(mediator, store);
+
+        var b1 = new Blocker
+        {
+            Id = Guid.NewGuid(),
+            Title = "Blocker One",
+            Description = "Context 1",
+            BlockedHours = 5.5,
+            RaisedAtUtc = DateTime.UtcNow
+        };
+        var b2 = new Blocker
+        {
+            Id = Guid.NewGuid(),
+            Title = "Blocker Two",
+            Description = "Context 2",
+            BlockedHours = 9.0,
+            RaisedAtUtc = DateTime.UtcNow
+        };
+        db.Blockers.AddRange(b1, b2);
+        await db.SaveChangesAsync();
+
+        var getAllResult = await controller.GetAll(null, Ct);
+        var okResult = Assert.IsType<OkObjectResult>(getAllResult.Result);
+        var list = Assert.IsAssignableFrom<IEnumerable<BlockerDto>>(okResult.Value).ToList();
+
+        var dto1 = list.FirstOrDefault(x => x.Id == b1.Id);
+        var dto2 = list.FirstOrDefault(x => x.Id == b2.Id);
+        Assert.NotNull(dto1);
+        Assert.Equal(5.5, dto1.BlockedHours);
+        Assert.NotNull(dto2);
+        Assert.Equal(9.0, dto2.BlockedHours);
+    }
 }
+
 

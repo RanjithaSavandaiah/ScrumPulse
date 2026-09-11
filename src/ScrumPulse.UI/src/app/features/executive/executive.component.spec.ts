@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideStore } from '@ngrx/store';
@@ -7,7 +8,7 @@ import { ExecutiveComponent } from './executive.component';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { ReportExportService } from '../../core/services/report-export.service';
 import { appReducers } from '../../core/state';
-import { SprintVelocityTrend, SprintHealth } from '../../core/models/scrum.models';
+import { SprintVelocityTrend, SprintHealth, ExecutiveReport } from '../../core/models/scrum.models';
 
 describe('ExecutiveComponent', () => {
   let component: ExecutiveComponent;
@@ -85,4 +86,49 @@ describe('ExecutiveComponent', () => {
     expect(component.startDate()).toBeDefined();
     expect(component.endDate()).toBeDefined();
   });
+
+  it('should render blocker drag panel and impact statement when executive report has blocker hours', () => {
+    const reportSignal = signal<ExecutiveReport | null>({
+      sprintId: 's1',
+      sprintName: 'Sprint 33',
+      sprintGoal: 'Deliver features',
+      sayDoRatioPercentage: 90,
+      committedPoints: 30,
+      deliveredPoints: 27,
+      inFlightPoints: 3,
+      avgPickupLatencyHours: 2,
+      avgDevTimeHours: 10,
+      avgPrReviewHours: 4,
+      avgPrMergeHours: 1,
+      avgQaTestingHours: 5,
+      avgTotalCycleTimeHours: 22,
+      activeBlockersCount: 1,
+      avgBlockerResolutionHours: 3,
+      escapedDefectsCount: 0,
+      inSprintBugsCount: 1,
+      totalBlockedHours: 16,
+      lostStoryPointsCapacity: 2,
+      blockerCapacityImpactSummary: 'Because of blockers for 16 hours, our capacity went down by 16h',
+      executiveSummaryMarkdown: 'Executive summary'
+    });
+
+    Object.defineProperty(stateService, 'executiveReport', { value: reportSignal, writable: true });
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('.blocker-drag-panel');
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toContain('16h Blocked');
+    expect(panel.textContent).toContain('Because of blockers for 16 hours, our capacity went down by 16h');
+
+    // Test zero blocker hours state
+    reportSignal.set({
+      ...reportSignal()!,
+      totalBlockedHours: 0,
+      lostStoryPointsCapacity: 0
+    });
+    fixture.detectChanges();
+
+    expect(panel.textContent).toContain('No blocker hours recorded this sprint');
+  });
 });
+

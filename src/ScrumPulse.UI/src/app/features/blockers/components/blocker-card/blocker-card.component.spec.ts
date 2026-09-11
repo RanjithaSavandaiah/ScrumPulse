@@ -28,7 +28,7 @@ describe('BlockerCardComponent', () => {
 
     fixture = TestBed.createComponent(BlockerCardComponent);
     component = fixture.componentInstance;
-    component.blocker = { ...mockBlocker };
+    fixture.componentRef.setInput('blocker', { ...mockBlocker });
     fixture.detectChanges();
   });
 
@@ -51,5 +51,13 @@ describe('BlockerCardComponent', () => {
 
     component.delete.emit(component.blocker);
     expect(component.delete.emit).toHaveBeenCalledWith(component.blocker);
+  });
+
+  it('should render blocked-hours-badge when blockedHours > 0', () => {
+    fixture.componentRef.setInput('blocker', { ...mockBlocker, blockedHours: 8.5 });
+    fixture.detectChanges();
+    const badge = fixture.nativeElement.querySelector('.blocked-hours-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toContain('8.5h blocked (-8.5h capacity)');
   });
 });

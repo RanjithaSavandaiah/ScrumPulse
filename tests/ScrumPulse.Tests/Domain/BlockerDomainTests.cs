@@ -50,4 +50,22 @@ public class BlockerDomainTests
         Assert.Equal(11.0, blocker.HoursWaiting);
         Assert.False(blocker.IsSlaBreached); // Resolved blockers are no longer active SLA breaches
     }
+
+    [Fact]
+    public void Blocker_BlockedHours_DefaultsToZero()
+    {
+        var blocker = new Blocker();
+        Assert.Equal(0.0, blocker.BlockedHours);
+    }
+
+    [Fact]
+    public void Blocker_BlockedHours_CanBeSetAndRetrieved()
+    {
+        var blocker = new Blocker
+        {
+            BlockedHours = 14.5
+        };
+        Assert.Equal(14.5, blocker.BlockedHours);
+    }
 }
+

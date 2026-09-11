@@ -4,6 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { Store, provideStore } from '@ngrx/store';
 import { ScrumStateService } from './scrum-state.service';
 import { appReducers } from '../state';
+import { BlockerActions } from '../state/blockers/blockers.actions';
 import { Team, TeamMember } from '../models/scrum.models';
 
 describe('ScrumStateService (Modular NgRx Facade)', () => {
@@ -235,5 +236,93 @@ describe('ScrumStateService (Modular NgRx Facade)', () => {
     service.deleteTechTalk('tt-1');
 
     expect(store.dispatch).toHaveBeenCalled();
+  });
+
+  it('should configure team quality gates via HTTP and update current team criteria signals', () => {
+    const initialTeam: Team = {
+      id: 'team-omega',
+      name: 'Omega Squad',
+      slug: 'omega-squad',
+      description: 'Core engineering squad',
+      joinCode: 'OMEGA1',
+      isActive: true,
+      createdAtUtc: '2026-01-01T00:00:00Z'
+    };
+    service.currentTeam.set(initialTeam);
+
+    const dorCriteria = [{ id: 'dor-custom', label: 'Custom Ready Gate', isRequired: true }];
+    const dodCriteria = [{ id: 'dod-custom', label: 'Custom Done Gate', isRequired: false }];
+
+    const updatedTeam: Team = {
+      ...initialTeam,
+      dorCriteria,
+      dodCriteria
+    };
+
+    service.configureTeamQualityGates('team-omega', dorCriteria, dodCriteria).subscribe(res => {
+      expect(res.dorCriteria?.length).toBe(1);
+      expect(res.dorCriteria?.[0].label).toBe('Custom Ready Gate');
+    });
+
+    const req = httpMock.expectOne('/api/teams/team-omega/quality-gates');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ dorCriteria, dodCriteria });
+    req.flush(updatedTeam);
+
+    // Verify computed signals update
+    expect(service.currentTeam()?.id).toBe('team-omega');
+    expect(service.currentTeamDorCriteria().length).toBe(1);
+    expect(service.currentTeamDorCriteria()[0].label).toBe('Custom Ready Gate');
+    expect(service.currentTeamDodCriteria().length).toBe(1);
+    expect(service.currentTeamDodCriteria()[0].label).toBe('Custom Done Gate');
+  });
+
+  it('should compute executiveReport blocker hours and drag narrative when blockers exist', () => {
+    const mockBlockers = [
+      {
+        id: 'b-1',
+        title: 'CI Build Failure',
+        description: 'Agent pool offline',
+        category: 'EnvironmentAccess',
+        slaHoursLimit: 4,
+        hoursWaiting: 5,
+        blockedHours: 16,
+        isResolved: false,
+        isSlaBreached: true,
+        raisedById: 'm-1',
+        raisedAtUtc: new Date().toISOString()
+      },
+      {
+        id: 'b-2',
+        title: 'DB Connection Limit',
+        description: 'Connection pool exhausted',
+        category: 'EnvironmentAccess',
+        slaHoursLimit: 4,
+        hoursWaiting: 2,
+        blockedHours: 8,
+        isResolved: true,
+        isSlaBreached: false,
+        raisedById: 'm-1',
+        raisedAtUtc: new Date().toISOString()
+      }
+    ];
+
+    store.dispatch(BlockerActions.loadBlockersSuccess({ blockers: mockBlockers as any }));
+
+    const report = service.executiveReport();
+    expect(report).toBeTruthy();
+    expect(report?.totalBlockedHours).toBe(24);
+    expect(report?.lostStoryPointsCapacity).toBe(3); // 24 / 8 = 3 pts
+    expect(report?.blockerCapacityImpactSummary).toContain('Because of blockers for 24 hours, our capacity went down by 24h');
+  });
+
+  it('should compute executiveReport with zero blocker drag when no blockers have blocked hours', () => {
+    store.dispatch(BlockerActions.loadBlockersSuccess({ blockers: [] }));
+
+    const report = service.executiveReport();
+    expect(report).toBeTruthy();
+    expect(report?.totalBlockedHours).toBe(0);
+    expect(report?.lostStoryPointsCapacity).toBe(0);
+    expect(report?.blockerCapacityImpactSummary).toContain('No blocker hours recorded this sprint');
   });
 });

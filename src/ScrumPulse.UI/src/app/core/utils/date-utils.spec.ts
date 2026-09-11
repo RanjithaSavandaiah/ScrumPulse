@@ -9,7 +9,8 @@ import {
   getCurrentQuarterValue,
   getDatePresetRange,
   getThisMonthDateRange,
-  getSprintDateRange
+  getSprintDateRange,
+  calculateWorkingHours
 } from './date-utils';
 
 describe('date-utils', () => {
@@ -92,4 +93,41 @@ describe('date-utils', () => {
       expect(getSprintDateRange(undefined, undefined)).toBeNull();
     });
   });
+
+  describe('calculateWorkingHours', () => {
+    it('should calculate same day business hours correctly within 9:00 to 17:30', () => {
+      // Monday 10:00 to 14:30 = 4.5h
+      const start = '2026-08-03T10:00:00';
+      const end = '2026-08-03T14:30:00';
+      expect(calculateWorkingHours(start, end)).toBe(4.5);
+    });
+
+    it('should exclude overnight non-working hours between days', () => {
+      // Wednesday 16:00 (4:00 PM) to Thursday 11:00 AM
+      // Wed: 16:00 to 17:30 = 1.5h
+      // Overnight: 17:30 to 09:00 excluded (0h)
+      // Thu: 09:00 to 11:00 = 2.0h
+      // Total: 3.5h (calendar hours would be 19h!)
+      const start = '2026-08-05T16:00:00';
+      const end = '2026-08-06T11:00:00';
+      expect(calculateWorkingHours(start, end)).toBe(3.5);
+    });
+
+    it('should exclude weekends across multiple days', () => {
+      // Friday 16:00 to Monday 11:00 AM
+      // Fri: 1.5h + Sat/Sun: 0h + Mon: 2.0h = 3.5h
+      const start = '2026-08-07T16:00:00';
+      const end = '2026-08-10T11:00:00';
+      expect(calculateWorkingHours(start, end)).toBe(3.5);
+    });
+
+    it('should return 0 for weekend-only intervals or invalid dates', () => {
+      const saturday = '2026-08-08T10:00:00';
+      const sunday = '2026-08-09T14:00:00';
+      expect(calculateWorkingHours(saturday, sunday)).toBe(0);
+      expect(calculateWorkingHours(null, sunday)).toBe(0);
+      expect(calculateWorkingHours(sunday, saturday)).toBe(0);
+    });
+  });
 });
+

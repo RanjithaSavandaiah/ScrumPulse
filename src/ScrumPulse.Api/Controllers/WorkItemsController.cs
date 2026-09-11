@@ -200,6 +200,20 @@ public class WorkItemsController(
         workItem.DodMergedToMaster = request.DodMergedToMaster;
         workItem.DodStagingVerified = request.DodStagingVerified;
 
+        if (request.CustomCriteriaChecks != null)
+        {
+            var checks = new Dictionary<string, bool>(request.CustomCriteriaChecks);
+            checks["dor-ac"] = request.DorAcceptanceCriteria;
+            checks["dor-dep"] = request.DorDependencies;
+            checks["dor-wireframe"] = request.DorWireframe;
+            checks["dod-tests"] = request.DodUnitTests;
+            checks["dod-review"] = request.DodPeerReview;
+            checks["dod-master"] = request.DodMergedToMaster;
+            checks["dod-staging"] = request.DodStagingVerified;
+
+            workItem.QualityGateResultsJson = System.Text.Json.JsonSerializer.Serialize(checks);
+        }
+
         await db.SaveChangesAsync(ct);
 
         return Ok(workItem.ToDto());

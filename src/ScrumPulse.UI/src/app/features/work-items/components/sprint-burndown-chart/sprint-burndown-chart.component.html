@@ -36,7 +36,15 @@
       <span class="kpi-label">Auto-Calculated Net Capacity</span>
       <span class="kpi-val capacity-val">
         {{ capacityAnalysis().netAvailableHours }}h
-        <small class="kpi-sub">({{ capacityAnalysis().leaveHoursDeducted }}h leave deducted)</small>
+        <small class="kpi-sub">(-{{ capacityAnalysis().leaveHoursDeducted }}h leave, -{{ capacityAnalysis().blockerHoursDeducted }}h blockers)</small>
+      </span>
+    </div>
+
+    <div class="kpi-block">
+      <span class="kpi-label">Blocker Drag Impact</span>
+      <span class="kpi-val blocker-drag-val" style="color: #f87171;">
+        -{{ capacityAnalysis().blockerHoursDeducted }}h
+        <small class="kpi-sub">({{ capacityAnalysis().blockerCount }} impediments)</small>
       </span>
     </div>
 
@@ -158,6 +166,14 @@
         <app-icon name="shield-check" [size]="14" color="var(--accent-success)"></app-icon>
         Full squad capacity (Zero leaves during this sprint)
       </span>
+    }
+
+    <!-- Blocker Impediment Slowdown Callout -->
+    @if (capacityAnalysis().blockerHoursDeducted > 0) {
+      <div class="blocker-impact-callout" style="display: flex; align-items: center; gap: 8px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 8px; padding: 6px 12px; color: #f87171; font-size: 0.82rem; margin-top: 10px; width: 100%;">
+        <app-icon name="alert-triangle" [size]="15" color="#f87171"></app-icon>
+        <span class="blocker-slowdown-msg">Because of blockers for {{ capacityAnalysis().blockerHoursDeducted }} hours, our capacity went down by {{ capacityAnalysis().blockerHoursDeducted }}h / work was slowed down.</span>
+      </div>
     }
   </div>
 </div>

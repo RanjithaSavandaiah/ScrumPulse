@@ -35,7 +35,8 @@ public class CreateBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHandl
             SlaHoursLimit = command.Request.SlaHoursLimit,
             WorkItemId = command.Request.WorkItemId,
             RaisedById = command.Request.RaisedById,
-            SprintId = command.Request.SprintId
+            SprintId = command.Request.SprintId,
+            BlockedHours = Math.Max(0.0, Math.Round(command.Request.BlockedHours, 1))
         };
 
         blocker.AddDomainEvent(new BlockerRaisedEvent(
@@ -64,6 +65,16 @@ public class ResolveBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHand
         blocker.ResolvedAtUtc = DateTime.UtcNow;
         blocker.ResolutionNotes = command.Request.ResolutionNotes;
 
+        // Set or update BlockedHours: if explicitly supplied and > 0, use it; otherwise fallback to HoursWaiting if zero
+        if (command.Request.BlockedHours.HasValue && command.Request.BlockedHours.Value > 0)
+        {
+            blocker.BlockedHours = Math.Round(command.Request.BlockedHours.Value, 1);
+        }
+        else if (blocker.BlockedHours <= 0)
+        {
+            blocker.BlockedHours = blocker.HoursWaiting;
+        }
+
         blocker.AddDomainEvent(new BlockerResolvedEvent(
             blocker.Id, blocker.Title, blocker.ResolutionNotes, blocker.HoursWaiting, blocker.WasSlaBreachedOnResolution
         ));
@@ -88,6 +99,7 @@ public class UpdateBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHandl
         blocker.Description = command.Request.Description;
         blocker.Category = command.Request.Category;
         blocker.SlaHoursLimit = command.Request.SlaHoursLimit;
+        blocker.BlockedHours = Math.Max(0.0, Math.Round(command.Request.BlockedHours, 1));
         if (command.Request.WorkItemId.HasValue) blocker.WorkItemId = command.Request.WorkItemId;
         if (command.Request.RaisedById != Guid.Empty) blocker.RaisedById = command.Request.RaisedById;
         if (command.Request.SprintId.HasValue) blocker.SprintId = command.Request.SprintId;

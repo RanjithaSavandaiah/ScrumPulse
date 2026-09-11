@@ -2,6 +2,13 @@ namespace ScrumPulse.Application.DTOs;
 
 using System.ComponentModel.DataAnnotations;
 
+public record QualityGateCriterionDto(
+    string Id,
+    [Required][StringLength(200, MinimumLength = 2)] string Label,
+    [StringLength(500)] string? Description = null,
+    bool IsRequired = true
+);
+
 public record TeamDto(
     Guid Id,
     string Name,
@@ -9,7 +16,9 @@ public record TeamDto(
     string Description,
     string JoinCode,
     bool IsActive,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    List<QualityGateCriterionDto>? DorCriteria = null,
+    List<QualityGateCriterionDto>? DodCriteria = null
 );
 
 public record CreateTeamRequest(
@@ -20,4 +29,9 @@ public record CreateTeamRequest(
 
 public record JoinTeamRequest(
     [Required][StringLength(20)] string JoinCode
+);
+
+public record ConfigureTeamGatesRequest(
+    [Required] List<QualityGateCriterionDto> DorCriteria,
+    [Required] List<QualityGateCriterionDto> DodCriteria
 );

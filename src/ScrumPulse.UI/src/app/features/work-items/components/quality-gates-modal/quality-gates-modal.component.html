@@ -1,25 +1,103 @@
 <div class="modal-backdrop">
-  <div class="glass-panel modal-content">
-    <h3 class="modal-title">
-      <app-icon name="shield-check" [size]="20" color="var(--accent-secondary)"></app-icon>
-      Quality Gates: {{ item.key }}
-    </h3>
-    <p class="modal-subtitle">Enforce Definition of Ready & Definition of Done verification</p>
+  <div class="glass-panel modal-content animate-fade-in">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-left">
+        <h3 class="modal-title">
+          <app-icon name="shield-check" [size]="20" color="var(--accent-secondary)"></app-icon>
+          Quality Gates: {{ item.key }}
+        </h3>
+        <p class="modal-subtitle">
+          Enforce Definition of Ready &amp; Definition of Done verification
+          @if (state.currentTeam(); as curTeam) {
+            &bull; <span class="team-name-tag">{{ curTeam.name }}</span>
+          }
+        </p>
+      </div>
 
-    <h4 class="gate-section-title dor-title">Definition of Ready (DoR)</h4>
-    <label class="gate-checkbox"><input id="gateDorAcceptanceCriteria" name="dorAcceptanceCriteriaDefined" type="checkbox" [(ngModel)]="item.dorAcceptanceCriteriaDefined" /> Acceptance Criteria clearly defined</label>
-    <label class="gate-checkbox"><input id="gateDorDependencies" name="dorDependenciesIdentified" type="checkbox" [(ngModel)]="item.dorDependenciesIdentified" /> Cross-team dependencies identified</label>
-    <label class="gate-checkbox"><input id="gateDorWireframe" name="dorWireframeAvailable" type="checkbox" [(ngModel)]="item.dorWireframeAvailable" /> Wireframe / Architecture diagram attached</label>
+      <!-- Scrum Master Quick Action to Configure Standards -->
+      @if (state.canEditOrDelete()) {
+        <button
+          type="button"
+          (click)="openConfigure.emit()"
+          class="btn-configure-standards"
+          title="Customize Definition of Ready & Definition of Done criteria for this team"
+        >
+          <app-icon name="wrench" [size]="13"></app-icon> Configure Team Gates
+        </button>
+      }
+    </div>
 
-    <h4 class="gate-section-title dod-title">Definition of Done (DoD)</h4>
-    <label class="gate-checkbox"><input id="gateDodUnitTests" name="dodUnitTestsPassed" type="checkbox" [(ngModel)]="item.dodUnitTestsPassed" /> Automated unit & integration tests passing</label>
-    <label class="gate-checkbox"><input id="gateDodPeerReview" name="dodPeerReviewCompleted" type="checkbox" [(ngModel)]="item.dodPeerReviewCompleted" /> Peer code review completed & approved</label>
-    <label class="gate-checkbox"><input id="gateDodMergedMaster" name="dodMergedToMaster" type="checkbox" [(ngModel)]="item.dodMergedToMaster" /> Merged to master branch</label>
-    <label class="gate-checkbox"><input id="gateDodStagingVerified" name="dodStagingVerified" type="checkbox" [(ngModel)]="item.dodStagingVerified" /> QA tested & verified on Staging</label>
+    <!-- Definition of Ready (DoR) Section -->
+    <div class="gate-section">
+      <div class="gate-section-header">
+        <h4 class="gate-section-title dor-title">Definition of Ready (DoR)</h4>
+        <span class="gate-progress-pill dor-pill">
+          {{ getDorMetCount() }} / {{ dorCriteria.length }} Ready
+        </span>
+      </div>
 
+      <div class="checkbox-group">
+        @for (criterion of dorCriteria; track criterion.id) {
+          <label class="gate-checkbox" [for]="getCriterionDomId(criterion)">
+            <input
+              [id]="getCriterionDomId(criterion)"
+              [name]="criterion.id"
+              type="checkbox"
+              [checked]="isCriterionChecked(criterion.id)"
+              (change)="onToggleCriterion(criterion.id, $any($event.target).checked)"
+            />
+            <div class="gate-label-wrap">
+              <span class="criterion-text">{{ criterion.label }}</span>
+              @if (criterion.isRequired) {
+                <span class="required-indicator" title="Mandatory criterion">*</span>
+              }
+              @if (criterion.description) {
+                <small class="criterion-subtext">{{ criterion.description }}</small>
+              }
+            </div>
+          </label>
+        }
+      </div>
+    </div>
+
+    <!-- Definition of Done (DoD) Section -->
+    <div class="gate-section">
+      <div class="gate-section-header">
+        <h4 class="gate-section-title dod-title">Definition of Done (DoD)</h4>
+        <span class="gate-progress-pill dod-pill">
+          {{ getDodMetCount() }} / {{ dodCriteria.length }} Done
+        </span>
+      </div>
+
+      <div class="checkbox-group">
+        @for (criterion of dodCriteria; track criterion.id) {
+          <label class="gate-checkbox" [for]="getCriterionDomId(criterion)">
+            <input
+              [id]="getCriterionDomId(criterion)"
+              [name]="criterion.id"
+              type="checkbox"
+              [checked]="isCriterionChecked(criterion.id)"
+              (change)="onToggleCriterion(criterion.id, $any($event.target).checked)"
+            />
+            <div class="gate-label-wrap">
+              <span class="criterion-text">{{ criterion.label }}</span>
+              @if (criterion.isRequired) {
+                <span class="required-indicator" title="Mandatory criterion">*</span>
+              }
+              @if (criterion.description) {
+                <small class="criterion-subtext">{{ criterion.description }}</small>
+              }
+            </div>
+          </label>
+        }
+      </div>
+    </div>
+
+    <!-- Actions -->
     <div class="modal-actions">
       <button (click)="close.emit()" class="btn-secondary">Cancel</button>
-      <button (click)="save.emit(item)" class="btn-primary">Save Gates</button>
+      <button (click)="onSave()" class="btn-primary">Save Gates</button>
     </div>
   </div>
 </div>

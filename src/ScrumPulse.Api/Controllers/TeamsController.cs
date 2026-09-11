@@ -141,6 +141,66 @@ public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencySto
         return Ok(team.ToDto());
     }
 
+    [HttpPut("{id:guid}/quality-gates")]
+    [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TeamDto>> ConfigureQualityGates(
+        Guid id,
+        [FromBody] ConfigureTeamGatesRequest request,
+        CancellationToken ct = default)
+    {
+        if (Request?.Headers != null && Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
+        {
+            var rawRole = roleHeader.ToString().Replace(" ", "");
+            if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
+                role != RoleType.ScrumMaster && role != RoleType.Cdl && role != RoleType.AgileCoach)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Only Scrum Masters can configure squad quality gates." });
+            }
+        }
+
+        if (request.DorCriteria == null || request.DorCriteria.Count == 0)
+        {
+            return BadRequest(new { error = "At least one Definition of Ready (DoR) criterion is required." });
+        }
+
+        if (request.DodCriteria == null || request.DodCriteria.Count == 0)
+        {
+            return BadRequest(new { error = "At least one Definition of Done (DoD) criterion is required." });
+        }
+
+        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
+        if (team == null) return NotFound();
+
+        var sanitizedDor = request.DorCriteria.Select(c =>
+            c with { Id = string.IsNullOrWhiteSpace(c.Id) ? $"dor-{Guid.NewGuid():N}" : c.Id.Trim(), Label = c.Label.Trim() }).ToList();
+        var sanitizedDod = request.DodCriteria.Select(c =>
+            c with { Id = string.IsNullOrWhiteSpace(c.Id) ? $"dod-{Guid.NewGuid():N}" : c.Id.Trim(), Label = c.Label.Trim() }).ToList();
+
+        team.DorChecklistJson = System.Text.Json.JsonSerializer.Serialize(sanitizedDor);
+        team.DodChecklistJson = System.Text.Json.JsonSerializer.Serialize(sanitizedDod);
+
+        await db.SaveChangesAsync(ct);
+
+        return Ok(team.ToDto());
+    }
+
+    [HttpGet("{id:guid}/quality-gates")]
+    [ProducesResponseType(typeof(ConfigureTeamGatesRequest), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ConfigureTeamGatesRequest>> GetQualityGates(Guid id, CancellationToken ct = default)
+    {
+        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
+        if (team == null) return NotFound();
+
+        return Ok(new ConfigureTeamGatesRequest(
+            MappingExtensions.GetTeamDorCriteria(team),
+            MappingExtensions.GetTeamDodCriteria(team)
+        ));
+    }
+
     private static string GenerateSlug(string input)
     {
         var slug = input.ToLowerInvariant().Trim();

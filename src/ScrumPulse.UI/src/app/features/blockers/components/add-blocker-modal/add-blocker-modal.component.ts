@@ -14,7 +14,7 @@ import { Blocker } from '../../../../core/models/scrum.models';
 export class AddBlockerModalComponent implements OnInit {
   @Input() editBlocker: Blocker | null = null;
   @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<{ title: string; description: string; category: number; slaHoursLimit: number }>();
+  @Output() save = new EventEmitter<{ title: string; description: string; category: number; slaHoursLimit: number; blockedHours: number }>();
   @Output() delete = new EventEmitter<string>();
 
   isSubmitting = signal(false);
@@ -24,7 +24,8 @@ export class AddBlockerModalComponent implements OnInit {
     title: '',
     description: '',
     category: 0,
-    slaHoursLimit: 4
+    slaHoursLimit: 4,
+    blockedHours: 0
   };
 
   categories: { value: number; label: string; icon: IconName; desc: string }[] = [
@@ -72,7 +73,8 @@ export class AddBlockerModalComponent implements OnInit {
         title: this.editBlocker.title || '',
         description: this.editBlocker.description || '',
         category: catNum,
-        slaHoursLimit: this.editBlocker.slaHoursLimit || 4
+        slaHoursLimit: this.editBlocker.slaHoursLimit || 4,
+        blockedHours: this.editBlocker.blockedHours || 0
       };
     }
   }
@@ -94,6 +96,7 @@ export class AddBlockerModalComponent implements OnInit {
       return;
     }
 
+    this.blocker.blockedHours = Math.max(0, Number(this.blocker.blockedHours) || 0);
     this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.blocker);

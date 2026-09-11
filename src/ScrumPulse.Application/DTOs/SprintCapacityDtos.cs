@@ -9,7 +9,9 @@ public record SprintCapacityDto(
     double TotalAvailableHours,
     int RecommendedStoryPoints,
     int CommittedStoryPoints,
-    List<MemberCapacityDto> MemberBreakdown
+    List<MemberCapacityDto> MemberBreakdown,
+    double TotalBlockerHours = 0,
+    double NetAvailableHours = 0
 );
 
 public record MemberCapacityDto(
@@ -18,5 +20,7 @@ public record MemberCapacityDto(
     int WorkingDays,
     double LeaveDays,
     double AvailableHours,
-    int SuggestedPoints
+    int SuggestedPoints,
+    double BlockerHours = 0,
+    double NetAvailableHours = 0
 );
