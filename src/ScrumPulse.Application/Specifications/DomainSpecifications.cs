@@ -5,13 +5,18 @@ using ScrumPulse.Domain.Enums;
 
 public class WorkItemsFilterSpecification : BaseSpecification<WorkItem>
 {
-    public WorkItemsFilterSpecification(Guid? sprintId, WorkItemStatus? status)
+    public WorkItemsFilterSpecification(Guid? sprintId, WorkItemStatus? status, int? skip = null, int? take = null)
         : base(item => (!sprintId.HasValue || item.SprintId == sprintId.Value) &&
                        (!status.HasValue || item.Status == status.Value))
     {
         AddInclude(item => item.Assignee!);
         AddInclude(item => item.PrReviewer!);
         ApplyOrderByDescending(item => item.CreatedAtUtc);
+
+        if (skip.HasValue && take.HasValue)
+        {
+            ApplyPaging(skip.Value, take.Value);
+        }
     }
 }
 

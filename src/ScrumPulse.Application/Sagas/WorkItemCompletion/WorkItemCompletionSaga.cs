@@ -1,5 +1,6 @@
 namespace ScrumPulse.Application.Sagas.WorkItemCompletion;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Mapping;
@@ -12,18 +13,37 @@ using ScrumPulse.Domain.Entities;
 /// Executes quality gates, status transition, velocity recalculation,
 /// and AI coaching in sequence with compensation on failure.
 /// </summary>
-public class WorkItemCompletionSaga(
-    ValidateQualityGatesStep step1,
-    TransitionWorkItemStatusStep step2,
-    RecalculateSprintVelocityStep step3,
-    TriggerMicrosoftAgentAiCoachingStep step4,
-    IUnitOfWork unitOfWork,
-    ILogger<WorkItemCompletionSaga>? logger = null
-) : ISagaOrchestrator<WorkItemCompletionContext, WorkItemDto>
+public class WorkItemCompletionSaga : ISagaOrchestrator<WorkItemCompletionContext, WorkItemDto>
 {
+    private readonly List<ISagaStep<WorkItemCompletionContext>> _steps;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<WorkItemCompletionSaga>? _logger;
+
+    [ActivatorUtilitiesConstructor]
+    public WorkItemCompletionSaga(
+        ValidateQualityGatesStep step1,
+        TransitionWorkItemStatusStep step2,
+        RecalculateSprintVelocityStep step3,
+        TriggerMicrosoftAgentAiCoachingStep step4,
+        IUnitOfWork unitOfWork,
+        ILogger<WorkItemCompletionSaga>? logger = null)
+        : this([step1, step2, step3, step4], unitOfWork, logger)
+    {
+    }
+
+    public WorkItemCompletionSaga(
+        IEnumerable<ISagaStep<WorkItemCompletionContext>> steps,
+        IUnitOfWork unitOfWork,
+        ILogger<WorkItemCompletionSaga>? logger = null)
+    {
+        _steps = steps.ToList();
+        _unitOfWork = unitOfWork;
+        _logger = logger;
+    }
+
     public async Task<SagaExecutionResult<WorkItemDto>> ExecuteAsync(WorkItemCompletionContext context, CancellationToken ct = default)
     {
-        var steps = new List<ISagaStep<WorkItemCompletionContext>> { step1, step2, step3, step4 };
+        var steps = _steps;
         var executedSteps = new List<string>();
         var compensatedSteps = new List<string>();
 
@@ -34,7 +54,7 @@ public class WorkItemCompletionSaga(
                 var success = await step.ExecuteAsync(context, ct);
                 if (!success)
                 {
-                    logger?.LogWarning("Saga failed at step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
+                    _logger?.LogWarning("Saga failed at step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                     await CompensateExecutedStepsAsync(steps, executedSteps, compensatedSteps, context, ct);
                     return new SagaExecutionResult<WorkItemDto>(false, null, $"Saga failed at step: {step.StepName}", executedSteps, compensatedSteps);
                 }
@@ -42,14 +62,14 @@ public class WorkItemCompletionSaga(
             }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "Unhandled exception at saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
+                _logger?.LogError(ex, "Unhandled exception at saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                 await CompensateExecutedStepsAsync(steps, executedSteps, compensatedSteps, context, ct);
                 return new SagaExecutionResult<WorkItemDto>(false, null, $"Exception at step {step.StepName}: {ex.Message}", executedSteps, compensatedSteps);
             }
         }
 
         // Fetch refreshed work item with relations for accurate DTO mapping
-        var workItemRepo = unitOfWork.Repository<WorkItem>();
+        var workItemRepo = _unitOfWork.Repository<WorkItem>();
         var refreshedItem = await workItemRepo.FirstOrDefaultAsync(new WorkItemWithRelationsByIdSpecification(context.WorkItemId), ct);
         var item = refreshedItem ?? context.WorkItem!;
 
@@ -76,7 +96,7 @@ public class WorkItemCompletionSaga(
                 catch (Exception ex)
                 {
                     // Compensation resilience — log explicitly so failures are visible in telemetry
-                    logger?.LogError(ex, "Failed to compensate saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
+                    _logger?.LogError(ex, "Failed to compensate saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                 }
             }
         }

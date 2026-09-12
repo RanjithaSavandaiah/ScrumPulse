@@ -1,37 +1,53 @@
 namespace ScrumPulse.Api.Controllers;
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Services;
-
 using Microsoft.Extensions.Logging;
 
 [Route("api/[controller]")]
 [Route("api/executive-reports")]
-public class ExecutiveReportsController(
-    IMetricsCalculatorService metricsCalculatorService,
-    IAppDbContext db,
-    ILogger<ExecutiveReportsController>? logger = null
-) : BaseApiController
+public class ExecutiveReportsController : BaseApiController
 {
     private const int DefaultVelocityTrendSprintCount = 6;
+    private readonly IMetricsCalculatorService _metricsCalculatorService;
+    private readonly IExportService _exportService;
+    private readonly ILogger<ExecutiveReportsController>? _logger;
+
+    [ActivatorUtilitiesConstructor]
+    public ExecutiveReportsController(
+        IMetricsCalculatorService metricsCalculatorService,
+        IExportService exportService,
+        ILogger<ExecutiveReportsController>? logger = null)
+    {
+        _metricsCalculatorService = metricsCalculatorService;
+        _exportService = exportService;
+        _logger = logger;
+    }
+
+    /// <summary>Testing constructor providing backward compatibility for direct DbContext tests.</summary>
+    public ExecutiveReportsController(
+        IMetricsCalculatorService metricsCalculatorService,
+        IAppDbContext db,
+        ILogger<ExecutiveReportsController>? logger = null)
+        : this(metricsCalculatorService, new ScrumPulse.Infrastructure.Services.ExportService(db), logger)
+    {
+    }
 
     [HttpGet("sprint/{sprintId:guid}")]
     public async Task<ActionResult<ExecutiveReportDto>> GetSprintReport(Guid sprintId, CancellationToken ct = default) =>
-        Ok(await metricsCalculatorService.GenerateExecutiveReportAsync(sprintId, ct));
+        Ok(await _metricsCalculatorService.GenerateExecutiveReportAsync(sprintId, ct));
 
     [HttpGet("velocity-trend")]
     [ProducesResponseType(typeof(SprintVelocityTrendDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<SprintVelocityTrendDto>> GetVelocityTrend([FromQuery] int count = DefaultVelocityTrendSprintCount, CancellationToken ct = default) =>
-        Ok(await metricsCalculatorService.GetVelocityTrendAsync(count, ct));
+        Ok(await _metricsCalculatorService.GetVelocityTrendAsync(count, ct));
 
     [HttpGet("sprint/{sprintId:guid}/health")]
     [ProducesResponseType(typeof(SprintHealthDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<SprintHealthDto>> GetSprintHealth(Guid sprintId, CancellationToken ct = default) =>
-        Ok(await metricsCalculatorService.CalculateSprintHealthAsync(sprintId, ct));
+        Ok(await _metricsCalculatorService.CalculateSprintHealthAsync(sprintId, ct));
 
     [HttpGet("compare")]
     [ProducesResponseType(typeof(SprintComparisonDto), StatusCodes.Status200OK)]
@@ -43,12 +59,12 @@ public class ExecutiveReportsController(
     {
         try
         {
-            var result = await metricsCalculatorService.CompareSprintsAsync(sprintA, sprintB, ct);
+            var result = await _metricsCalculatorService.CompareSprintsAsync(sprintA, sprintB, ct);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
         {
-            logger?.LogWarning(ex, "Sprint comparison target not found (sprintA={SprintA}, sprintB={SprintB}): {Message}", sprintA, sprintB, ex.Message);
+            _logger?.LogWarning(ex, "Sprint comparison target not found (sprintA={SprintA}, sprintB={SprintB}): {Message}", sprintA, sprintB, ex.Message);
             return NotFound(new { error = ex.Message });
         }
     }
@@ -56,63 +72,15 @@ public class ExecutiveReportsController(
     [HttpGet("sprint/{sprintId:guid}/export-csv")]
     public async Task<IActionResult> ExportSprintCsv(Guid sprintId, CancellationToken ct = default)
     {
-        var sprint = await db.Sprints
-            .Include(sprintEntity => sprintEntity.WorkItems)
-                .ThenInclude(workItemEntity => workItemEntity.Assignee)
-            .FirstOrDefaultAsync(sprintEntity => sprintEntity.Id == sprintId, ct);
-
-        if (sprint == null) return NotFound();
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Key,Title,Type,Status,Priority,StoryPoints,Assignee,PickedUpAtUtc,PrCreatedAtUtc,PrApprovedAtUtc,PrMergedAtUtc,QaStartedAtUtc,CompletedAtUtc,DevCycleHours,PrReviewLatencyHours,TotalCycleHours,IsEscapedDefect,DaysInStatus");
-
-        foreach (var item in sprint.WorkItems.OrderBy(workItem => workItem.Key))
-        {
-            var cleanTitle = item.Title.Replace("\"", "\"\"");
-            var cleanAssignee = (item.Assignee?.Name ?? "Unassigned").Replace("\"", "\"\"");
-            var pickedUp = item.PickedUpAtUtc?.ToString("o") ?? "";
-            var prCreated = item.PrCreatedAtUtc?.ToString("o") ?? "";
-            var prApproved = item.PrApprovedAtUtc?.ToString("o") ?? "";
-            var prMerged = item.PrMergedAtUtc?.ToString("o") ?? "";
-            var qaStarted = item.QaStartedAtUtc?.ToString("o") ?? "";
-            var completed = item.CompletedAtUtc?.ToString("o") ?? "";
-            sb.AppendLine($"\"{item.Key}\",\"{cleanTitle}\",{item.Type},{item.Status},{item.Priority},{item.StoryPoints},\"{cleanAssignee}\",\"{pickedUp}\",\"{prCreated}\",\"{prApproved}\",\"{prMerged}\",\"{qaStarted}\",\"{completed}\",{item.DevCycleTimeHours ?? 0},{item.PrReviewLatencyHours ?? 0},{item.TotalCycleTimeHours ?? 0},{item.IsEscapedDefect},{item.DaysInCurrentStatus}");
-        }
-
-        var preamble = System.Text.Encoding.UTF8.GetPreamble();
-        var bytes = preamble.Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        var cleanSprintName = System.Text.RegularExpressions.Regex.Replace(sprint.Name, @"[^a-zA-Z0-9_\-]", "_");
-
-        return File(bytes, "text/csv", $"{cleanSprintName}_Report_{DateTime.UtcNow:yyyyMMdd}.csv");
+        var result = await _exportService.ExportSprintCsvAsync(sprintId, ct);
+        if (result == null) return NotFound();
+        return File(result.Content, result.ContentType, result.FileName);
     }
 
     [HttpGet("export-json")]
     public async Task<IActionResult> ExportJson(CancellationToken ct = default)
     {
-        var sprints = await db.Sprints.Include(sprint => sprint.WorkItems).AsNoTracking().ToListAsync(ct);
-        var members = await db.TeamMembers.AsNoTracking().ToListAsync(ct);
-        var blockers = await db.Blockers.AsNoTracking().ToListAsync(ct);
-        var feedbacks = await db.Monthly1on1Feedbacks.AsNoTracking().ToListAsync(ct);
-        var kudos = await db.KudosCards.AsNoTracking().ToListAsync(ct);
-        var leaves = await db.TeamLeaves.AsNoTracking().ToListAsync(ct);
-        var standups = await db.DailyStandups.AsNoTracking().ToListAsync(ct);
-
-        var bundle = new
-        {
-            ExportedAtUtc = DateTime.UtcNow,
-            Platform = "ScrumPulse Enterprise",
-            Sprints = sprints,
-            TeamMembers = members,
-            Blockers = blockers,
-            MonthlyFeedbacks = feedbacks,
-            Kudos = kudos,
-            Leaves = leaves,
-            DailyStandups = standups
-        };
-
-        var stream = new MemoryStream();
-        await System.Text.Json.JsonSerializer.SerializeAsync(stream, bundle, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }, ct);
-        stream.Position = 0;
-        return File(stream, "application/json", $"ScrumPulse_Export_{DateTime.UtcNow:yyyyMMdd}.json");
+        var result = await _exportService.ExportEnterpriseJsonAsync(ct);
+        return File(result.Content, result.ContentType, result.FileName);
     }
 }

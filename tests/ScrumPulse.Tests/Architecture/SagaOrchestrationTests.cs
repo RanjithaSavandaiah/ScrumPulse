@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using ScrumPulse.AI.Configuration;
 using ScrumPulse.AI.Services;
+using ScrumPulse.Application.Sagas;
 using ScrumPulse.Application.Sagas.WorkItemCompletion;
 using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
@@ -121,5 +122,122 @@ public class SagaOrchestrationTests
         // Assert state was rolled back
         Assert.Equal(10, sprint.DeliveredStoryPoints);
         Assert.Equal(WorkItemStatus.InQa, workItem.Status);
+    }
+
+    [Fact]
+    public async Task WorkItemCompletionSaga_WhenWorkItemNotFound_FailsAtStep1WithoutCompensation()
+    {
+        var (_, saga, _) = CreateTestEnvironment();
+        var context = new WorkItemCompletionContext { WorkItemId = Guid.NewGuid() };
+
+        var result = await saga.ExecuteAsync(context);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Null(result.Result);
+        Assert.Contains("ValidateQualityGates", result.ErrorMessage);
+        Assert.Empty(result.ExecutedSteps);
+        Assert.Empty(result.CompensatedSteps);
+    }
+
+    [Fact]
+    public async Task WorkItemCompletionSaga_WhenStepThrows_CompensatesPreviousStepsAndReturnsFailure()
+    {
+        var (db, _, uow) = CreateTestEnvironment();
+
+        var sprint = new Sprint { Id = Guid.NewGuid(), Name = "Sprint Error Test", DeliveredStoryPoints = 5 };
+        var workItem = new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            Key = "SP-301",
+            Title = "Error Recovery Test",
+            StoryPoints = 3,
+            SprintId = sprint.Id,
+            Status = WorkItemStatus.InQa,
+            DorAcceptanceCriteriaDefined = true,
+            DodUnitTestsPassed = true
+        };
+
+        db.Sprints.Add(sprint);
+        db.WorkItems.Add(workItem);
+        await db.SaveChangesAsync();
+
+        var step1 = new ValidateQualityGatesStep(uow);
+        var step2 = new TransitionWorkItemStatusStep(uow);
+        var faultyStep = new FaultyStep("FaultyExternalService");
+
+        var customSaga = new WorkItemCompletionSaga([step1, step2, faultyStep], uow);
+        var context = new WorkItemCompletionContext { WorkItemId = workItem.Id };
+
+        var result = await customSaga.ExecuteAsync(context);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Null(result.Result);
+        Assert.Contains("Exception at step FaultyExternalService", result.ErrorMessage);
+        Assert.Contains("TransitionWorkItemStatus", result.CompensatedSteps);
+
+        // Verify status rolled back to InQa
+        var updatedItem = await db.WorkItems.FindAsync(workItem.Id);
+        Assert.Equal(WorkItemStatus.InQa, updatedItem!.Status);
+    }
+
+    [Fact]
+    public async Task WorkItemCompletionSaga_WhenStepReturnsFalse_TriggersCompensationInReverseOrder()
+    {
+        var (db, _, uow) = CreateTestEnvironment();
+
+        var sprint = new Sprint { Id = Guid.NewGuid(), Name = "Sprint Order Test", DeliveredStoryPoints = 20 };
+        var workItem = new WorkItem
+        {
+            Id = Guid.NewGuid(),
+            Key = "SP-302",
+            Title = "Reverse Order Test",
+            StoryPoints = 4,
+            SprintId = sprint.Id,
+            Status = WorkItemStatus.InQa,
+            DorAcceptanceCriteriaDefined = true,
+            DodUnitTestsPassed = true
+        };
+
+        db.Sprints.Add(sprint);
+        db.WorkItems.Add(workItem);
+        await db.SaveChangesAsync();
+
+        var step1 = new ValidateQualityGatesStep(uow);
+        var step2 = new TransitionWorkItemStatusStep(uow);
+        var step3 = new RecalculateSprintVelocityStep(uow);
+        var failingStep = new FailingStep("FailingFinalStep");
+
+        var customSaga = new WorkItemCompletionSaga([step1, step2, step3, failingStep], uow);
+        var context = new WorkItemCompletionContext { WorkItemId = workItem.Id };
+
+        var result = await customSaga.ExecuteAsync(context);
+
+        Assert.False(result.IsSuccessful);
+        Assert.Equal(3, result.ExecutedSteps.Count);
+        // Compensated steps in reverse order: step 3 first, then step 2
+        Assert.Equal("RecalculateSprintVelocity", result.CompensatedSteps[0]);
+        Assert.Equal("TransitionWorkItemStatus", result.CompensatedSteps[1]);
+
+        // Verify sprint delivered points rolled back to 20
+        var updatedSprint = await db.Sprints.FindAsync(sprint.Id);
+        Assert.Equal(20, updatedSprint!.DeliveredStoryPoints);
+    }
+
+    private sealed class FaultyStep(string name) : ISagaStep<WorkItemCompletionContext>
+    {
+        public string StepName => name;
+        public Task<bool> ExecuteAsync(WorkItemCompletionContext context, CancellationToken ct = default)
+            => throw new InvalidOperationException($"Step {name} failed with simulated exception");
+        public Task CompensateAsync(WorkItemCompletionContext context, CancellationToken ct = default)
+            => Task.CompletedTask;
+    }
+
+    private sealed class FailingStep(string name) : ISagaStep<WorkItemCompletionContext>
+    {
+        public string StepName => name;
+        public Task<bool> ExecuteAsync(WorkItemCompletionContext context, CancellationToken ct = default)
+            => Task.FromResult(false);
+        public Task CompensateAsync(WorkItemCompletionContext context, CancellationToken ct = default)
+            => Task.CompletedTask;
     }
 }

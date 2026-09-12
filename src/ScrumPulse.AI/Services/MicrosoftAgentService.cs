@@ -28,11 +28,14 @@ public class MicrosoftAgentService : IAiAgentService
     private readonly AiResponseEvaluator _evaluator;
     private readonly ILogger<MicrosoftAgentService> _logger;
 
+    private readonly IReadOnlyDictionary<string, IInsightGenerator> _generators;
+
     public MicrosoftAgentService(
         IAppDbContext db,
         IIdempotencyStore cache,
         AgentConfiguration config,
-        ILogger<MicrosoftAgentService> logger)
+        ILogger<MicrosoftAgentService> logger,
+        IEnumerable<IInsightGenerator>? insightGenerators = null)
     {
         _db = db;
         _cache = cache;
@@ -40,6 +43,14 @@ public class MicrosoftAgentService : IAiAgentService
         _promptBuilder = new PromptBuilder(config);
         _evaluator = new AiResponseEvaluator();
         _logger = logger;
+
+        var generators = (insightGenerators ?? [
+            new IndividualInsightGenerator(),
+            new SprintInsightGenerator(),
+            new CompanyInsightGenerator()
+        ]).ToDictionary(g => g.Level, StringComparer.OrdinalIgnoreCase);
+
+        _generators = generators;
     }
 
     public async Task<AiSuggestionResponse> GenerateIndividualCoachingAsync(Guid memberId, CancellationToken ct = default)
@@ -58,8 +69,9 @@ public class MicrosoftAgentService : IAiAgentService
         _logger.LogInformation("Individual AI prompt built for {Member}: ~{Tokens} tokens (budget: {Budget}, headroom: {Headroom})",
             context.MemberName, tokenEstimate, _config.EffectiveContextTokens, _config.HeadroomTokens);
 
-        // Generate insights using strategy logic
-        var response = GenerateIndividualInsights(context);
+        // Generate insights using strategy
+        var generator = _generators.GetValueOrDefault("Individual") ?? new IndividualInsightGenerator();
+        var response = await generator.GenerateAsync(context, ct);
 
         // Evaluate response quality
         if (_config.EnableEvaluation)
@@ -86,7 +98,8 @@ public class MicrosoftAgentService : IAiAgentService
         _logger.LogInformation("Sprint AI prompt built for {Sprint}: ~{Tokens} tokens",
             context.SprintName, PromptBuilder.EstimateTokens(prompt));
 
-        var response = GenerateSprintInsights(context);
+        var generator = _generators.GetValueOrDefault("Project") ?? new SprintInsightGenerator();
+        var response = await generator.GenerateAsync(context, ct);
 
         if (_config.EnableEvaluation)
         {
@@ -105,148 +118,14 @@ public class MicrosoftAgentService : IAiAgentService
         var cached = await _cache.GetResponseAsync<AiSuggestionResponse>(cacheKey, ct);
         if (cached != null) return cached;
 
-        var sprints = await _db.Sprints
-            .OrderByDescending(s => s.StartDate)
-            .Take(6)
-            .AsNoTracking()
-            .ToListAsync(ct);
+        var context = await BuildCompanyContextAsync(ct);
+        var generator = _generators.GetValueOrDefault("Company") ?? new CompanyInsightGenerator();
+        var response = await generator.GenerateAsync(context, ct);
 
-        var workItems = await _db.WorkItems.AsNoTracking().ToListAsync(ct);
-        var blockers = await _db.Blockers.AsNoTracking().ToListAsync(ct);
-        var kudos = await _db.KudosCards.AsNoTracking().CountAsync(ct);
-        var techTalks = await _db.TechTalkLogs.AsNoTracking().CountAsync(ct);
-        var standups = await _db.DailyStandups.AsNoTracking().ToListAsync(ct);
-
-        AiSuggestionResponse response;
-
-        // Honest No Data reporting when no sprints or work items exist
-        if (sprints.Count == 0 && workItems.Count == 0)
+        if (_config.EnableEvaluation)
         {
-            var noDataFindings = new List<string>
-            {
-                "[NO DATA TO ANALYZE - Sprints]: 0 completed sprints recorded in the database. Delivery velocity trends and cross-sprint predictability cannot be evaluated yet.",
-                "[NO DATA TO ANALYZE - Work Items]: 0 user stories or tasks tracked. Production defect escape ratios and cycle times are unavailable.",
-                "[NO DATA TO ANALYZE - Collaboration]: Daily standups, blocker resolution SLAs, and retrospective items have not been initialized."
-            };
-
-            var noDataRecs = new List<string>
-            {
-                "Create and activate a sprint in Work Items & Lifecycle to begin capturing agile velocity and commitment data.",
-                "Add user stories and development tasks with story points to establish Say-Do predictability telemetry.",
-                "Record daily standup check-ins and log blockers to generate distributed collaboration intelligence."
-            };
-
-            response = new AiSuggestionResponse(
-                "Company",
-                "Microsoft Agent Strategic Distributed Collaboration Intelligence",
-                "Enterprise-level analysis for CDL, Scrum Master, and Client leadership (Awaiting telemetry).",
-                noDataFindings,
-                noDataRecs,
-                "No Data (Telemetry Pending)",
-                DateTime.UtcNow
-            );
-        }
-        else
-        {
-            int totalItems = workItems.Count;
-            int doneItems = workItems.Count(w => w.Status == WorkItemStatus.Done);
-            int totalPoints = workItems.Where(w => w.Status == WorkItemStatus.Done).Sum(w => w.StoryPoints);
-            int escapedBugs = workItems.Count(w => w.Type == WorkItemType.Bug && w.IsEscapedDefect);
-            double defectRate = totalItems > 0 ? Math.Round((double)escapedBugs / totalItems * 100, 1) : 0;
-
-            int totalBlockers = blockers.Count;
-            int activeBlockers = blockers.Count(b => !b.IsResolved);
-            int resolvedBlockers = blockers.Count(b => b.IsResolved);
-            double blockerSla = totalBlockers > 0 ? Math.Round((double)resolvedBlockers / totalBlockers * 100, 1) : 100;
-
-            var findings = new List<string>();
-
-            if (totalPoints > 0)
-            {
-                findings.Add($"[STRENGTH - Velocity & Delivery]: Team has delivered {totalPoints} story points across {totalItems} work items ({doneItems} completed).");
-            }
-            else
-            {
-                findings.Add($"[METRICS - Delivery Flow]: {totalItems} work items tracked in backlog with {doneItems} completed.");
-            }
-
-            if (escapedBugs == 0)
-            {
-                findings.Add("[QUALITY - Defect Escape]: Zero escaped defects in production across current delivery telemetry.");
-            }
-            else
-            {
-                findings.Add($"[WARNING - Quality]: Escaped defect rate is {defectRate}% ({escapedBugs} escaped defects across {totalItems} items).");
-            }
-
-            if (totalBlockers > 0)
-            {
-                findings.Add($"[RISK - Blocker SLA]: Blocker resolution compliance is at {blockerSla}% ({resolvedBlockers}/{totalBlockers} resolved). Active blockers: {activeBlockers}.");
-            }
-            else
-            {
-                findings.Add("[STRENGTH - Impediment Pipeline]: Zero active blockers detected. Delivery runway is currently unblocked.");
-            }
-
-            if (kudos > 0 || techTalks > 0)
-            {
-                findings.Add($"[CULTURE - Engineering]: {techTalks} tech sharing sessions delivered and {kudos} peer kudos recognitions awarded.");
-            }
-            else
-            {
-                findings.Add("[CULTURE - Baseline]: Culture and knowledge sharing telemetry initializing — log Tech Talks and Kudos to track collaboration index.");
-            }
-
-            var recs = new List<string>();
-            if (activeBlockers > 0)
-            {
-                recs.Add($"Prioritize resolving the {activeBlockers} active blocker(s) during morning overlap hours to protect sprint commitments.");
-            }
-            else
-            {
-                recs.Add("Maintain proactive daily standup identification of dependencies to keep the blocker runway clear.");
-            }
-
-            if (escapedBugs > 0)
-            {
-                recs.Add("Implement Definition of Ready (DoR) and Definition of Done (DoD) verification gates to eliminate escaped defects.");
-            }
-            else
-            {
-                recs.Add("Continue rigorous code review practices and automated test coverage to preserve zero-defect production delivery.");
-            }
-
-            if (techTalks == 0)
-            {
-                recs.Add("Institutionalize 30-min bi-weekly tech sharing sessions to foster knowledge sharing across squads.");
-            }
-            else
-            {
-                recs.Add("Showcase automated Say-Do predictability and quality metrics in upcoming stakeholder reviews.");
-            }
-
-            if (kudos == 0)
-            {
-                recs.Add("Encourage squad recognition on the Appreciation Wall to build team engagement and retention.");
-            }
-            else
-            {
-                recs.Add("Leverage peer kudos recognitions in quarterly talent appraisals to reinforce high collaboration.");
-            }
-
-            string riskLevel = activeBlockers >= 3 || defectRate > 5.0
-                ? "High (Impediments / Quality Attention Required)"
-                : (activeBlockers > 0 || defectRate > 2.0 ? "Medium (Moderate Blocker Activity)" : "Low (Optimal Delivery Flow)");
-
-            response = new AiSuggestionResponse(
-                "Company",
-                "Microsoft Agent Strategic Distributed Collaboration Intelligence",
-                "Enterprise-level analysis for CDL, Scrum Master, and Client leadership.",
-                findings,
-                recs,
-                riskLevel,
-                DateTime.UtcNow
-            );
+            var evaluation = _evaluator.Evaluate(response);
+            _logger.LogInformation("AI response quality for Company: {Score}/100", evaluation.CompositeScore);
         }
 
         await _cache.SaveResponseAsync(cacheKey, response, _config.CacheTtl, ct);
@@ -364,131 +243,33 @@ public class MicrosoftAgentService : IAiAgentService
         };
     }
 
-    // ── Private: Insight Generation (Strategy Logic) ─────────────────────
-
-    private static AiSuggestionResponse GenerateIndividualInsights(InsightContext ctx)
+    private async Task<InsightContext> BuildCompanyContextAsync(CancellationToken ct)
     {
-        if (ctx.TotalAssigned == 0 && ctx.StandupCount == 0 && ctx.HappinessIndex == 0)
-        {
-            var noDataFindings = new List<string>
-            {
-                $"[NO DATA TO ANALYZE - Delivery]: No work items currently assigned to {ctx.MemberName}.",
-                "[NO DATA TO ANALYZE - Standups]: Zero daily standup check-ins logged for this developer.",
-                "[NO DATA TO ANALYZE - 1:1 Reviews]: 1:1 feedback and happiness score pending initial session."
-            };
-            var noDataRecs = new List<string>
-            {
-                $"Assign active user stories or tasks to {ctx.MemberName} in sprint planning.",
-                "Log daily standups to capture execution progress and blocker impediments.",
-                "Schedule the initial monthly 1:1 check-in to record baseline morale and growth goals."
-            };
-            return new AiSuggestionResponse(
-                "Individual",
-                $"Microsoft AI Coaching Plan & 360° Intelligence: {ctx.MemberName}",
-                $"Awaiting telemetry for {ctx.MemberName} — metrics will populate as sprint activities and standups are logged.",
-                noDataFindings, noDataRecs,
-                "No Data (Telemetry Pending)",
-                DateTime.UtcNow
-            );
-        }
+        var sprintsCount = await _db.Sprints.CountAsync(ct);
+        var totalWorkItems = await _db.WorkItems.CountAsync(ct);
+        var completedItems = await _db.WorkItems.CountAsync(w => w.Status == WorkItemStatus.Done, ct);
+        var totalStoryPoints = await _db.WorkItems.Where(w => w.Status == WorkItemStatus.Done).SumAsync(w => w.StoryPoints, ct);
+        var escapedDefects = await _db.WorkItems.CountAsync(w => w.Type == WorkItemType.Bug && w.IsEscapedDefect, ct);
 
-        var findings = new List<string>
+        var totalBlockers = await _db.Blockers.CountAsync(ct);
+        var activeBlockers = await _db.Blockers.CountAsync(b => b.ResolvedAtUtc == null, ct);
+        var resolvedBlockers = await _db.Blockers.CountAsync(b => b.ResolvedAtUtc != null, ct);
+
+        var totalKudos = await _db.KudosCards.CountAsync(ct);
+        var totalTechTalks = await _db.TechTalkLogs.CountAsync(ct);
+
+        return new InsightContext
         {
-            $"[STRENGTH - Velocity & Delivery]: Delivered {ctx.CompletedItems}/{ctx.TotalAssigned} work items ({ctx.TotalStoryPoints} Story Points) with avg dev execution time of {Math.Round(ctx.AvgDevCycleHours, 1)}h.",
-            $"[STRENGTH - Knowledge Sharing & Culture]: Delivered {ctx.TechTalksGiven} Weekly Tech Talk(s) and received {ctx.KudosReceived} team Kudos recognition(s).",
-            $"[METRICS - CAPACITY & LEAVES]: {ctx.TotalLeaveDays:0.#} approved leave days recorded.",
-            $"[COMMS - DAILY STANDUP & 1:1 ALIGNMENT]: {ctx.StandupCount} recent standup updates logged; SM Performance Rating is {ctx.SmRating}/10 and Happiness Index is {ctx.HappinessIndex}/10.",
-            ctx.AvgReviewLatencyHours > 6.0
-                ? $"[WARNING - PR Latency]: PR Code Review turnaround latency averages {Math.Round(ctx.AvgReviewLatencyHours, 1)}h (Exceeds SLA target of < 6h)."
-                : $"[STRENGTH - Code Review SLA]: PR Review turnaround latency is optimal at {Math.Round(ctx.AvgReviewLatencyHours, 1)}h.",
-            ctx.HappinessIndex < 7
-                ? $"[WARNING - WELLBEING RADAR]: Happiness Index is {ctx.HappinessIndex}/10. Needs 1:1 check-in to mitigate burnout."
-                : "[STRENGTH - MORALE & ENGAGEMENT]: High engagement score with proactive standup communication."
+            SprintsCount = sprintsCount,
+            TotalWorkItems = totalWorkItems,
+            CompletedItems = completedItems,
+            TotalStoryPoints = totalStoryPoints,
+            EscapedDefects = escapedDefects,
+            TotalBlockers = totalBlockers,
+            ActiveBlockers = activeBlockers,
+            ResolvedBlockers = resolvedBlockers,
+            TotalKudos = totalKudos,
+            TotalTechTalks = totalTechTalks
         };
-
-        var recs = new List<string>
-        {
-            ctx.AvgReviewLatencyHours > 6.0
-                ? "Prioritize daily 30-min golden review window during morning overlap to bring PR review turnaround below 4h."
-                : "Continue mentoring peers in architectural code reviews during golden overlap hours.",
-            ctx.TechTalksGiven == 0
-                ? "Encourage scheduling a 30-min Offshore Tech Talk session on recent feature implementation or design patterns."
-                : "Nominate for leading the upcoming sprint architecture spike session based on proven tech sharing.",
-            ctx.TotalLeaveDays > 3.0
-                ? "Coordinate with Scrum Master to calibrate sprint capacity and WIP limits to prevent post-leave overload."
-                : "Maintain current focused WIP limit (< 3 active PBIs) to ensure zero context-switching overhead.",
-            ctx.LastActionItems != null
-                ? $"Follow up on agreed 1:1 action item: \"{ctx.LastActionItems}\"."
-                : "Schedule monthly 1:1 touchpoint with CDL and Scrum Master to track personal career milestones."
-        };
-
-        return new AiSuggestionResponse(
-            "Individual",
-            $"Microsoft AI Coaching Plan & 360° Intelligence: {ctx.MemberName}",
-            $"Holistic evaluation synthesizing Velocity ({ctx.TotalStoryPoints} pts), Net Capacity ({ctx.TotalLeaveDays}d leave), {ctx.TechTalksGiven} Tech Talks, Standups & 1:1 Feedback.",
-            findings, recs,
-            ctx.HappinessIndex < 6 ? "Medium (Burnout Sentinel Triggered)" : "Low (Healthy Morale & High Flow)",
-            DateTime.UtcNow
-        );
-    }
-
-    private static AiSuggestionResponse GenerateSprintInsights(InsightContext ctx)
-    {
-        if (ctx.CommittedPoints == 0 && ctx.DeliveredPoints == 0 && ctx.ActiveBlockers == 0)
-        {
-            var noDataFindings = new List<string>
-            {
-                $"[NO DATA TO ANALYZE - Sprint Backlog]: {ctx.SprintName} has 0 committed story points recorded.",
-                "[NO DATA TO ANALYZE - Delivery]: No completed work items or velocity registered for this sprint yet.",
-                "[NO DATA TO ANALYZE - Impediments]: No blocker tracking or standup health data recorded for this sprint."
-            };
-            var noDataRecs = new List<string>
-            {
-                "Estimate user stories and commit story points to this sprint backlog.",
-                "Update work item statuses as development proceeds to generate Say-Do predictability.",
-                "Track blockers and daily standups to evaluate sprint delivery risks."
-            };
-            return new AiSuggestionResponse(
-                "Project",
-                $"Microsoft AI Sprint Risk Radar & Executive Insights: {ctx.SprintName}",
-                $"Awaiting sprint backlog telemetry for {ctx.SprintName}.",
-                noDataFindings, noDataRecs,
-                "No Data (Telemetry Pending)",
-                DateTime.UtcNow
-            );
-        }
-
-        int sayDoPercent = ctx.CommittedPoints > 0 ? (int)((ctx.DeliveredPoints / (double)ctx.CommittedPoints) * 100) : 0;
-
-        var findings = new List<string>
-        {
-            $"[STRENGTH - Velocity & Say-Do]: Sprint Say-Do delivery tracking at {sayDoPercent}% ({ctx.DeliveredPoints}/{ctx.CommittedPoints} Story Points completed).",
-            $"[STRENGTH - Continuous Learning]: {ctx.TotalTechTalks} Weekly Tech Talks conducted across the team.",
-            $"[TEAM - SQUAD CAPACITY]: {ctx.TotalLeaveDays:0.#} team leave days recorded during this sprint window.",
-            $"[COMMS - TEAM HEALTH & 1:1 PULSE]: Average Squad Happiness is {Math.Round(ctx.AvgTeamHappiness, 1)}/10; Average SM Performance Rating is {Math.Round(ctx.AvgSmRating, 1)}/10.",
-            ctx.ActiveBlockers > 0
-                ? $"[WARNING - Active Blockers]: {ctx.ActiveBlockers} active blocker(s) awaiting resolution (SLA monitoring active)."
-                : "[STRENGTH - UNBLOCKED SQUAD]: Zero active blockers detected. Clear runway for sprint goal execution.",
-            "[QUALITY - GATES]: Completed user stories should adhere to Definition of Ready (DoR) and Definition of Done (DoD) verification."
-        };
-
-        var recs = new List<string>
-        {
-            ctx.ActiveBlockers > 0
-                ? "Escalate pending client blocker dependencies during morning golden overlap sync to protect sprint target date."
-                : "Maintain current daily standup cadence to identify potential blockers before they breach SLA.",
-            "Leverage auto-calculated net capacity in sprint planning to prevent over-commitment when team leaves are clustered.",
-            "Continue institutionalizing weekly 30-min Tech Talks to cross-train squad members on critical checkout modules.",
-            "Celebrate sprint delivery milestones on the Kudos Wall to reinforce team morale and recognition."
-        };
-
-        return new AiSuggestionResponse(
-            "Project",
-            $"Microsoft AI Sprint Risk Radar & Executive Insights: {ctx.SprintName}",
-            $"Autonomous executive synthesis covering Velocity, Auto-Calculated Capacity, Tech Talks, Daily Standups, and 1:1 Feedback.",
-            findings, recs,
-            ctx.ActiveBlockers > 2 ? "High (Sprint Scope at Risk)" : (ctx.ConfidenceScore < 7 ? "Medium" : "Low (Optimal Flow)"),
-            DateTime.UtcNow
-        );
     }
 }

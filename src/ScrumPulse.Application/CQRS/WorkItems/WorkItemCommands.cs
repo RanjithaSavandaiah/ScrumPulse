@@ -10,14 +10,19 @@ using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 using ScrumPulse.Domain.Events;
 
-public record GetWorkItemsQuery(Guid? SprintId, WorkItemStatus? Status) : IQuery<IEnumerable<WorkItemDto>>;
+public record GetWorkItemsQuery(
+    Guid? SprintId = null,
+    WorkItemStatus? Status = null,
+    int? Skip = null,
+    int? Take = null
+) : IQuery<IEnumerable<WorkItemDto>>;
 
 public class GetWorkItemsQueryHandler(IUnitOfWork unitOfWork) : IQueryHandler<GetWorkItemsQuery, IEnumerable<WorkItemDto>>
 {
     public async Task<IEnumerable<WorkItemDto>> HandleAsync(GetWorkItemsQuery query, CancellationToken ct = default)
     {
         var repo = unitOfWork.Repository<WorkItem>();
-        var items = await repo.ListAsync(new WorkItemsFilterSpecification(query.SprintId, query.Status), ct);
+        var items = await repo.ListAsync(new WorkItemsFilterSpecification(query.SprintId, query.Status, query.Skip, query.Take), ct);
         return items.ToDtos();
     }
 }

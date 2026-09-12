@@ -1,52 +1,53 @@
 namespace ScrumPulse.Api.Controllers;
 
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OutputCaching;
+using ScrumPulse.Api.Filters;
+using ScrumPulse.Application.CQRS;
+using ScrumPulse.Application.CQRS.Teams;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
-using ScrumPulse.Application.Mapping;
-using ScrumPulse.Domain.Entities;
-using ScrumPulse.Domain.Enums;
 
 /// <summary>
 /// Multi team tenant management controller enabling squad onboarding,
 /// discovery, and context switching across an enterprise.
 /// </summary>
-public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencyStore = null) : BaseApiController
+public class TeamsController : BaseApiController
 {
-    private const int MinSlugRandomSuffix = 100;
-    private const int MaxSlugRandomSuffix = 1000;
-    private const int MinFallbackSlugRandom = 1000;
-    private const int MaxFallbackSlugRandom = 10000;
-    private const int JoinCodeLength = 6;
+    private readonly IMediator _mediator;
+    private readonly IIdempotencyStore? _idempotencyStore;
 
-    [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<TeamDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<TeamDto>>> GetAll(CancellationToken ct = default)
+    [ActivatorUtilitiesConstructor]
+    public TeamsController(IMediator mediator, IIdempotencyStore? idempotencyStore = null)
     {
-        var teams = await db.Teams
-            .Where(team => team.IsActive)
-            .OrderBy(team => team.Name)
-            .AsNoTracking()
-            .ToListAsync(ct);
-
-        return Ok(teams.ToDtos());
+        _mediator = mediator;
+        _idempotencyStore = idempotencyStore;
     }
 
+    /// <summary>Testing constructor providing backward compatibility for direct DbContext tests.</summary>
+    public TeamsController(IAppDbContext db, IIdempotencyStore? idempotencyStore = null)
+        : this(CreateMediatorForTesting(db), idempotencyStore)
+    {
+    }
+
+    [HttpGet]
+    [OutputCache(PolicyName = "ShortLived")]
+    [ProducesResponseType(typeof(IEnumerable<TeamDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<TeamDto>>> GetAll(CancellationToken ct = default) =>
+        Ok(await _mediator.QueryAsync(new GetTeamsQuery(), ct));
+
     [HttpGet("{id:guid}")]
+    [OutputCache(PolicyName = "ShortLived")]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDto>> GetById(Guid id, CancellationToken ct = default)
     {
-        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
-        if (team == null) return NotFound();
-
-        return Ok(team.ToDto());
+        var team = await _mediator.QueryAsync(new GetTeamByIdQuery(id), ct);
+        return team != null ? Ok(team) : NotFound();
     }
 
     [HttpPost]
+    [RequireScrumMaster]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -57,58 +58,28 @@ public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencySto
         [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey = null,
         CancellationToken ct = default)
     {
-        if (Request?.Headers != null && Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && _idempotencyStore != null)
         {
-            var rawRole = roleHeader.ToString().Replace(" ", "");
-            if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
-                role != RoleType.ScrumMaster && role != RoleType.Cdl && role != RoleType.AgileCoach)
-            {
-                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Only Scrum Masters can create a new squad." });
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(idempotencyKey) && idempotencyStore != null)
-        {
-            var cached = await idempotencyStore.GetResponseAsync<TeamDto>(idempotencyKey, ct);
+            var cached = await _idempotencyStore.GetResponseAsync<TeamDto>(idempotencyKey, ct);
             if (cached != null) return Ok(cached);
         }
 
-        var trimmedName = request.Name.Trim();
-        var existingActiveTeam = await db.Teams
-            .FirstOrDefaultAsync(team => team.IsActive && team.Name.ToLower() == trimmedName.ToLower(), ct);
-        if (existingActiveTeam != null)
+        var result = await _mediator.SendAsync(new CreateTeamCommand(request), ct);
+        if (result.IsFailure)
         {
-            return Conflict(new { error = $"A squad named '{trimmedName}' already exists." });
+            if (result.ErrorCode == "CONFLICT")
+                return Conflict(new { error = result.Error });
+
+            return BadRequest(new { error = result.Error });
         }
 
-        var slug = GenerateSlug(string.IsNullOrWhiteSpace(request.Slug) ? request.Name : request.Slug);
-        var existingSlug = await db.Teams.AnyAsync(team => team.Slug == slug, ct);
-        if (existingSlug)
+        var dto = result.Value!;
+        if (!string.IsNullOrWhiteSpace(idempotencyKey) && _idempotencyStore != null)
         {
-            slug = $"{slug}-{RandomNumberGenerator.GetInt32(MinSlugRandomSuffix, MaxSlugRandomSuffix)}";
+            await _idempotencyStore.SaveResponseAsync(idempotencyKey, dto, null, ct);
         }
 
-        var joinCode = GenerateJoinCode();
-
-        var team = new Team
-        {
-            Name = trimmedName,
-            Slug = slug,
-            Description = request.Description?.Trim() ?? string.Empty,
-            JoinCode = joinCode,
-            IsActive = true
-        };
-
-        db.Teams.Add(team);
-        await db.SaveChangesAsync(ct);
-
-        var dto = team.ToDto();
-        if (!string.IsNullOrWhiteSpace(idempotencyKey) && idempotencyStore != null)
-        {
-            await idempotencyStore.SaveResponseAsync(idempotencyKey, dto, null, ct);
-        }
-
-        return CreatedAtAction(nameof(GetById), new { id = team.Id }, dto);
+        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
     }
 
     [HttpPost("join")]
@@ -116,14 +87,13 @@ public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencySto
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDto>> Join([FromBody] JoinTeamRequest request, CancellationToken ct = default)
     {
-        var code = request.JoinCode.Trim().ToUpperInvariant();
-        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.JoinCode == code && teamEntity.IsActive, ct);
-        if (team == null)
+        var result = await _mediator.SendAsync(new JoinTeamCommand(request), ct);
+        if (result.IsFailure)
         {
-            return NotFound(new { error = "No active team found with the specified join code." });
+            return NotFound(new { error = result.Error });
         }
 
-        return Ok(team.ToDto());
+        return Ok(result.Value);
     }
 
     [HttpPut("{id:guid}")]
@@ -131,17 +101,12 @@ public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencySto
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDto>> Update(Guid id, [FromBody] CreateTeamRequest request, CancellationToken ct = default)
     {
-        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
-        if (team == null) return NotFound();
-
-        team.Name = request.Name.Trim();
-        if (!string.IsNullOrWhiteSpace(request.Description)) team.Description = request.Description.Trim();
-        await db.SaveChangesAsync(ct);
-
-        return Ok(team.ToDto());
+        var team = await _mediator.SendAsync(new UpdateTeamCommand(id, request), ct);
+        return team != null ? Ok(team) : NotFound();
     }
 
     [HttpPut("{id:guid}/quality-gates")]
+    [RequireScrumMaster]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -151,40 +116,18 @@ public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencySto
         [FromBody] ConfigureTeamGatesRequest request,
         CancellationToken ct = default)
     {
-        if (Request?.Headers != null && Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
+        var result = await _mediator.SendAsync(new ConfigureQualityGatesCommand(id, request), ct);
+        if (result.IsFailure)
         {
-            var rawRole = roleHeader.ToString().Replace(" ", "");
-            if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
-                role != RoleType.ScrumMaster && role != RoleType.Cdl && role != RoleType.AgileCoach)
+            return result.ErrorCode switch
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new { error = "Only Scrum Masters can configure squad quality gates." });
-            }
+                "BAD_REQUEST" => BadRequest(new { error = result.Error }),
+                "NOT_FOUND" => NotFound(),
+                _ => BadRequest(new { error = result.Error })
+            };
         }
 
-        if (request.DorCriteria == null || request.DorCriteria.Count == 0)
-        {
-            return BadRequest(new { error = "At least one Definition of Ready (DoR) criterion is required." });
-        }
-
-        if (request.DodCriteria == null || request.DodCriteria.Count == 0)
-        {
-            return BadRequest(new { error = "At least one Definition of Done (DoD) criterion is required." });
-        }
-
-        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
-        if (team == null) return NotFound();
-
-        var sanitizedDor = request.DorCriteria.Select(c =>
-            c with { Id = string.IsNullOrWhiteSpace(c.Id) ? $"dor-{Guid.NewGuid():N}" : c.Id.Trim(), Label = c.Label.Trim() }).ToList();
-        var sanitizedDod = request.DodCriteria.Select(c =>
-            c with { Id = string.IsNullOrWhiteSpace(c.Id) ? $"dod-{Guid.NewGuid():N}" : c.Id.Trim(), Label = c.Label.Trim() }).ToList();
-
-        team.DorChecklistJson = System.Text.Json.JsonSerializer.Serialize(sanitizedDor);
-        team.DodChecklistJson = System.Text.Json.JsonSerializer.Serialize(sanitizedDod);
-
-        await db.SaveChangesAsync(ct);
-
-        return Ok(team.ToDto());
+        return Ok(result.Value);
     }
 
     [HttpGet("{id:guid}/quality-gates")]
@@ -192,32 +135,20 @@ public class TeamsController(IAppDbContext db, IIdempotencyStore? idempotencySto
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ConfigureTeamGatesRequest>> GetQualityGates(Guid id, CancellationToken ct = default)
     {
-        var team = await db.Teams.FirstOrDefaultAsync(teamEntity => teamEntity.Id == id, ct);
-        if (team == null) return NotFound();
-
-        return Ok(new ConfigureTeamGatesRequest(
-            MappingExtensions.GetTeamDorCriteria(team),
-            MappingExtensions.GetTeamDodCriteria(team)
-        ));
+        var gates = await _mediator.QueryAsync(new GetQualityGatesQuery(id), ct);
+        return gates != null ? Ok(gates) : NotFound();
     }
 
-    private static string GenerateSlug(string input)
+    private static IMediator CreateMediatorForTesting(IAppDbContext db)
     {
-        var slug = input.ToLowerInvariant().Trim();
-        slug = Regex.Replace(slug, @"[^a-z0-9\s-]", "");
-        slug = Regex.Replace(slug, @"\s+", "-").Trim('-');
-        return string.IsNullOrWhiteSpace(slug) ? $"team-{RandomNumberGenerator.GetInt32(MinFallbackSlugRandom, MaxFallbackSlugRandom)}" : slug;
-    }
-
-    private static string GenerateJoinCode()
-    {
-        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var bytes = RandomNumberGenerator.GetBytes(JoinCodeLength);
-        var result = new char[JoinCodeLength];
-        for (int characterIndex = 0; characterIndex < JoinCodeLength; characterIndex++)
-        {
-            result[characterIndex] = chars[bytes[characterIndex] % chars.Length];
-        }
-        return new string(result);
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        services.AddSingleton<IQueryHandler<GetTeamsQuery, IEnumerable<TeamDto>>>(new GetTeamsQueryHandler(db));
+        services.AddSingleton<IQueryHandler<GetTeamByIdQuery, TeamDto?>>(new GetTeamByIdQueryHandler(db));
+        services.AddSingleton<IQueryHandler<GetQualityGatesQuery, ConfigureTeamGatesRequest?>>(new GetQualityGatesQueryHandler(db));
+        services.AddSingleton<ICommandHandler<CreateTeamCommand, Domain.Common.Result<TeamDto>>>(new CreateTeamCommandHandler(db));
+        services.AddSingleton<ICommandHandler<JoinTeamCommand, Domain.Common.Result<TeamDto>>>(new JoinTeamCommandHandler(db));
+        services.AddSingleton<ICommandHandler<UpdateTeamCommand, TeamDto?>>(new UpdateTeamCommandHandler(db));
+        services.AddSingleton<ICommandHandler<ConfigureQualityGatesCommand, Domain.Common.Result<TeamDto>>>(new ConfigureQualityGatesCommandHandler(db));
+        return new ScrumPulse.Infrastructure.Services.AppMediator(services.BuildServiceProvider());
     }
 }

@@ -35,7 +35,7 @@ export class WorkItemsEffects {
           map(created => WorkItemActions.createWorkItemSuccess({ item: created })),
           catchError(err => {
             console.error('[WorkItemsEffects] Failed to create work item:', err);
-            const msg = err?.message || 'Failed to create work item';
+            const msg = err?.error?.message || err?.message || 'Failed to create work item';
             this.notification.showError('Validation Error', msg, 'alert-triangle');
             return of();
           })
@@ -52,6 +52,8 @@ export class WorkItemsEffects {
           map(updated => WorkItemActions.updateWorkItemSuccess({ item: updated })),
           catchError(err => {
             console.error('[WorkItemsEffects] Failed to update work item:', err);
+            const msg = err?.error?.message || err?.message || 'Failed to update work item';
+            this.notification.showError('Validation Error', msg, 'alert-triangle');
             return of();
           })
         )

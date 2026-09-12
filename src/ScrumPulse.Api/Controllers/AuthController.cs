@@ -24,6 +24,7 @@ public class AuthController : BaseApiController
     }
 
     [HttpPost("verify-pin")]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(VerifyPinResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(VerifyPinResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(VerifyPinResponse), StatusCodes.Status401Unauthorized)]

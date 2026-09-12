@@ -3,14 +3,15 @@ namespace ScrumPulse.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ScrumPulse.Application.CQRS;
-using ScrumPulse.Application.CQRS.Blockers;
 using ScrumPulse.Application.CQRS.WorkItems;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Sagas.WorkItemCompletion;
 using ScrumPulse.Application.Services;
 using ScrumPulse.Infrastructure.Persistence;
+using ScrumPulse.Infrastructure.Registration;
 using ScrumPulse.Infrastructure.Repositories;
 using ScrumPulse.Infrastructure.Services;
 
@@ -49,6 +50,7 @@ public static class DependencyInjection
         services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<IMetricsCalculatorService, MetricsCalculatorService>();
         services.AddScoped<ITeamPerformanceService, TeamPerformanceService>();
+        services.AddScoped<IExportService, ExportService>();
         services.AddScoped(typeof(IAsyncRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
@@ -61,27 +63,23 @@ public static class DependencyInjection
         services.AddSingleton<IIdempotencyStore>(sp => sp.GetRequiredService<MemoryIdempotencyStore>());
         services.AddHostedService<IdempotencyCleanupService>();
 
-        // -- CQRS Mediator --
+        // -- CQRS Mediator & Auto-Discovered Handlers (Open-Closed Principle) --
         services.AddScoped<IMediator, AppMediator>();
-
-        // -- WorkItem Handlers --
-        services.AddScoped<IQueryHandler<GetWorkItemsQuery, IEnumerable<WorkItemDto>>, GetWorkItemsQueryHandler>();
-        services.AddScoped<ICommandHandler<CreateWorkItemCommand, WorkItemDto>, CreateWorkItemCommandHandler>();
-        services.AddScoped<ICommandHandler<AdvanceWorkItemStageCommand, WorkItemDto>, AdvanceWorkItemStageCommandHandler>();
-
-        // -- Blocker Handlers ---
-        services.AddScoped<IQueryHandler<GetBlockersQuery, IEnumerable<BlockerDto>>, GetBlockersQueryHandler>();
-        services.AddScoped<ICommandHandler<CreateBlockerCommand, BlockerDto>, CreateBlockerCommandHandler>();
-        services.AddScoped<ICommandHandler<ResolveBlockerCommand, BlockerDto?>, ResolveBlockerCommandHandler>();
-        services.AddScoped<ICommandHandler<UpdateBlockerCommand, BlockerDto?>, UpdateBlockerCommandHandler>();
-        services.AddScoped<ICommandHandler<DeleteBlockerCommand, bool>, DeleteBlockerCommandHandler>();
+        services.AddCqrsHandlersFromAssembly(typeof(CreateWorkItemCommand).Assembly);
 
         // -- Saga Orchestration --
         services.AddScoped<ValidateQualityGatesStep>();
         services.AddScoped<TransitionWorkItemStatusStep>();
         services.AddScoped<RecalculateSprintVelocityStep>();
         services.AddScoped<TriggerMicrosoftAgentAiCoachingStep>();
-        services.AddScoped<WorkItemCompletionSaga>();
+        services.AddScoped(sp => new WorkItemCompletionSaga(
+            sp.GetRequiredService<ValidateQualityGatesStep>(),
+            sp.GetRequiredService<TransitionWorkItemStatusStep>(),
+            sp.GetRequiredService<RecalculateSprintVelocityStep>(),
+            sp.GetRequiredService<TriggerMicrosoftAgentAiCoachingStep>(),
+            sp.GetRequiredService<IUnitOfWork>(),
+            sp.GetService<ILogger<WorkItemCompletionSaga>>()
+        ));
 
         return services;
     }

@@ -10,6 +10,7 @@ using ScrumPulse.AI.Services;
 using ScrumPulse.Api.Controllers;
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.Blockers;
+using ScrumPulse.Application.CQRS.Sprints;
 using ScrumPulse.Application.CQRS.WorkItems;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
@@ -57,6 +58,12 @@ public class ControllerTests
         services.AddSingleton<ICommandHandler<ResolveBlockerCommand, BlockerDto?>>(new ResolveBlockerCommandHandler(uow));
         services.AddSingleton<ICommandHandler<UpdateBlockerCommand, BlockerDto?>>(new UpdateBlockerCommandHandler(uow));
         services.AddSingleton<ICommandHandler<DeleteBlockerCommand, bool>>(new DeleteBlockerCommandHandler(uow));
+        services.AddSingleton<IQueryHandler<GetSprintsQuery, IEnumerable<SprintDto>>>(new GetSprintsQueryHandler(db));
+        services.AddSingleton<ICommandHandler<CreateSprintCommand, SprintDto>>(new CreateSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<UpdateSprintCommand, SprintDto?>>(new UpdateSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<DeleteSprintCommand, bool>>(new DeleteSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<ActivateSprintCommand, SprintDto?>>(new ActivateSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<UpdateConfidenceCommand, SprintDto?>>(new UpdateConfidenceCommandHandler(db));
 
         var provider = services.BuildServiceProvider();
         var mediator = new AppMediator(provider);
@@ -515,14 +522,14 @@ public class ControllerTests
     [Fact]
     public async Task SprintsController_And_TeamMembersController_ReturnData()
     {
-        var (db, _, _, _) = CreateTestServices();
+        var (db, mediator, _, _) = CreateTestServices();
         var sprint = new Sprint { Id = Guid.NewGuid(), Name = "Active Sprint", IsActive = true };
         var member = new TeamMember { Id = Guid.NewGuid(), Name = "John Member", IsActive = true };
         db.Sprints.Add(sprint);
         db.TeamMembers.Add(member);
         await db.SaveChangesAsync();
 
-        var sprintsController = new SprintsController(db);
+        var sprintsController = new SprintsController(mediator);
         var membersController = new TeamMembersController(db);
 
         var allSprintsResult = await sprintsController.GetAll(Ct);
@@ -1318,6 +1325,53 @@ public class ControllerTests
         Assert.Equal(5.5, dto1.BlockedHours);
         Assert.NotNull(dto2);
         Assert.Equal(9.0, dto2.BlockedHours);
+    }
+
+    [Fact]
+    public async Task WorkItemsController_GetAll_Pagination_ReturnsPageSlice()
+    {
+        var (db, mediator, store, _) = CreateTestServices();
+        var controller = new WorkItemsController(mediator, store, db);
+
+        var baseTime = DateTime.UtcNow;
+        for (int i = 1; i <= 5; i++)
+        {
+            db.WorkItems.Add(new WorkItem
+            {
+                Id = Guid.NewGuid(),
+                Key = $"SP-{i}",
+                Title = $"Work Item {i}",
+                Description = $"Description {i}",
+                Type = WorkItemType.TaskPbi,
+                Priority = PriorityLevel.Medium,
+                Status = WorkItemStatus.Backlog,
+                CreatedAtUtc = baseTime.AddMinutes(i)
+            });
+        }
+        await db.SaveChangesAsync();
+
+        // Page 1 with pageSize 2 (should get items 5 and 4 due to OrderByDescending CreatedAtUtc)
+        var page1Result = await controller.GetAll(null, null, page: 1, pageSize: 2, ct: Ct);
+        var ok1 = Assert.IsType<OkObjectResult>(page1Result.Result);
+        var page1Items = Assert.IsAssignableFrom<IEnumerable<WorkItemDto>>(ok1.Value).ToList();
+        Assert.Equal(2, page1Items.Count);
+        Assert.Equal("Work Item 5", page1Items[0].Title);
+        Assert.Equal("Work Item 4", page1Items[1].Title);
+
+        // Page 2 with pageSize 2 (should get items 3 and 2)
+        var page2Result = await controller.GetAll(null, null, page: 2, pageSize: 2, ct: Ct);
+        var ok2 = Assert.IsType<OkObjectResult>(page2Result.Result);
+        var page2Items = Assert.IsAssignableFrom<IEnumerable<WorkItemDto>>(ok2.Value).ToList();
+        Assert.Equal(2, page2Items.Count);
+        Assert.Equal("Work Item 3", page2Items[0].Title);
+        Assert.Equal("Work Item 2", page2Items[1].Title);
+
+        // Page 3 with pageSize 2 (should get item 1)
+        var page3Result = await controller.GetAll(null, null, page: 3, pageSize: 2, ct: Ct);
+        var ok3 = Assert.IsType<OkObjectResult>(page3Result.Result);
+        var page3Items = Assert.IsAssignableFrom<IEnumerable<WorkItemDto>>(ok3.Value).ToList();
+        Assert.Single(page3Items);
+        Assert.Equal("Work Item 1", page3Items[0].Title);
     }
 }
 

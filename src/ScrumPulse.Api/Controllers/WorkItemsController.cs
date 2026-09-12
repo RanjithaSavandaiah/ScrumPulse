@@ -8,6 +8,7 @@ using ScrumPulse.Application.CQRS.WorkItems;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Mapping;
+using ScrumPulse.Domain.Common;
 using ScrumPulse.Domain.Enums;
 
 /// <summary>Work item management with CQRS for mutations and centralized DTO mapping.</summary>
@@ -21,8 +22,30 @@ public class WorkItemsController(
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<WorkItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<WorkItemDto>>> GetAll(
-        [FromQuery] Guid? sprintId, [FromQuery] WorkItemStatus? status, CancellationToken ct) =>
-        Ok(await mediator.QueryAsync(new GetWorkItemsQuery(sprintId, status), ct));
+        [FromQuery] Guid? sprintId = null,
+        [FromQuery] WorkItemStatus? status = null,
+        [FromQuery] int? page = null,
+        [FromQuery] int? pageSize = null,
+        CancellationToken ct = default)
+    {
+        int? skip = null;
+        int? take = null;
+        if (pageSize.HasValue && pageSize.Value > 0)
+        {
+            take = Math.Clamp(pageSize.Value, 1, 100);
+            var pageNumber = Math.Max(page ?? 1, 1);
+            skip = (pageNumber - 1) * take;
+        }
+
+        return Ok(await mediator.QueryAsync(new GetWorkItemsQuery(sprintId, status, skip, take), ct));
+    }
+
+    /// <summary>Backwards-compatible overload for test suites.</summary>
+    [NonAction]
+    public Task<ActionResult<IEnumerable<WorkItemDto>>> GetAll(
+        Guid? sprintId,
+        WorkItemStatus? status,
+        CancellationToken ct) => GetAll(sprintId, status, null, null, ct);
 
     [HttpPost]
     [ProducesResponseType(typeof(WorkItemDto), StatusCodes.Status200OK)]
@@ -37,30 +60,9 @@ public class WorkItemsController(
             if (cached != null) return Ok(cached);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            return BadRequest(new { message = "Work item title is mandatory" });
-        }
-
-        if (request.Type == WorkItemType.UserStory)
-        {
-            var hasAcceptanceCriteria = false;
-            const string marker = "**Acceptance Criteria (DoR):**";
-            var idx = request.Description?.IndexOf(marker, StringComparison.OrdinalIgnoreCase) ?? -1;
-            if (idx >= 0)
-            {
-                var acContent = request.Description![(idx + marker.Length)..].Trim();
-                if (!string.IsNullOrWhiteSpace(acContent))
-                {
-                    hasAcceptanceCriteria = true;
-                }
-            }
-
-            if (!hasAcceptanceCriteria)
-            {
-                return BadRequest(new { message = "Acceptance criteria is mandatory to add user story" });
-            }
-        }
+        var validation = WorkItemValidator.Validate(request.Title, request.Type, request.Description);
+        if (validation.IsFailure)
+            return BadRequest(new { message = validation.Error });
 
         // Deduplication guard for rapid double-clicks within a short time window
         var window = DateTime.UtcNow.AddSeconds(-2);
@@ -90,30 +92,9 @@ public class WorkItemsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<WorkItemDto>> Update(Guid id, [FromBody] UpdateWorkItemRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            return BadRequest(new { message = "Work item title is mandatory" });
-        }
-
-        if (request.Type == WorkItemType.UserStory)
-        {
-            var hasAcceptanceCriteria = false;
-            const string marker = "**Acceptance Criteria (DoR):**";
-            var idx = request.Description?.IndexOf(marker, StringComparison.OrdinalIgnoreCase) ?? -1;
-            if (idx >= 0)
-            {
-                var acContent = request.Description![(idx + marker.Length)..].Trim();
-                if (!string.IsNullOrWhiteSpace(acContent))
-                {
-                    hasAcceptanceCriteria = true;
-                }
-            }
-
-            if (!hasAcceptanceCriteria)
-            {
-                return BadRequest(new { message = "Acceptance criteria is mandatory to add user story" });
-            }
-        }
+        var validation = WorkItemValidator.Validate(request.Title, request.Type, request.Description);
+        if (validation.IsFailure)
+            return BadRequest(new { message = validation.Error });
 
         var workItem = await db.WorkItems
             .Include(item => item.Assignee)

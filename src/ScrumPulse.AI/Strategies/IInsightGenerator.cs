@@ -48,4 +48,10 @@ public class InsightContext
     public double AvgSmRating { get; set; }
     public string? LastActionItems { get; set; }
     public int TotalTechTalks { get; set; }
+    public int TotalWorkItems { get; set; }
+    public int EscapedDefects { get; set; }
+    public int TotalBlockers { get; set; }
+    public int ResolvedBlockers { get; set; }
+    public int TotalKudos { get; set; }
+    public int SprintsCount { get; set; }
 }

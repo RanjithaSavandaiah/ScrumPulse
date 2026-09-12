@@ -147,4 +147,26 @@ public class GlobalExceptionHandlerMiddlewareTests
         var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
         Assert.Contains("test-corr-123", body);
     }
+
+    [Fact]
+    public async Task InvokeAsync_SanitizesSqlAndEfCoreDetails_InProduction()
+    {
+        RequestDelegate next = _ => throw new Exception("SELECT * FROM Users WHERE Password='admin' at System.Data.SqlClient");
+        var logger = LoggerFactory.Create(builder => {}).CreateLogger<GlobalExceptionHandlerMiddleware>();
+        var env = new MiddlewareTestHostEnvironment { EnvironmentName = Environments.Production };
+        var middleware = new GlobalExceptionHandlerMiddleware(next, logger, env);
+
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        var body = await new StreamReader(context.Response.Body).ReadToEndAsync();
+
+        // Must NOT contain SQL or internal details
+        Assert.DoesNotContain("SELECT", body);
+        Assert.DoesNotContain("Password", body);
+        Assert.Contains("internal error", body, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -39,6 +39,17 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
         // Prevent embedding in cross origin contexts
         headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
 
+        // Suppress technology stack fingerprinting headers (defense against targeted attacks)
+        headers.Remove("X-Powered-By");
+        headers.Remove("Server");
+
+        httpContext.Response.OnStarting(() =>
+        {
+            httpContext.Response.Headers.Remove("X-Powered-By");
+            httpContext.Response.Headers.Remove("Server");
+            return Task.CompletedTask;
+        });
+
         return next(httpContext);
     }
 }

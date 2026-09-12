@@ -6,6 +6,7 @@ using ScrumPulse.AI.Configuration;
 using ScrumPulse.AI.Evaluation;
 using ScrumPulse.AI.Prompt;
 using ScrumPulse.AI.Services;
+using ScrumPulse.AI.Strategies;
 using ScrumPulse.Application.Services;
 
 public static class DependencyInjection
@@ -20,6 +21,11 @@ public static class DependencyInjection
         // AI Service & Components
         services.AddScoped<IAiAgentService, MicrosoftAgentService>();
         services.AddSingleton<AiResponseEvaluator>();
+
+        // Tiered Insight Strategies
+        services.AddScoped<IInsightGenerator, IndividualInsightGenerator>();
+        services.AddScoped<IInsightGenerator, SprintInsightGenerator>();
+        services.AddScoped<IInsightGenerator, CompanyInsightGenerator>();
 
         return services;
     }

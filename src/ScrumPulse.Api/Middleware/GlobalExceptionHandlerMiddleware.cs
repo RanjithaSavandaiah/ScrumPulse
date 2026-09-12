@@ -61,7 +61,9 @@ public class GlobalExceptionHandlerMiddleware
             Status = statusCode,
             Type = $"https://httpstatuses.com/{statusCode}",
             Title = title,
-            Detail = _environment.IsDevelopment() ? exception.Message : "An internal error occurred. Please contact system support.",
+            Detail = _environment.IsDevelopment()
+                ? exception.Message
+                : SanitizeErrorDetail(exception.Message),
             Instance = httpContext.Request.Path
         };
 
@@ -103,4 +105,34 @@ public class GlobalExceptionHandlerMiddleware
 
         _ => ((int)HttpStatusCode.InternalServerError, "An unexpected error occurred while processing your request.")
     };
+
+    /// <summary>
+    /// Scrubs production error messages to prevent leaking internal details
+    /// such as SQL statements, EF Core internals, or connection strings.
+    /// </summary>
+    private static string SanitizeErrorDetail(string message)
+    {
+        const string safeMessage = "An internal error occurred. Please contact system support.";
+
+        if (string.IsNullOrWhiteSpace(message))
+            return safeMessage;
+
+        // Detect common internal information leakage patterns
+        ReadOnlySpan<string> sensitivePatterns =
+        [
+            "SELECT", "INSERT", "UPDATE", "DELETE", "FROM",
+            "EntityFrameworkCore", "DbContext", "SqlException",
+            "NpgsqlException", "connection string", "Host=",
+            "Password=", "Data Source=", "StackTrace", "at System.",
+            "at Microsoft.", "at ScrumPulse."
+        ];
+
+        foreach (var pattern in sensitivePatterns)
+        {
+            if (message.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                return safeMessage;
+        }
+
+        return message;
+    }
 }

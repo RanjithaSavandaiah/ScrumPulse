@@ -20,6 +20,9 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     ContentRootPath = AppContext.BaseDirectory
 });
 
+// Suppress Server header at the Kestrel transport level
+builder.WebHost.ConfigureKestrel(serverOptions => serverOptions.AddServerHeader = false);
+
 // Ensure WebRoot directory exists and is discovered across Docker and dotnet run contexts
 var wwwrootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
 if (!File.Exists(Path.Combine(wwwrootPath, "index.html")))
@@ -146,8 +149,9 @@ builder.Services.AddCors(corsOptions =>
 // ── Output Caching (Sub-second response for read-heavy executive & metrics endpoints) ──
 builder.Services.AddOutputCache(options =>
 {
-    options.AddBasePolicy(builder => builder.Expire(TimeSpan.FromSeconds(15)));
-    options.AddPolicy("ExecutiveReports", builder => builder.Expire(TimeSpan.FromSeconds(30)));
+    options.AddBasePolicy(b => b.Expire(TimeSpan.FromSeconds(15)).SetVaryByHeader("X-Team-Id"));
+    options.AddPolicy("ExecutiveReports", b => b.Expire(TimeSpan.FromSeconds(30)).SetVaryByHeader("X-Team-Id"));
+    options.AddPolicy("ShortLived", b => b.Expire(TimeSpan.FromSeconds(10)).SetVaryByHeader("X-Team-Id"));
 });
 
 var app = builder.Build();
@@ -171,9 +175,6 @@ app.UseResponseCompression();
 
 // 6. Response caching
 app.UseOutputCache();
-
-// 7. Rate limiting
-app.UseRateLimiter();
 
 // -- Database Initialization --
 using (var scope = app.Services.CreateScope())
@@ -202,14 +203,18 @@ app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fileProvider });
 app.UseStaticFiles(new StaticFileOptions { FileProvider = fileProvider });
 
 app.UseRouting();
+
+// 7. Rate limiting (must follow UseRouting so endpoint-specific metadata [EnableRateLimiting] is matched)
+app.UseRateLimiter();
+
 app.UseAuthorization();
 
 // -- Health Probes --
 app.MapHealthChecks("/healthz");
 app.MapHealthChecks("/health");
 
-// -- Map Controllers with global rate limiting --
-app.MapControllers().RequireRateLimiting("global");
+// -- Map Controllers --
+app.MapControllers();
 
 // -- SPA Fallback --
 var indexHtmlPath = Path.Combine(wwwrootPath, "index.html");

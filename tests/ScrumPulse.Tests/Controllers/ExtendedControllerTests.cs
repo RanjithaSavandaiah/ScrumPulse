@@ -2,11 +2,15 @@ namespace ScrumPulse.Tests.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using ScrumPulse.Api.Controllers;
+using ScrumPulse.Application.CQRS;
+using ScrumPulse.Application.CQRS.Sprints;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 using ScrumPulse.Infrastructure.Persistence;
+using ScrumPulse.Infrastructure.Services;
 using Xunit;
 
 public class ExtendedControllerTests
@@ -20,6 +24,18 @@ public class ExtendedControllerTests
             .Options;
 
         return new AppDbContext(options);
+    }
+
+    private static IMediator CreateMediatorForSprints(AppDbContext db)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IQueryHandler<GetSprintsQuery, IEnumerable<SprintDto>>>(new GetSprintsQueryHandler(db));
+        services.AddSingleton<ICommandHandler<CreateSprintCommand, SprintDto>>(new CreateSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<UpdateSprintCommand, SprintDto?>>(new UpdateSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<DeleteSprintCommand, bool>>(new DeleteSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<ActivateSprintCommand, SprintDto?>>(new ActivateSprintCommandHandler(db));
+        services.AddSingleton<ICommandHandler<UpdateConfidenceCommand, SprintDto?>>(new UpdateConfidenceCommandHandler(db));
+        return new AppMediator(services.BuildServiceProvider());
     }
 
     private static T ExtractValue<T>(ActionResult<T> actionResult) where T : class
@@ -171,7 +187,7 @@ public class ExtendedControllerTests
     public async Task SprintsController_Create_Update_And_Delete_Succeed()
     {
         using var db = CreateInMemoryDb();
-        var controller = new SprintsController(db);
+        var controller = new SprintsController(CreateMediatorForSprints(db));
 
         // 1. Validation: EndDate < StartDate should return BadRequest
         var invalidRequest = new CreateSprintRequest(

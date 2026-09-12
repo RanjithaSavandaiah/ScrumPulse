@@ -1,8 +1,13 @@
 namespace ScrumPulse.Tests.Controllers;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Api.Controllers;
+using ScrumPulse.Api.Filters;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Entities;
 using ScrumPulse.Infrastructure.Persistence;
@@ -96,23 +101,24 @@ public class TeamsControllerTests
     }
 
     [Fact]
-    public async Task Create_WhenUserIsDeveloper_ReturnsForbidden()
+    public void Create_WhenUserIsDeveloper_ReturnsForbidden()
     {
-        using var db = CreateInMemoryDbContext();
-        var controller = new TeamsController(db)
-        {
-            ControllerContext = new ControllerContext
-            {
-                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
-            }
-        };
-        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "Developer";
+        // Test the RequireScrumMaster filter directly (proper unit test isolation)
+        var filter = new RequireScrumMasterAttribute();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-User-Role"] = "Developer";
 
-        var request = new CreateTeamRequest("Unauthorized Squad", "Should fail");
-        var actionResult = await controller.Create(request);
+        var actionContext = new ActionContext(httpContext, new RouteData(), new ActionDescriptor());
+        var filterContext = new ActionExecutingContext(
+            actionContext,
+            new List<IFilterMetadata> { filter },
+            new Dictionary<string, object?>(),
+            new TeamsController(CreateInMemoryDbContext()));
 
-        var objectResult = Assert.IsType<ObjectResult>(actionResult.Result);
-        Assert.Equal(Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden, objectResult.StatusCode);
+        filter.OnActionExecuting(filterContext);
+
+        var objectResult = Assert.IsType<ObjectResult>(filterContext.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
     }
 
     [Fact]
@@ -212,27 +218,23 @@ public class TeamsControllerTests
     }
 
     [Fact]
-    public async Task ConfigureQualityGates_Forbidden_WhenNotScrumMaster()
+    public void ConfigureQualityGates_Forbidden_WhenNotScrumMaster()
     {
-        using var db = CreateInMemoryDbContext();
-        var team = new Team { Name = "Orion Squad", Slug = "orion-squad", JoinCode = "ORION1", IsActive = true };
-        db.Teams.Add(team);
-        await db.SaveChangesAsync();
+        // Test the RequireScrumMaster filter directly (proper unit test isolation)
+        var filter = new RequireScrumMasterAttribute();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-User-Role"] = "Developer";
 
-        var controller = new TeamsController(db);
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
-        };
-        controller.ControllerContext.HttpContext.Request.Headers["X-User-Role"] = "Developer";
+        var actionContext = new ActionContext(httpContext, new RouteData(), new ActionDescriptor());
+        var filterContext = new ActionExecutingContext(
+            actionContext,
+            new List<IFilterMetadata> { filter },
+            new Dictionary<string, object?>(),
+            new TeamsController(CreateInMemoryDbContext()));
 
-        var dor = new List<QualityGateCriterionDto> { new("dor-1", "AC defined", null, true) };
-        var dod = new List<QualityGateCriterionDto> { new("dod-1", "Unit tests", null, true) };
+        filter.OnActionExecuting(filterContext);
 
-        var request = new ConfigureTeamGatesRequest(dor, dod);
-        var actionResult = await controller.ConfigureQualityGates(team.Id, request);
-
-        var objResult = Assert.IsType<ObjectResult>(actionResult.Result);
+        var objResult = Assert.IsType<ObjectResult>(filterContext.Result);
         Assert.Equal(403, objResult.StatusCode);
     }
 

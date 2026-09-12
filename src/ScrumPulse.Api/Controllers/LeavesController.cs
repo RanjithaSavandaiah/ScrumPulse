@@ -1,24 +1,43 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using ScrumPulse.Application.CQRS;
+using ScrumPulse.Application.CQRS.Leaves;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
-using ScrumPulse.Application.Mapping;
 using ScrumPulse.Application.Services;
-using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 
-/// <summary>Leave management with capacity calculation integration.</summary>
-public class LeavesController(
-    IAppDbContext db,
-    IMetricsCalculatorService metricsCalculatorService,
-    ITenantContext? tenantContext = null,
-    ILogger<LeavesController>? logger = null) : BaseApiController
+/// <summary>Leave management with capacity calculation integration — thin controller delegating to CQRS.</summary>
+public class LeavesController : BaseApiController
 {
-    private const int MinValidCalendarYear = 2000;
-    private const int MinCalendarMonth = 1;
-    private const int MaxCalendarMonth = 12;
+    private readonly IMediator _mediator;
+    private readonly IMetricsCalculatorService _metricsCalculatorService;
+    private readonly ITenantContext? _tenantContext;
+    private readonly ILogger<LeavesController>? _logger;
+
+    [ActivatorUtilitiesConstructor]
+    public LeavesController(
+        IMediator mediator,
+        IMetricsCalculatorService metricsCalculatorService,
+        ITenantContext? tenantContext = null,
+        ILogger<LeavesController>? logger = null)
+    {
+        _mediator = mediator;
+        _metricsCalculatorService = metricsCalculatorService;
+        _tenantContext = tenantContext;
+        _logger = logger;
+    }
+
+    /// <summary>Testing constructor providing backward compatibility for direct DbContext tests.</summary>
+    public LeavesController(
+        IAppDbContext db,
+        IMetricsCalculatorService metricsCalculatorService,
+        ITenantContext? tenantContext = null,
+        ILogger<LeavesController>? logger = null)
+        : this(CreateMediatorForTesting(db), metricsCalculatorService, tenantContext, logger)
+    {
+    }
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TeamLeaveDto>), StatusCodes.Status200OK)]
@@ -32,44 +51,13 @@ public class LeavesController(
     {
         try
         {
-            var query = db.TeamLeaves
-                .IgnoreQueryFilters()
-                .Include(leave => leave.TeamMember)
-                .Where(teamLeave => teamLeave.IsDeleted != true)
-                .AsQueryable();
-
-            if (memberId.HasValue) query = query.Where(teamLeave => teamLeave.TeamMemberId == memberId.Value);
-
-            if (startDate.HasValue && endDate.HasValue)
-            {
-                var windowStartUtc = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                var windowEndUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                query = query.Where(teamLeave => teamLeave.StartDate <= windowEndUtc && teamLeave.EndDate >= windowStartUtc);
-            }
-            else if (year.HasValue && month.HasValue && year.Value >= MinValidCalendarYear && month.Value >= MinCalendarMonth && month.Value <= MaxCalendarMonth)
-            {
-                var startOfMonth = new DateTime(year.Value, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
-                var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
-                query = query.Where(teamLeave => teamLeave.StartDate <= endOfMonth && teamLeave.EndDate >= startOfMonth);
-            }
-            else if (year.HasValue && year.Value >= MinValidCalendarYear)
-            {
-                // Calendar Year strictly follows Jan 1 to Dec 31
-                var startOfYear = new DateTime(year.Value, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                var endOfYear = new DateTime(year.Value, 12, 31, 23, 59, 59, 999, DateTimeKind.Utc);
-                query = query.Where(teamLeave => teamLeave.StartDate <= endOfYear && teamLeave.EndDate >= startOfYear);
-            }
-
-            var list = await query
-                .OrderByDescending(leave => leave.StartDate)
-                .AsNoTracking()
-                .ToListAsync(ct);
-
-            return Ok(list.ToDtos());
+            var leaves = await _mediator.QueryAsync(
+                new GetLeavesQuery(memberId, year, month, startDate, endDate), ct);
+            return Ok(leaves);
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Failed to load leaves: {Message}", ex.Message);
+            _logger?.LogWarning(ex, "Failed to load leaves: {Message}", ex.Message);
             return Ok(Array.Empty<TeamLeaveDto>());
         }
     }
@@ -79,101 +67,58 @@ public class LeavesController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TeamLeaveDto>> Submit([FromBody] SubmitLeaveRequest request, CancellationToken ct = default)
     {
-        if (request.TeamMemberId == Guid.Empty)
+        var result = await _mediator.SendAsync(new SubmitLeaveCommand(request, _tenantContext?.CurrentUser), ct);
+        if (result.IsFailure)
         {
-            return BadRequest(new { message = "Please select a squad member" });
+            return BadRequest(new { message = result.Error });
         }
 
-        var startDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
-        var rawEnd = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
-        var endDate = DateTime.SpecifyKind(rawEnd, DateTimeKind.Utc);
-
-        var creator = !string.IsNullOrWhiteSpace(request.CreatedBy)
-            ? request.CreatedBy.Trim()
-            : (!string.IsNullOrWhiteSpace(tenantContext?.CurrentUser) ? tenantContext.CurrentUser : "Developer");
-
-        var leave = new TeamLeave
-        {
-            TeamMemberId = request.TeamMemberId,
-            StartDate = startDate,
-            EndDate = endDate,
-            Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Planned Leave" : request.Reason.Trim(),
-            LeaveType = ParseLeaveCategory(request.LeaveType),
-            LeaveSlot = Enum.TryParse<LeaveSlotType>(request.LeaveSlot, true, out var slot) ? slot : LeaveSlotType.FullDay,
-            Location = string.IsNullOrWhiteSpace(request.Location) ? "Offshore" : request.Location.Trim(),
-            IsApproved = true,
-            CreatedBy = creator,
-            UpdatedBy = creator
-        };
-        db.TeamLeaves.Add(leave);
-        await db.SaveChangesAsync(ct);
-
-        var member = await db.TeamMembers.FirstOrDefaultAsync(teamMember => teamMember.Id == request.TeamMemberId, ct);
-        leave.TeamMember = member;
-
-        return Ok(leave.ToDto());
+        return Ok(result.Value);
     }
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TeamLeaveDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamLeaveDto>> Update(Guid id, [FromBody] SubmitLeaveRequest request, CancellationToken ct = default)
     {
-        var leave = await db.TeamLeaves.FindAsync([id], ct);
-        if (leave == null) return NotFound();
-
-        var startDate = DateTime.SpecifyKind(request.StartDate, DateTimeKind.Utc);
-        var rawEnd = request.EndDate < request.StartDate ? request.StartDate : request.EndDate;
-        var endDate = DateTime.SpecifyKind(rawEnd, DateTimeKind.Utc);
-
-        var updater = !string.IsNullOrWhiteSpace(request.CreatedBy)
-            ? request.CreatedBy.Trim()
-            : (!string.IsNullOrWhiteSpace(tenantContext?.CurrentUser) ? tenantContext.CurrentUser : "Developer");
-
-        leave.TeamMemberId = request.TeamMemberId;
-        leave.StartDate = startDate;
-        leave.EndDate = endDate;
-        leave.Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Planned Leave" : request.Reason.Trim();
-        leave.LeaveType = ParseLeaveCategory(request.LeaveType);
-        leave.LeaveSlot = Enum.TryParse<LeaveSlotType>(request.LeaveSlot, true, out var slot) ? slot : LeaveSlotType.FullDay;
-        if (!string.IsNullOrWhiteSpace(request.Location)) leave.Location = request.Location.Trim();
-        leave.UpdatedBy = updater;
-        if (string.IsNullOrWhiteSpace(leave.CreatedBy))
+        var result = await _mediator.SendAsync(new UpdateLeaveCommand(id, request, _tenantContext?.CurrentUser), ct);
+        if (result.IsFailure)
         {
-            leave.CreatedBy = updater;
+            return result.ErrorCode == "NOT_FOUND"
+                ? NotFound()
+                : BadRequest(new { message = result.Error });
         }
 
-        await db.SaveChangesAsync(ct);
-
-        var member = await db.TeamMembers.FirstOrDefaultAsync(existingMember => existingMember.Id == request.TeamMemberId, ct);
-        leave.TeamMember = member;
-
-        return Ok(leave.ToDto());
+        return Ok(result.Value);
     }
-
-    public static LeaveCategory ParseLeaveCategory(string? input) => input?.Trim() switch
-    {
-        "Sick Leave" or "SickLeave" => LeaveCategory.SickLeave,
-        "Comp Off" or "CompensatoryOff" => LeaveCategory.CompensatoryOff,
-        "Offshore Public Holiday" or "PublicHoliday" => LeaveCategory.PublicHoliday,
-        _ => LeaveCategory.PrivilegeLeave
-    };
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {
-        var leave = await db.TeamLeaves.FindAsync([id], ct);
-        if (leave == null) return NotFound();
-        db.TeamLeaves.Remove(leave);
-        await db.SaveChangesAsync(ct);
-        return NoContent();
+        var deleted = await _mediator.SendAsync(new DeleteLeaveCommand(id), ct);
+        return deleted ? NoContent() : NotFound();
     }
 
     [HttpGet("capacity/{sprintId:guid}")]
     [HttpGet("sprint/{sprintId:guid}/capacity")]
     [ProducesResponseType(typeof(SprintCapacityDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<SprintCapacityDto>> GetCapacity(Guid sprintId, CancellationToken ct = default) =>
-        Ok(await metricsCalculatorService.CalculateSprintCapacityAsync(sprintId, ct));
+        Ok(await _metricsCalculatorService.CalculateSprintCapacityAsync(sprintId, ct));
+
+    public static LeaveCategory ParseLeaveCategory(string? input) =>
+        SubmitLeaveCommandHandler.ParseLeaveCategory(input);
+
+    private static IMediator CreateMediatorForTesting(IAppDbContext db)
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        services.AddSingleton<IQueryHandler<GetLeavesQuery, IEnumerable<TeamLeaveDto>>>(new GetLeavesQueryHandler(db));
+        services.AddSingleton<IQueryHandler<GetLeaveByIdQuery, TeamLeaveDto?>>(new GetLeaveByIdQueryHandler(db));
+        services.AddSingleton<ICommandHandler<SubmitLeaveCommand, Domain.Common.Result<TeamLeaveDto>>>(new SubmitLeaveCommandHandler(db));
+        services.AddSingleton<ICommandHandler<UpdateLeaveCommand, Domain.Common.Result<TeamLeaveDto>>>(new UpdateLeaveCommandHandler(db));
+        services.AddSingleton<ICommandHandler<DeleteLeaveCommand, bool>>(new DeleteLeaveCommandHandler(db));
+        return new ScrumPulse.Infrastructure.Services.AppMediator(services.BuildServiceProvider());
+    }
 }
