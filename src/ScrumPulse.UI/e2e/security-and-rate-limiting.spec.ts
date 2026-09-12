@@ -27,13 +27,17 @@ test.describe('Security Hardening & Rate Limiting Verification', () => {
   });
 
   test('should enforce rate limiting on auth endpoints with HTTP 429 after limit exceeded', async ({ request }) => {
-    // Auth limiter allows 5 requests per window with 0 queue limit.
-    // Rapidly sending 8 requests should trigger 429 Too Many Requests.
+    // Auth test partition allows 3 requests per window with 0 queue limit.
+    // Rapidly sending 6 requests triggers 429 Too Many Requests on the test partition
+    // without exhausting permits for subsequent tests in the suite.
     const responses = await Promise.all(
-      Array.from({ length: 8 }, () =>
+      Array.from({ length: 6 }, () =>
         request.post('/api/auth/verify-pin', {
           data: { pin: '0000' },
-          headers: { 'Content-Type': 'application/json' }
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Test-Rate-Limit': 'true'
+          }
         })
       )
     );

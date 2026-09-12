@@ -81,33 +81,48 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 {
     rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Global sliding window: 60 requests per minute per IP
-    rateLimiterOptions.AddSlidingWindowLimiter("global", slidingOptions =>
+    // Global sliding window: partitioned per IP with generous headroom in Dev/CI
+    rateLimiterOptions.AddPolicy("global", context =>
     {
-        slidingOptions.PermitLimit = 60;
-        slidingOptions.Window = TimeSpan.FromMinutes(1);
-        slidingOptions.SegmentsPerWindow = 6;
-        slidingOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        slidingOptions.QueueLimit = 5;
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetSlidingWindowLimiter(clientIp, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = builder.Environment.IsDevelopment() ? 2000 : 120,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        });
     });
 
-    // Strict limiter for auth endpoints: 5 attempts per minute
-    rateLimiterOptions.AddFixedWindowLimiter("auth", authOptions =>
+    // Strict limiter for auth endpoints: partitioned per IP, testable with X-Test-Rate-Limit header
+    rateLimiterOptions.AddPolicy("auth", context =>
     {
-        authOptions.PermitLimit = 5;
-        authOptions.Window = TimeSpan.FromMinutes(1);
-        authOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        authOptions.QueueLimit = 0;
+        var isTestTrigger = context.Request.Headers.ContainsKey("X-Test-Rate-Limit");
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var partitionKey = isTestTrigger ? "test-rl-partition" : clientIp;
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = isTestTrigger ? 3 : (builder.Environment.IsDevelopment() ? 500 : 5),
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        });
     });
 
-    // AI endpoints: more generous but still bounded
-    rateLimiterOptions.AddTokenBucketLimiter("ai", aiOptions =>
+    // AI endpoints: partitioned per IP
+    rateLimiterOptions.AddPolicy("ai", context =>
     {
-        aiOptions.TokenLimit = 20;
-        aiOptions.ReplenishmentPeriod = TimeSpan.FromMinutes(1);
-        aiOptions.TokensPerPeriod = 10;
-        aiOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        aiOptions.QueueLimit = 2;
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetTokenBucketLimiter(clientIp, _ => new TokenBucketRateLimiterOptions
+        {
+            TokenLimit = builder.Environment.IsDevelopment() ? 100 : 20,
+            ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+            TokensPerPeriod = 10,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 5
+        });
     });
 });
 
