@@ -23,7 +23,7 @@ test.describe('Multi-Squad Management & Tenant Context Switching', () => {
 
     const errorBanner = modalCard.locator('.error-banner');
     await expect(errorBanner).toBeVisible();
-    await expect(errorBanner).toContainText('Squad name is required');
+    await expect(errorBanner).toContainText(/Squad name is (mandatory|required)/i);
 
     // 3. Fill valid squad details
     const timestamp = Date.now();
@@ -70,7 +70,7 @@ test.describe('Multi-Squad Management & Tenant Context Switching', () => {
 
     const errorBanner = modalCard.locator('.error-banner');
     await expect(errorBanner).toBeVisible();
-    await expect(errorBanner).toContainText('Join code is required');
+    await expect(errorBanner).toContainText(/Join code is (mandatory|required)/i);
 
     // 2. Try invalid code
     await page.locator('#joinCodeInputField').fill('NONEXISTENT_9999');

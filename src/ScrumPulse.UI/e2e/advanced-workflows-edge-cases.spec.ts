@@ -22,12 +22,17 @@ test.describe('Advanced Workflows, Validations & Edge Cases', () => {
     const saveBtn = modalContent.locator('.modal-footer .btn-save');
     const titleInput = page.locator('#workItemTitleInput');
 
-    // Validation boundary: empty title must keep Save button disabled
-    await expect(saveBtn).toBeDisabled();
+    // Validation boundary: empty title must show validation error
+    await saveBtn.click();
+    const alertBanner = modalContent.locator('.validation-alert-banner');
+    await expect(alertBanner).toBeVisible();
+    await expect(alertBanner).toContainText('Work item title is mandatory');
 
-    // Whitespace only must also keep Save button disabled
+    // Whitespace only must also show validation error
     await titleInput.fill('    ');
-    await expect(saveBtn).toBeDisabled();
+    await saveBtn.click();
+    await expect(alertBanner).toBeVisible();
+    await expect(alertBanner).toContainText('Work item title is mandatory');
 
     // Valid title enables Save
     const timestamp = Date.now();
@@ -35,6 +40,9 @@ test.describe('Advanced Workflows, Validations & Edge Cases', () => {
     await titleInput.fill(itemTitle);
     await page.locator('#workItemDescTextarea').fill('End-to-end full 6-stage lifecycle validation.');
     await expect(saveBtn).toBeEnabled();
+
+    // Fill mandatory acceptance criteria (DoR) for User Story
+    await page.locator('#workItemDoRTextarea').fill('Given full pipeline scenario, When verified end-to-end, Then all 6 stages pass.');
 
     // Select 5 story points (unambiguous Fibonacci number)
     await page.locator('.points-selector .point-btn', { hasText: '5' }).click();
