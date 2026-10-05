@@ -103,7 +103,7 @@ Configured via `SecurityHeadersMiddleware` on every response:
 - **`Content-Security-Policy`**: Strictly whitelists trusted script, frame, and font sources; enforces `frame-ancestors 'none'`.
 - **`X-Frame-Options: DENY`**: Prevents clickjacking and unauthorized embedding.
 - **`X-Content-Type-Options: nosniff`**: Prevents MIME-confusion attacks.
-- **`X-XSS-Protection: 1; mode=block`**: Activates browser reflective XSS filtering.
+- **`X-XSS-Protection: 0`**: Disables deprecated legacy browser XSS auditor (modern OWASP recommendation, relying on CSP).
 - **`Strict-Transport-Security: max-age=31536000; includeSubDomains`**: Enforces HTTPS (HSTS).
 - **`Permissions-Policy: camera=(), microphone=(), geolocation=()`**: Blocks unauthorized hardware sensor access.
 

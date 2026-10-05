@@ -12,7 +12,7 @@ test.describe('Security Hardening & Rate Limiting Verification', () => {
     // 1. Mandatory OWASP Security Headers
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['x-frame-options']).toBe('DENY');
-    expect(headers['x-xss-protection']).toBe('1; mode=block');
+    expect(headers['x-xss-protection']).toBe('0');
     expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
     expect(headers['content-security-policy']).toBeDefined();
     expect(headers['content-security-policy']).toContain("default-src 'self'");

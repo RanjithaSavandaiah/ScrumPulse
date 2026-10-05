@@ -33,7 +33,7 @@ The ASP.NET Core pipeline implements `SecurityHeadersMiddleware`, injecting the 
 Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none';
 X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
-X-XSS-Protection: 1; mode=block
+X-XSS-Protection: 0
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Permissions-Policy: camera=(), microphone=(), geolocation=()
 Referrer-Policy: strict-origin-when-cross-origin
