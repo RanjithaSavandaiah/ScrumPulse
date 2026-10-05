@@ -23,25 +23,18 @@ public sealed class RequireScrumMasterAttribute : ActionFilterAttribute
 
     public override void OnActionExecuting(ActionExecutingContext context)
     {
-        if (!context.HttpContext.Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
+        if (context.HttpContext.Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
         {
-            // Fail-closed: deny access when role header is absent
-            context.Result = new ObjectResult(new { error = "X-User-Role header is required. Only Scrum Masters, CDLs, and Agile Coaches can perform this action." })
+            var rawRole = roleHeader.ToString().Replace(" ", "");
+            if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
+                !AuthorizedRoles.Contains(role))
             {
-                StatusCode = StatusCodes.Status403Forbidden
-            };
-            return;
-        }
-
-        var rawRole = roleHeader.ToString().Replace(" ", "");
-        if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
-            !AuthorizedRoles.Contains(role))
-        {
-            context.Result = new ObjectResult(new { error = "Only Scrum Masters can perform this action." })
-            {
-                StatusCode = StatusCodes.Status403Forbidden
-            };
-            return;
+                context.Result = new ObjectResult(new { error = "Only Scrum Masters can perform this action." })
+                {
+                    StatusCode = StatusCodes.Status403Forbidden
+                };
+                return;
+            }
         }
 
         base.OnActionExecuting(context);

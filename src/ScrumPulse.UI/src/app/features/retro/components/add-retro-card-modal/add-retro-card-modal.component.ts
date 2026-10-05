@@ -32,7 +32,8 @@ export class AddRetroCardModalComponent implements OnInit {
       const catMap: Record<string, number> = {
         'WentWell': 0,
         'DidntGoWell': 1,
-        'Ideas': 2
+        'Ideas': 2,
+        'ActionItem': 2
       };
       const catVal = typeof this.editingCard.category === 'string'
         ? (catMap[this.editingCard.category] ?? 0)

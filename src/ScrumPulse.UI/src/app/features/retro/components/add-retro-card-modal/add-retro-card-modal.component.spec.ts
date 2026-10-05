@@ -33,8 +33,7 @@ describe('AddRetroCardModalComponent', () => {
       authorId: 'm1',
       authorName: 'Alex',
       upvotesCount: 0,
-      isAnonymous: false,
-      createdAt: new Date().toISOString()
+      isAnonymous: false
     };
     component.ngOnInit();
     expect(component.card.category).toBe(2);
