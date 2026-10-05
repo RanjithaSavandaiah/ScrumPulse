@@ -15,9 +15,29 @@ describe('AddRetroCardModalComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create and have 4 retro categories', () => {
+  it('should create and have 3 retro categories (excluding Action Item)', () => {
     expect(component).toBeTruthy();
-    expect(component.categories.length).toBe(4);
+    expect(component.categories.length).toBe(3);
+    const categoryValues = component.categories.map(c => c.value);
+    expect(categoryValues).toEqual([0, 1, 2]);
+    const categoryLabels = component.categories.map(c => c.label);
+    expect(categoryLabels).not.toContain('Action Item');
+  });
+
+  it('should safely remap legacy ActionItem category to Ideas when editing', () => {
+    component.editingCard = {
+      id: 'c-legacy',
+      sprintId: 's1',
+      category: 'ActionItem' as any,
+      content: 'Legacy note',
+      authorId: 'm1',
+      authorName: 'Alex',
+      upvotesCount: 0,
+      isAnonymous: false,
+      createdAt: new Date().toISOString()
+    };
+    component.ngOnInit();
+    expect(component.card.category).toBe(2);
   });
 
   it('should apply preset content', () => {

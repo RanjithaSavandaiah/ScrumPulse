@@ -165,14 +165,14 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     }
 
     [HttpPost("actions/{id:guid}/toggle")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RetroActionItemDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ToggleActionItem(Guid id, CancellationToken ct)
+    public async Task<ActionResult<RetroActionItemDto>> ToggleActionItem(Guid id, CancellationToken ct)
     {
-        var actionItem = await db.RetroActionItems.FirstOrDefaultAsync(item => item.Id == id, ct);
+        var actionItem = await db.RetroActionItems.Include(item => item.Assignee).FirstOrDefaultAsync(item => item.Id == id, ct);
         if (actionItem == null) return NotFound();
         actionItem.IsCompleted = !actionItem.IsCompleted;
         await db.SaveChangesAsync(ct);
-        return Ok(new { actionItem.IsCompleted });
+        return Ok(actionItem.ToDto());
     }
 }

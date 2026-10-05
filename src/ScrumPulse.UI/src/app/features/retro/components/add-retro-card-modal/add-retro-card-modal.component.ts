@@ -32,15 +32,14 @@ export class AddRetroCardModalComponent implements OnInit {
       const catMap: Record<string, number> = {
         'WentWell': 0,
         'DidntGoWell': 1,
-        'Ideas': 2,
-        'ActionItem': 3
+        'Ideas': 2
       };
       const catVal = typeof this.editingCard.category === 'string'
         ? (catMap[this.editingCard.category] ?? 0)
         : (this.editingCard.category ?? 0);
 
       this.card = {
-        category: catVal,
+        category: catVal > 2 ? 2 : catVal,
         authorId: this.editingCard.authorId || '',
         content: this.editingCard.content || '',
         isAnonymous: !!this.editingCard.isAnonymous
@@ -51,8 +50,7 @@ export class AddRetroCardModalComponent implements OnInit {
   categories: { value: number; label: string; icon: IconName; color: string; desc: string }[] = [
     { value: 0, label: 'Went Well', icon: 'smile', color: 'var(--accent-success)', desc: 'Wins, smooth workflows, and good teamwork' },
     { value: 1, label: "Didn't Go Well", icon: 'frown', color: 'var(--accent-danger)', desc: 'Roadblocks, PR stalls, requirement gaps' },
-    { value: 2, label: 'Ideas & Experiments', icon: 'lightbulb', color: 'var(--accent-secondary)', desc: 'New tools, pairing spikes, process trials' },
-    { value: 3, label: 'Action Item', icon: 'check-square', color: 'var(--accent-purple)', desc: 'Committed improvement for next sprint' }
+    { value: 2, label: 'Ideas & Experiments', icon: 'lightbulb', color: 'var(--accent-secondary)', desc: 'New tools, pairing spikes, process trials' }
   ];
 
   presets = [

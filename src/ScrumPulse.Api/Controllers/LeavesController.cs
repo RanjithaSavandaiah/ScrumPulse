@@ -30,6 +30,7 @@ public class LeavesController : BaseApiController
     }
 
     /// <summary>Testing constructor providing backward compatibility for direct DbContext tests.</summary>
+    [Obsolete("Extract to TestMediatorFactory in the test project — testing DI composition does not belong in production controllers.")]
     public LeavesController(
         IAppDbContext db,
         IMetricsCalculatorService metricsCalculatorService,

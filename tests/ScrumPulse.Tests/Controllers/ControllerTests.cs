@@ -379,8 +379,10 @@ public class ControllerTests
 
         // 6. Toggle Action Item
         var toggleResult = await controller.ToggleActionItem(actionDto.Id, Ct);
-        var toggleOk = Assert.IsType<OkObjectResult>(toggleResult);
-        Assert.NotNull(toggleOk.Value);
+        var toggleOk = Assert.IsType<OkObjectResult>(toggleResult.Result);
+        var toggleDto = Assert.IsType<RetroActionItemDto>(toggleOk.Value);
+        Assert.False(toggleDto.IsCompleted); // Was true after update, toggled back to false
+        Assert.Equal("Setup Playwright scaffold and CI steps", toggleDto.Title);
 
         // 7. Delete Card and Action Item
         var delCardResult = await controller.DeleteCard(cardDto.Id, Ct);

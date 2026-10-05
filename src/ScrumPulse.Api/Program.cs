@@ -201,13 +201,16 @@ using (var scope = app.Services.CreateScope())
     await DbInitializer.SeedAsync(db, seedDemoData, dbLogger);
 }
 
-// -- Swagger --
-app.UseSwagger();
-app.UseSwaggerUI(swaggerUiOptions =>
+// -- Swagger (dev only to save resources on free-tier hosting) --
+if (app.Environment.IsDevelopment())
 {
-    swaggerUiOptions.SwaggerEndpoint("/swagger/v1/swagger.json", "ScrumPulse API v1");
-    swaggerUiOptions.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(swaggerUiOptions =>
+    {
+        swaggerUiOptions.SwaggerEndpoint("/swagger/v1/swagger.json", "ScrumPulse API v1");
+        swaggerUiOptions.RoutePrefix = "swagger";
+    });
+}
 
 // ── Static Files & Routing ───────────────────────────────────────────────
 var corsPolicy = app.Environment.IsDevelopment() ? "Development" : "Production";

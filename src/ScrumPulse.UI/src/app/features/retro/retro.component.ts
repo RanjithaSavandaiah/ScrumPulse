@@ -82,8 +82,12 @@ export class RetroComponent implements OnInit {
   });
 
   getCardsByCategory(categoryIndex: number) {
-    const categoryNames = ['WentWell', 'DidntGoWell', 'Ideas', 'ActionItem'];
+    const categoryNames = ['WentWell', 'DidntGoWell', 'Ideas'];
     return this.filteredCards().filter((retroCard: any) => {
+      if (categoryIndex === 2) {
+        return retroCard.category === 2 || retroCard.category === 'Ideas' ||
+               retroCard.category === 3 || retroCard.category === 'ActionItem';
+      }
       return retroCard.category === categoryIndex || retroCard.category === categoryNames[categoryIndex];
     });
   }

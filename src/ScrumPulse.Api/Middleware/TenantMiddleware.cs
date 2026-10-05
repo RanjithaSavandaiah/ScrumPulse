@@ -13,6 +13,7 @@ public class TenantMiddleware(RequestDelegate next)
     public const string HeaderName = "X-Team-Id";
     public const string QueryParamName = "teamId";
     public const string CookieName = "ScrumPulse_TeamId";
+    private const int MaxUserNameLength = 100;
 
     public async Task InvokeAsync(HttpContext context, ITenantContext tenantContext)
     {
@@ -39,20 +40,21 @@ public class TenantMiddleware(RequestDelegate next)
         }
 
         // Resolve Operator / User Identity for Audit Stamping (CreatedBy / UpdatedBy)
+        // Truncate to MaxUserNameLength to prevent oversized audit field storage from malicious headers
         if (context.Request.Headers.TryGetValue("X-User-Name", out var userHeader) &&
             !string.IsNullOrWhiteSpace(userHeader.FirstOrDefault()))
         {
-            tenantContext.CurrentUser = userHeader.FirstOrDefault()!.Trim();
+            tenantContext.CurrentUser = Truncate(userHeader.FirstOrDefault()!.Trim());
         }
         else if (context.Request.Headers.TryGetValue("X-User-Role", out var roleHeader) &&
                  !string.IsNullOrWhiteSpace(roleHeader.FirstOrDefault()))
         {
-            tenantContext.CurrentUser = roleHeader.FirstOrDefault()!.Trim();
+            tenantContext.CurrentUser = Truncate(roleHeader.FirstOrDefault()!.Trim());
         }
         else if (context.Request.Cookies.TryGetValue("ScrumPulse_User", out var cookieUser) &&
                  !string.IsNullOrWhiteSpace(cookieUser))
         {
-            tenantContext.CurrentUser = cookieUser.Trim();
+            tenantContext.CurrentUser = Truncate(cookieUser.Trim());
         }
         else
         {
@@ -61,4 +63,8 @@ public class TenantMiddleware(RequestDelegate next)
 
         await next(context);
     }
+
+    /// <summary>Truncates input to MaxUserNameLength to prevent oversized audit field storage.</summary>
+    private static string Truncate(string value) =>
+        value.Length > MaxUserNameLength ? value[..MaxUserNameLength] : value;
 }

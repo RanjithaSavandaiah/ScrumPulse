@@ -165,11 +165,9 @@
           <app-icon name="check-square" [size]="18" color="var(--accent-purple)"></app-icon>
           Action Items
         </h4>
-        @if (state.canEditOrDelete()) {
-          <button (click)="onOpenAddAction()" class="btn-mini-add" title="Add Action Item">
-            <app-icon name="plus" [size]="13"></app-icon> Add Action
-          </button>
-        }
+        <button (click)="onOpenAddAction()" class="btn-mini-add" title="Add Action Item">
+          <app-icon name="plus" [size]="13"></app-icon> Add Action
+        </button>
       </div>
       @for (actionItem of filteredActions(); track actionItem.id) {
         <div class="retro-card action-item-card" [style.border-left]="actionItem.isCompleted ? '4px solid var(--accent-success)' : '4px solid var(--accent-warning)'">
@@ -178,7 +176,14 @@
             <input type="checkbox" [checked]="actionItem.isCompleted" (change)="state.toggleRetroAction(actionItem.id)" />
           </div>
           <div class="action-card-bottom">
-            <div class="action-owner">Owner: <strong>{{ actionItem.assigneeName || 'Team' }}</strong></div>
+            <div class="action-meta">
+              <span class="action-owner">Owner: <strong>{{ actionItem.assigneeName || 'Team' }}</strong></span>
+              @if (actionItem.dueDate) {
+                <span class="action-due-date" title="Target completion date">
+                  <app-icon name="calendar" [size]="11"></app-icon> {{ actionItem.dueDate | date:'mediumDate' }}
+                </span>
+              }
+            </div>
             @if (state.canEditOrDelete()) {
               <div class="action-item-actions">
                 <button (click)="onEditAction(actionItem)" class="icon-action-btn edit-action" title="Edit Action Item">

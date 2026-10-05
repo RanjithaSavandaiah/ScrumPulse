@@ -283,6 +283,20 @@
   margin-top: 0.4rem;
 }
 
+.action-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.action-due-date {
+  font-size: 0.72rem;
+  color: var(--accent-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .action-item-actions {
   display: flex;
   align-items: center;

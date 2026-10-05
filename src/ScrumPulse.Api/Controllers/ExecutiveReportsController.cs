@@ -27,6 +27,7 @@ public class ExecutiveReportsController : BaseApiController
     }
 
     /// <summary>Testing constructor providing backward compatibility for direct DbContext tests.</summary>
+    [Obsolete("Extract to TestMediatorFactory in the test project — testing DI composition does not belong in production controllers.")]
     public ExecutiveReportsController(
         IMetricsCalculatorService metricsCalculatorService,
         IAppDbContext db,

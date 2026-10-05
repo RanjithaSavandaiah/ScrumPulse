@@ -61,7 +61,7 @@ public class EfUnitOfWork : IUnitOfWork
         return result;
     }
 
-    public Task RollbackAsync(CancellationToken ct = default)
+    public async Task RollbackAsync(CancellationToken ct = default)
     {
         foreach (var entry in _db.ChangeTracker.Entries())
         {
@@ -69,14 +69,13 @@ public class EfUnitOfWork : IUnitOfWork
             {
                 case Microsoft.EntityFrameworkCore.EntityState.Modified:
                 case Microsoft.EntityFrameworkCore.EntityState.Deleted:
-                    entry.Reload();
+                    await entry.ReloadAsync(ct);
                     break;
                 case Microsoft.EntityFrameworkCore.EntityState.Added:
                     entry.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
                     break;
             }
         }
-        return Task.CompletedTask;
     }
 
     /// <summary>

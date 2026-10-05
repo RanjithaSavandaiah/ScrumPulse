@@ -273,7 +273,11 @@ describe('Modular NgRx Reducers', () => {
 
     const mockAction: RetroActionItem = {
       id: 'a-1',
+      sprintId: 's-1',
       title: 'Upgrade Node',
+      assigneeId: 'm-1',
+      assigneeName: 'Alice',
+      dueDate: '2026-09-20',
       isCompleted: false
     };
 
@@ -292,6 +296,81 @@ describe('Modular NgRx Reducers', () => {
 
       state = retrosReducer(state, RetroActions.deleteRetroCardSuccess({ id: 'c-1' }));
       expect(state.cards.length).toBe(0);
+    });
+
+    it('should prepend action item on createRetroActionSuccess', () => {
+      const existing: RetroActionItem = { id: 'a-0', title: 'Existing', isCompleted: true };
+      const init = { ...initialRetrosState, actions: [existing] };
+
+      const state = retrosReducer(init, RetroActions.createRetroActionSuccess({ action: mockAction }));
+      expect(state.actions.length).toBe(2);
+      expect(state.actions[0].id).toBe('a-1');
+      expect(state.actions[0].title).toBe('Upgrade Node');
+    });
+
+    it('should update action item in place on updateRetroActionSuccess', () => {
+      const init = { ...initialRetrosState, actions: [mockAction] };
+      const updated: RetroActionItem = { ...mockAction, title: 'Upgrade Node to v22', isCompleted: true };
+
+      const state = retrosReducer(init, RetroActions.updateRetroActionSuccess({ action: updated }));
+      expect(state.actions.length).toBe(1);
+      expect(state.actions[0].title).toBe('Upgrade Node to v22');
+      expect(state.actions[0].isCompleted).toBeTrue();
+      expect(state.actions[0].assigneeName).toBe('Alice');
+    });
+
+    it('should remove action item on deleteRetroActionSuccess', () => {
+      const init = { ...initialRetrosState, actions: [mockAction] };
+      const state = retrosReducer(init, RetroActions.deleteRetroActionSuccess({ id: 'a-1' }));
+      expect(state.actions.length).toBe(0);
+    });
+
+    it('should toggle action item and preserve all fields on toggleRetroActionSuccess', () => {
+      const init = { ...initialRetrosState, actions: [mockAction] };
+
+      // Simulate what the backend now returns — a complete action item with isCompleted flipped
+      const toggled: RetroActionItem = { ...mockAction, isCompleted: true };
+      const state = retrosReducer(init, RetroActions.toggleRetroActionSuccess({ action: toggled }));
+
+      expect(state.actions.length).toBe(1);
+      expect(state.actions[0].isCompleted).toBeTrue();
+      // Critical: all other fields must be preserved (this was the bug)
+      expect(state.actions[0].id).toBe('a-1');
+      expect(state.actions[0].title).toBe('Upgrade Node');
+      expect(state.actions[0].assigneeId).toBe('m-1');
+      expect(state.actions[0].assigneeName).toBe('Alice');
+      expect(state.actions[0].sprintId).toBe('s-1');
+      expect(state.actions[0].dueDate).toBe('2026-09-20');
+    });
+
+    it('should not corrupt other action items when toggling one', () => {
+      const action2: RetroActionItem = { id: 'a-2', title: 'Fix CI', assigneeName: 'Bob', isCompleted: false };
+      const init = { ...initialRetrosState, actions: [mockAction, action2] };
+
+      const toggled: RetroActionItem = { ...mockAction, isCompleted: true };
+      const state = retrosReducer(init, RetroActions.toggleRetroActionSuccess({ action: toggled }));
+
+      expect(state.actions.length).toBe(2);
+      expect(state.actions[0].isCompleted).toBeTrue();
+      // Second action should remain untouched
+      expect(state.actions[1].id).toBe('a-2');
+      expect(state.actions[1].title).toBe('Fix CI');
+      expect(state.actions[1].assigneeName).toBe('Bob');
+      expect(state.actions[1].isCompleted).toBeFalse();
+    });
+
+    it('should handle updateRetroCardSuccess', () => {
+      const init = { ...initialRetrosState, cards: [mockCard] };
+      const updatedCard: RetroCard = { ...mockCard, content: 'CI speedup v2' };
+      const state = retrosReducer(init, RetroActions.updateRetroCardSuccess({ card: updatedCard }));
+      expect(state.cards[0].content).toBe('CI speedup v2');
+    });
+
+    it('should replace card on voteRetroCardSuccess', () => {
+      const init = { ...initialRetrosState, cards: [mockCard] };
+      const votedCard: RetroCard = { ...mockCard, upvotesCount: 5 };
+      const state = retrosReducer(init, RetroActions.voteRetroCardSuccess({ card: votedCard }));
+      expect(state.cards[0].upvotesCount).toBe(5);
     });
   });
 

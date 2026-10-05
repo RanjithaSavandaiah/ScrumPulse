@@ -19,7 +19,7 @@ public class SecurityHeadersMiddlewareTests
         var headers = context.Response.Headers;
         Assert.Equal("nosniff", headers["X-Content-Type-Options"]);
         Assert.Equal("DENY", headers["X-Frame-Options"]);
-        Assert.Equal("1; mode=block", headers["X-XSS-Protection"]);
+        Assert.Equal("0", headers["X-XSS-Protection"]);
         Assert.Contains("max-age=31536000", headers["Strict-Transport-Security"].ToString());
         Assert.Equal("strict-origin-when-cross-origin", headers["Referrer-Policy"]);
         Assert.Contains("default-src 'self'", headers["Content-Security-Policy"].ToString());

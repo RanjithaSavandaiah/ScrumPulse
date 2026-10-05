@@ -365,6 +365,7 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
     /// <summary>
     /// Calculates exact business working days between startDate and endDate (inclusive),
     /// excluding Saturdays and Sundays.
+    /// Uses O(1) mathematical formula instead of day-by-day iteration.
     /// </summary>
     public static int CalculateWorkingDays(DateTime startDate, DateTime endDate)
     {
@@ -372,14 +373,24 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         var end = endDate.Date;
         if (end < start) return 0;
 
-        int workingDays = 0;
-        for (var date = start; date <= end; date = date.AddDays(1))
+        int totalDays = (int)(end - start).TotalDays + 1;
+        int fullWeeks = totalDays / 7;
+        int remainingDays = totalDays % 7;
+
+        // Full weeks contribute 5 working days each
+        int workingDays = fullWeeks * 5;
+
+        // Count working days in the remaining partial week
+        var currentDay = start.AddDays(fullWeeks * 7);
+        for (int i = 0; i < remainingDays; i++)
         {
-            if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
+            if (currentDay.DayOfWeek != DayOfWeek.Saturday && currentDay.DayOfWeek != DayOfWeek.Sunday)
             {
                 workingDays++;
             }
+            currentDay = currentDay.AddDays(1);
         }
+
         return Math.Max(1, workingDays);
     }
 
@@ -388,11 +399,13 @@ public class MetricsCalculatorService(IAppDbContext db, ILogger<MetricsCalculato
         var sprintA = await db.Sprints
             .Include(sprint => sprint.WorkItems)
             .Include(sprint => sprint.Blockers)
+            .AsNoTracking()
             .FirstOrDefaultAsync(sprint => sprint.Id == sprintAId, ct)
             ?? throw new KeyNotFoundException($"Sprint {sprintAId} not found");
         var sprintB = await db.Sprints
             .Include(sprint => sprint.WorkItems)
             .Include(sprint => sprint.Blockers)
+            .AsNoTracking()
             .FirstOrDefaultAsync(sprint => sprint.Id == sprintBId, ct)
             ?? throw new KeyNotFoundException($"Sprint {sprintBId} not found");
 

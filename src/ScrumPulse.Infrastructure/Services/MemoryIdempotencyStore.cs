@@ -102,11 +102,11 @@ public sealed class IdempotencyCleanupService : BackgroundService
 {
     private readonly MemoryIdempotencyStore _store;
     private readonly ILogger<IdempotencyCleanupService> _logger;
-    private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(30);
 
-    public IdempotencyCleanupService(IIdempotencyStore store, ILogger<IdempotencyCleanupService> logger)
+    public IdempotencyCleanupService(MemoryIdempotencyStore store, ILogger<IdempotencyCleanupService> logger)
     {
-        _store = (MemoryIdempotencyStore)store;
+        _store = store;
         _logger = logger;
     }
 

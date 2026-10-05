@@ -16,8 +16,8 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
         // Prevent clickjacking via framing
         headers["X-Frame-Options"] = "DENY";
 
-        // Enable browser XSS protection
-        headers["X-XSS-Protection"] = "1; mode=block";
+        // Disable legacy XSS auditor (deprecated; can introduce XSS in older browsers — rely on CSP instead)
+        headers["X-XSS-Protection"] = "0";
 
         // Enforce HTTPS via HSTS (1 year)
         headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
