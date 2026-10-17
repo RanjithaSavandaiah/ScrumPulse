@@ -21,7 +21,7 @@ public class MicrosoftAgentServiceTests
         var db = new AppDbContext(options);
         var store = new MemoryIdempotencyStore();
         var config = new AgentConfiguration();
-        var aiService = new MicrosoftAgentService(db, store, config, NullLogger<MicrosoftAgentService>.Instance);
+        var aiService = AiTestHarness.CreateService(db, store);
         return (db, aiService);
     }
 

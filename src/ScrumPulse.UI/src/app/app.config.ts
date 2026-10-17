@@ -1,5 +1,5 @@
 import { ApplicationConfig, isDevMode, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
@@ -12,7 +12,17 @@ import { appEffects, appReducers } from './core/state';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    provideRouter(
+      routes,
+
+      // Binds route parameters straight to component inputs, so the blog article reads its
+      // slug as an input rather than subscribing to ParamMap and needing to unsubscribe.
+      withComponentInputBinding(),
+
+      // Without this, following a link from halfway down the blog index opens the article
+      // still scrolled halfway down.
+      withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' })
+    ),
     provideHttpClient(withFetch(), withInterceptors([tenantInterceptor, errorInterceptor])),
     provideStore(appReducers),
     provideEffects(appEffects),

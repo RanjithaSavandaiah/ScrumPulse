@@ -16,7 +16,7 @@ RUN npm run build 2>&1
 # ----------------------------------------------------
 # Stage 2: Build Backend (.NET 10 Web API)
 # ----------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS backend-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS backend-build
 WORKDIR /src
 
 # Copy project files and restore
@@ -38,11 +38,13 @@ COPY --from=frontend-build /app/frontend/dist/scrum-pulse.ui/browser /app/publis
 # ----------------------------------------------------
 # Stage 3: Runtime Environment
 # ----------------------------------------------------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview-alpine AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 # Install GSSAPI/Kerberos library required by Npgsql PostgreSQL driver on Linux
-RUN apk add --no-cache krb5-libs curl
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=backend-build /app/publish .
 
@@ -50,8 +52,6 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080
 ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
-ENV DOTNET_EnableDiagnostics=0
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
 
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "ScrumPulse.Api.dll"]

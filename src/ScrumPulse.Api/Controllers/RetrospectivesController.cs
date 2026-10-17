@@ -2,6 +2,7 @@ namespace ScrumPulse.Api.Controllers;
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
@@ -116,6 +117,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
         return Ok(card.ToDto());
     }
 
+    [RequireScrumMaster]
     [HttpDelete("cards/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -152,6 +154,7 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
         return Ok(item.ToDto());
     }
 
+    [RequireScrumMaster]
     [HttpDelete("actions/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -165,14 +168,14 @@ public class RetrospectivesController(IAppDbContext db) : BaseApiController
     }
 
     [HttpPost("actions/{id:guid}/toggle")]
-    [ProducesResponseType(typeof(RetroActionItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<RetroActionItemDto>> ToggleActionItem(Guid id, CancellationToken ct)
+    public async Task<IActionResult> ToggleActionItem(Guid id, CancellationToken ct)
     {
-        var actionItem = await db.RetroActionItems.Include(item => item.Assignee).FirstOrDefaultAsync(item => item.Id == id, ct);
+        var actionItem = await db.RetroActionItems.FirstOrDefaultAsync(item => item.Id == id, ct);
         if (actionItem == null) return NotFound();
         actionItem.IsCompleted = !actionItem.IsCompleted;
         await db.SaveChangesAsync(ct);
-        return Ok(actionItem.ToDto());
+        return Ok(new { actionItem.IsCompleted });
     }
 }

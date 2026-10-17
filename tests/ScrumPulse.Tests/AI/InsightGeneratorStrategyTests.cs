@@ -12,7 +12,7 @@ public class InsightGeneratorStrategyTests
         Assert.Equal("Individual", generator.Level);
 
         var ctx = new InsightContext { MemberName = "Test Developer" };
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Equal("Individual", result.Level);
         Assert.Equal("No Data (Telemetry Pending)", result.RiskLevel);
@@ -36,7 +36,7 @@ public class InsightGeneratorStrategyTests
             StandupCount = 10
         };
 
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Contains(result.KeyFindings, f => f.Contains("WARNING - PR Latency"));
         Assert.Contains(result.ActionableRecommendations, r => r.Contains("golden review window"));
@@ -59,7 +59,7 @@ public class InsightGeneratorStrategyTests
             StandupCount = 5
         };
 
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Contains(result.KeyFindings, f => f.Contains("WARNING - WELLBEING RADAR"));
         Assert.Contains("Burnout Sentinel Triggered", result.RiskLevel);
@@ -72,7 +72,7 @@ public class InsightGeneratorStrategyTests
         Assert.Equal("Project", generator.Level);
 
         var ctx = new InsightContext { SprintName = "Sprint 99" };
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Equal("Project", result.Level);
         Assert.Equal("No Data (Telemetry Pending)", result.RiskLevel);
@@ -94,7 +94,7 @@ public class InsightGeneratorStrategyTests
             TotalTechTalks = 2
         };
 
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Contains("High", result.RiskLevel);
         Assert.Contains(result.KeyFindings, f => f.Contains("3 active blocker(s)"));
@@ -108,7 +108,7 @@ public class InsightGeneratorStrategyTests
         Assert.Equal("Company", generator.Level);
 
         var ctx = new InsightContext();
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Equal("Company", result.Level);
         Assert.Equal("No Data (Telemetry Pending)", result.RiskLevel);
@@ -132,7 +132,7 @@ public class InsightGeneratorStrategyTests
             TotalTechTalks = 6
         };
 
-        var result = await generator.GenerateAsync(ctx);
+        var result = generator.Generate(ctx);
 
         Assert.Contains("High", result.RiskLevel);
         Assert.Contains(result.KeyFindings, f => f.Contains("120 story points"));

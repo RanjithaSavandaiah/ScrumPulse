@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
@@ -70,6 +71,7 @@ public class TeamMembersController(IAppDbContext db, ITenantContext? tenantConte
         return Ok(member);
     }
 
+    [RequireScrumMaster]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TeamMember), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -104,6 +106,7 @@ public class TeamMembersController(IAppDbContext db, ITenantContext? tenantConte
         return Ok(member);
     }
 
+    [RequireScrumMaster]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

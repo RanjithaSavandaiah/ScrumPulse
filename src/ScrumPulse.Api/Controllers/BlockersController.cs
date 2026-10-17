@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.Blockers;
 using ScrumPulse.Application.Common.Interfaces;
@@ -73,6 +74,7 @@ public class BlockersController(
         return Ok(result);
     }
 
+    [RequireScrumMaster]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {

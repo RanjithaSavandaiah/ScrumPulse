@@ -1,42 +1,56 @@
 namespace ScrumPulse.Api.Filters;
 
-using System.Collections.Frozen;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using ScrumPulse.Domain.Enums;
+using ScrumPulse.Application.Common.Security;
 
 /// <summary>
-/// Authorization filter restricting endpoint access to Scrum Master, CDL, and Agile Coach roles.
-/// Reads the <c>X-User-Role</c> header and returns 403 Forbidden for unauthorized roles.
-/// Apply via <c>[RequireScrumMaster]</c> on controller actions that require elevated privileges.
+/// Restricts an endpoint to sessions holding a privileged role: Scrum Master, CDL, or Agile Coach.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The previous implementation read the role from an <c>X-User-Role</c> request header, which
+/// the caller controls, and let the request through whenever that header was absent or did not
+/// parse. A plain curl with no headers therefore passed every check it guarded.
+/// </para>
+/// <para>
+/// Authorisation now derives from the signed session token and denies by default: no session,
+/// or a session without a privileged role, is rejected. That role can only have been written
+/// into the token by the server, after the caller supplied the correct squad PIN.
+/// </para>
+/// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
-public sealed class RequireScrumMasterAttribute : ActionFilterAttribute
+public sealed class RequireScrumMasterAttribute : Attribute, IAuthorizationFilter
 {
-    private static readonly FrozenSet<RoleType> AuthorizedRoles =
-    new[]
+    public void OnAuthorization(AuthorizationFilterContext context)
     {
-        RoleType.ScrumMaster,
-        RoleType.Cdl,
-        RoleType.AgileCoach
-    }.ToFrozenSet();
+        var session = context.HttpContext.User.GetTeamSession();
 
-    public override void OnActionExecuting(ActionExecutingContext context)
-    {
-        if (context.HttpContext.Request.Headers.TryGetValue("X-User-Role", out var roleHeader))
+        if (session is null)
         {
-            var rawRole = roleHeader.ToString().Replace(" ", "");
-            if (Enum.TryParse<RoleType>(rawRole, ignoreCase: true, out var role) &&
-                !AuthorizedRoles.Contains(role))
+            context.Result = new ObjectResult(new ProblemDetails
             {
-                context.Result = new ObjectResult(new { error = "Only Scrum Masters can perform this action." })
-                {
-                    StatusCode = StatusCodes.Status403Forbidden
-                };
-                return;
-            }
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "No active squad session",
+                Detail = "Join a squad with its join code to continue."
+            })
+            {
+                StatusCode = StatusCodes.Status401Unauthorized
+            };
+            return;
         }
 
-        base.OnActionExecuting(context);
+        if (!session.Value.IsPrivileged)
+        {
+            context.Result = new ObjectResult(new ProblemDetails
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Title = "Scrum Master access required",
+                Detail = "Switch to the Scrum Master role and enter the squad PIN to perform this action."
+            })
+            {
+                StatusCode = StatusCodes.Status403Forbidden
+            };
+        }
     }
 }

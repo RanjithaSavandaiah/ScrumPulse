@@ -12,10 +12,24 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Microsoft Agent Framework: the agent abstraction, run pipeline, and middleware. -->
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.22.0" />
+
+    <!--
+      Reaches any OpenAI-compatible inference endpoint through a single IChatClient. Both
+      providers used here speak that dialect: Groq natively, and Gemini through its
+      compatibility endpoint. One client type for both is what lets provider failover be a
+      configuration concern rather than a second code path.
+    -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
+    <PackageReference Include="OpenAI" Version="2.13.0" />
+
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
 </Project>

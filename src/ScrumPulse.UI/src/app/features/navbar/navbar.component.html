@@ -59,8 +59,13 @@
       }
     </div>
 
-    <button (click)="toggleTheme()" class="btn-secondary icon-btn" title="Toggle Dark/Light Mode">
-      <app-icon [name]="isDark ? 'moon' : 'sun'" [size]="16"></app-icon>
+    <button
+      (click)="toggleTheme()"
+      class="btn-secondary icon-btn"
+      [attr.title]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+      [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+    >
+      <app-icon [name]="isDark() ? 'moon' : 'sun'" [size]="16"></app-icon>
     </button>
 
     <button (click)="state.refreshAllData()" class="btn-secondary icon-btn" title="Refresh Data">

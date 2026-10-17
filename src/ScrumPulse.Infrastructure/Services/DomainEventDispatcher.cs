@@ -1,7 +1,5 @@
 namespace ScrumPulse.Infrastructure.Services;
 
-using System.Collections.Concurrent;
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ScrumPulse.Domain.Events;
@@ -18,13 +16,9 @@ public interface IDomainEventHandler<in TEvent> where TEvent : IDomainEvent
 /// <summary>
 /// Dispatches domain events to all registered handlers via the DI container.
 /// Uses structured logging for observability.
-/// Caches reflected MethodInfo per handler type to avoid per-dispatch reflection overhead.
 /// </summary>
 public class DomainEventDispatcher(IServiceProvider serviceProvider, ILogger<DomainEventDispatcher> logger)
 {
-    /// <summary>Cached HandleAsync MethodInfo per handler interface type to avoid repeated reflection.</summary>
-    private static readonly ConcurrentDictionary<Type, MethodInfo?> _methodCache = new();
-
     public async Task DispatchAsync(IDomainEvent domainEvent, CancellationToken ct = default)
     {
         var eventType = domainEvent.GetType();
@@ -37,13 +31,11 @@ public class DomainEventDispatcher(IServiceProvider serviceProvider, ILogger<Dom
             "Dispatching domain event {EventType} (ID: {EventId}, At: {Timestamp}) to {HandlerCount} handler(s)",
             eventType.Name, domainEvent.EventId, domainEvent.OccurredAtUtc, handlerList.Count);
 
-        // Resolve and cache the HandleAsync method once per handler interface type
-        var method = _methodCache.GetOrAdd(handlerInterfaceType, type => type.GetMethod("HandleAsync"));
-
         foreach (var handler in handlerList)
         {
             try
             {
+                var method = handlerInterfaceType.GetMethod("HandleAsync");
                 if (method != null)
                 {
                     var task = (Task)method.Invoke(handler, [domainEvent, ct])!;
@@ -60,4 +52,3 @@ public class DomainEventDispatcher(IServiceProvider serviceProvider, ILogger<Dom
         }
     }
 }
-

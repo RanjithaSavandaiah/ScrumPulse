@@ -3,23 +3,45 @@ namespace ScrumPulse.AI.Strategies;
 using ScrumPulse.Application.DTOs;
 
 /// <summary>
-/// Strategy interface for AI insight generation.
-/// Each level (Individual/Project/Company) implements its own
-/// data aggregation and prompt construction strategy.
+/// Produces a rule-based delivery analysis for one scope, with no model involved.
 /// </summary>
+/// <remarks>
+/// <para>
+/// These implementations are the fallback the coach serves whenever live inference is not
+/// available: no API key configured, the daily free-tier allowance spent, the provider down,
+/// or a generated answer that failed its quality gate. They restate the retrieved metrics in
+/// plain language. Less insightful than a model, but immediate, free, and incapable of
+/// inventing a figure.
+/// </para>
+/// <para>
+/// Output from these generators is never described to the user as model-generated, because
+/// it is not. The service logs which path produced each response.
+/// </para>
+/// </remarks>
 public interface IInsightGenerator
 {
-    /// <summary>Level identifier (Individual, Project, Company).</summary>
+    /// <summary>Scope this generator covers: Individual, Project, or Company.</summary>
     string Level { get; }
 
-    /// <summary>Generates AI coaching insights for the specified context.</summary>
-    Task<AiSuggestionResponse> GenerateAsync(InsightContext context, CancellationToken ct = default);
+    /// <summary>Builds the analysis from already-retrieved metrics.</summary>
+    /// <remarks>
+    /// Synchronous by design. There is no I/O here: retrieval has already happened and this
+    /// is pure computation over the supplied context. An async signature would have implied
+    /// otherwise and forced every caller into a state machine for nothing.
+    /// </remarks>
+    AiSuggestionResponse Generate(InsightContext context);
 }
 
 /// <summary>
-/// Shared context object carrying all pre-fetched data needed for insight generation.
-/// Implements the Agentic RAG pattern: data is retrieved first, then injected into prompts.
+/// Metrics retrieved for one analysis scope, shared by the prompt builder, the rule-based
+/// generators, and the copilot's tools.
 /// </summary>
+/// <remarks>
+/// Populated by <c>IDeliveryMetricsRetriever</c>. Which fields carry meaning depends on the
+/// scope: member analysis fills the delivery and wellbeing fields, sprint analysis the
+/// commitment fields, portfolio analysis the cumulative ones. Unset fields stay at zero,
+/// which the prompt builder renders as "not yet measurable" rather than as a real zero.
+/// </remarks>
 public class InsightContext
 {
     public Guid? MemberId { get; set; }

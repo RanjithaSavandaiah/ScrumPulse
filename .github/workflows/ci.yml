@@ -130,7 +130,7 @@ jobs:
     name: Continuous Deployment to Render (Free)
     needs: [backend-quality-gate, frontend-unit-tests, e2e-console-sentinel]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: read
 

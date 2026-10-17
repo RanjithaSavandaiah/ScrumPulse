@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.CQRS;
@@ -127,6 +128,7 @@ public class WorkItemsController(
         return Ok(updated.ToDto());
     }
 
+    [RequireScrumMaster]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

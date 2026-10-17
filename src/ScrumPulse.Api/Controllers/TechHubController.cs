@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
@@ -92,6 +93,7 @@ public class TechHubController(IAppDbContext db) : BaseApiController
         return Ok(item.ToDto());
     }
 
+    [RequireScrumMaster]
     [HttpDelete("debt/{id:guid}")]
     [HttpDelete("tech-debt/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -163,6 +165,7 @@ public class TechHubController(IAppDbContext db) : BaseApiController
         return Ok(talk.ToDto());
     }
 
+    [RequireScrumMaster]
     [HttpDelete("talks/{id:guid}")]
     [HttpDelete("tech-talks/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

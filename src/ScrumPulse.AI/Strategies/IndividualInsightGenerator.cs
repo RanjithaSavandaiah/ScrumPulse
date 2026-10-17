@@ -9,7 +9,7 @@ public class IndividualInsightGenerator : IInsightGenerator
 {
     public string Level => "Individual";
 
-    public Task<AiSuggestionResponse> GenerateAsync(InsightContext ctx, CancellationToken ct = default)
+    public AiSuggestionResponse Generate(InsightContext ctx)
     {
         if (ctx.TotalAssigned == 0 && ctx.StandupCount == 0 && ctx.HappinessIndex == 0)
         {
@@ -25,14 +25,14 @@ public class IndividualInsightGenerator : IInsightGenerator
                 "Log daily standups to capture execution progress and blocker impediments.",
                 "Schedule the initial monthly 1:1 check-in to record baseline morale and growth goals."
             };
-            return Task.FromResult(new AiSuggestionResponse(
+            return new AiSuggestionResponse(
                 "Individual",
-                $"Microsoft AI Coaching Plan & 360° Intelligence: {ctx.MemberName}",
+                $"Delivery summary: {ctx.MemberName}",
                 $"Awaiting telemetry for {ctx.MemberName} — metrics will populate as sprint activities and standups are logged.",
                 noDataFindings, noDataRecs,
                 "No Data (Telemetry Pending)",
                 DateTime.UtcNow
-            ));
+            );
         }
 
         var findings = new List<string>
@@ -65,13 +65,13 @@ public class IndividualInsightGenerator : IInsightGenerator
                 : "Schedule monthly 1:1 touchpoint with CDL and Scrum Master to track personal career milestones."
         };
 
-        return Task.FromResult(new AiSuggestionResponse(
+        return new AiSuggestionResponse(
             "Individual",
-            $"Microsoft AI Coaching Plan & 360° Intelligence: {ctx.MemberName}",
+            $"Delivery summary: {ctx.MemberName}",
             $"Holistic evaluation synthesizing Velocity ({ctx.TotalStoryPoints} pts), Net Capacity ({ctx.TotalLeaveDays}d leave), {ctx.TechTalksGiven} Tech Talks, Standups & 1:1 Feedback.",
             findings, recs,
             ctx.HappinessIndex < 6 ? "Medium (Burnout Sentinel Triggered)" : "Low (Healthy Morale & High Flow)",
             DateTime.UtcNow
-        ));
+        );
     }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { RoleType, Team } from '../../core/models/scrum.models';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { SmPinModalComponent } from '../../core/components/sm-pin-modal/sm-pin-modal.component';
@@ -19,7 +20,17 @@ export const COPY_NOTIFICATION_DURATION_MS = 2000;
 export class NavbarComponent {
   state = inject(ScrumStateService);
   notification = inject(NotificationService);
-  isDark = true;
+
+  private readonly theme = inject(ThemeService);
+
+  /**
+   * Current theme, read from the shared service rather than held locally.
+   *
+   * This was a plain `isDark = true` field, so the icon reset to the dark-mode moon on every
+   * reload regardless of which theme was actually applied to the document.
+   */
+  readonly isDark = this.theme.isDark;
+
   showPinModal = signal(false);
 
   // Multi-Squad Modal State
@@ -171,9 +182,9 @@ export class NavbarComponent {
     this.state.lockSmSession();
   }
 
-  toggleTheme() {
-    this.isDark = !this.isDark;
-    document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+  /** Switches between dark and light. The choice is remembered across reloads. */
+  toggleTheme(): void {
+    this.theme.toggle();
   }
 }
 

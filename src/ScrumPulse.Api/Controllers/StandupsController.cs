@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.Standups;
 using ScrumPulse.Application.Common.Interfaces;
@@ -63,6 +64,7 @@ public class StandupsController : BaseApiController
         return Ok(result.Value);
     }
 
+    [RequireScrumMaster]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -76,6 +78,7 @@ public class StandupsController : BaseApiController
     /// Administrative endpoint to clear all standup data.
     /// Protected — requires the X-Admin-Key header matching the configured SM_PIN.
     /// </summary>
+    [RequireScrumMaster]
     [HttpDelete("clear-all")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

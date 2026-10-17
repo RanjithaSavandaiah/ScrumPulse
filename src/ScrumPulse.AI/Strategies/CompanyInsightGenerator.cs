@@ -9,7 +9,7 @@ public class CompanyInsightGenerator : IInsightGenerator
 {
     public string Level => "Company";
 
-    public Task<AiSuggestionResponse> GenerateAsync(InsightContext ctx, CancellationToken ct = default)
+    public AiSuggestionResponse Generate(InsightContext ctx)
     {
         if (ctx.SprintsCount == 0 && ctx.TotalWorkItems == 0)
         {
@@ -27,15 +27,15 @@ public class CompanyInsightGenerator : IInsightGenerator
                 "Record daily standup check-ins and log blockers to generate distributed collaboration intelligence."
             };
 
-            return Task.FromResult(new AiSuggestionResponse(
+            return new AiSuggestionResponse(
                 "Company",
-                "Microsoft Agent Strategic Distributed Collaboration Intelligence",
+                "Delivery trend summary",
                 "Enterprise-level analysis for CDL, Scrum Master, and Client leadership (Awaiting telemetry).",
                 noDataFindings,
                 noDataRecs,
                 "No Data (Telemetry Pending)",
                 DateTime.UtcNow
-            ));
+            );
         }
 
         int totalItems = ctx.TotalWorkItems;
@@ -130,14 +130,14 @@ public class CompanyInsightGenerator : IInsightGenerator
 
         var response = new AiSuggestionResponse(
             "Company",
-            "Microsoft Agent Strategic Distributed Collaboration Intelligence",
-            "Enterprise-level analysis for CDL, Scrum Master, and Client leadership.",
+            "Delivery trend summary",
+            "Rule-based rollup of delivery, quality and blocker figures across all recorded sprints.",
             findings,
             recs,
             riskLevel,
             DateTime.UtcNow
         );
 
-        return Task.FromResult(response);
+        return response;
     }
 }

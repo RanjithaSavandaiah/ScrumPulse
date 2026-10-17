@@ -6,10 +6,13 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using ScrumPulse.Api.Controllers;
 using ScrumPulse.Api.Filters;
+using ScrumPulse.Application.Common.Security;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Entities;
+using ScrumPulse.Domain.Enums;
 using ScrumPulse.Infrastructure.Persistence;
 using Xunit;
 
@@ -106,16 +109,18 @@ public class TeamsControllerTests
         // Test the RequireScrumMaster filter directly (proper unit test isolation)
         var filter = new RequireScrumMasterAttribute();
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers["X-User-Role"] = "Developer";
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ScrumPulseClaimTypes.TeamId, Guid.NewGuid().ToString()),
+                new Claim(ScrumPulseClaimTypes.TeamRole, RoleType.Developer.ToString()),
+                new Claim(ScrumPulseClaimTypes.DisplayName, "Test Member")
+            ],
+            authenticationType: "TestSession"));
 
         var actionContext = new ActionContext(httpContext, new RouteData(), new ActionDescriptor());
-        var filterContext = new ActionExecutingContext(
-            actionContext,
-            new List<IFilterMetadata> { filter },
-            new Dictionary<string, object?>(),
-            new TeamsController(CreateInMemoryDbContext()));
+        var filterContext = new AuthorizationFilterContext(actionContext, []);
 
-        filter.OnActionExecuting(filterContext);
+        filter.OnAuthorization(filterContext);
 
         var objectResult = Assert.IsType<ObjectResult>(filterContext.Result);
         Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
@@ -223,16 +228,18 @@ public class TeamsControllerTests
         // Test the RequireScrumMaster filter directly (proper unit test isolation)
         var filter = new RequireScrumMasterAttribute();
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers["X-User-Role"] = "Developer";
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ScrumPulseClaimTypes.TeamId, Guid.NewGuid().ToString()),
+                new Claim(ScrumPulseClaimTypes.TeamRole, RoleType.Developer.ToString()),
+                new Claim(ScrumPulseClaimTypes.DisplayName, "Test Member")
+            ],
+            authenticationType: "TestSession"));
 
         var actionContext = new ActionContext(httpContext, new RouteData(), new ActionDescriptor());
-        var filterContext = new ActionExecutingContext(
-            actionContext,
-            new List<IFilterMetadata> { filter },
-            new Dictionary<string, object?>(),
-            new TeamsController(CreateInMemoryDbContext()));
+        var filterContext = new AuthorizationFilterContext(actionContext, []);
 
-        filter.OnActionExecuting(filterContext);
+        filter.OnAuthorization(filterContext);
 
         var objResult = Assert.IsType<ObjectResult>(filterContext.Result);
         Assert.Equal(403, objResult.StatusCode);

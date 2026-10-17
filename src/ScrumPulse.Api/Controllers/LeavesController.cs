@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.Leaves;
 using ScrumPulse.Application.Common.Interfaces;
@@ -76,6 +77,7 @@ public class LeavesController : BaseApiController
         return Ok(result.Value);
     }
 
+    [RequireScrumMaster]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(TeamLeaveDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -93,6 +95,7 @@ public class LeavesController : BaseApiController
         return Ok(result.Value);
     }
 
+    [RequireScrumMaster]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

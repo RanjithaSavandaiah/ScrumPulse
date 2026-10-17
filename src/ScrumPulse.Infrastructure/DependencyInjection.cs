@@ -13,6 +13,7 @@ using ScrumPulse.Application.Services;
 using ScrumPulse.Infrastructure.Persistence;
 using ScrumPulse.Infrastructure.Registration;
 using ScrumPulse.Infrastructure.Repositories;
+using ScrumPulse.Infrastructure.Security;
 using ScrumPulse.Infrastructure.Services;
 
 public static class DependencyInjection
@@ -82,6 +83,29 @@ public static class DependencyInjection
         ));
 
         return services;
+    }
+
+    /// <summary>
+    /// Registers the signing key and token issuer backing team sessions.
+    /// </summary>
+    /// <param name="services">Service collection to register into.</param>
+    /// <param name="configuration">Configuration consulted for the signing key.</param>
+    /// <param name="isDevelopment">
+    /// When true, an ephemeral signing key is allowed so the app runs locally with no setup.
+    /// Anywhere else a missing key stops startup rather than silently weakening every session.
+    /// </param>
+    /// <returns>The resolved signing key, so the host can configure token validation against it.</returns>
+    public static SessionSigningKey AddSessionSecurity(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool isDevelopment)
+    {
+        var signingKey = SessionSigningKey.Resolve(configuration, isDevelopment);
+
+        services.AddSingleton(signingKey);
+        services.AddSingleton<ISessionTokenIssuer, JwtSessionTokenIssuer>();
+
+        return signingKey;
     }
 
     private static string NormalizePostgresConnectionString(string connStr)

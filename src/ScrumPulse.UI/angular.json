@@ -69,7 +69,10 @@
               "fonts": {
                 "inline": false
               }
-            }
+            },
+            "server": "src/main.server.ts",
+            "outputMode": "static",
+            "prerender": true
           },
           "configurations": {
             "production": {

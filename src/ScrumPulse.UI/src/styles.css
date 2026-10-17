@@ -648,3 +648,284 @@ select optgroup {
 
 
 
+
+/* ==========================================================================
+   Responsive layer
+   ==========================================================================
+   Kept here as one global block rather than repeating breakpoints across the
+   47 component stylesheets. The component class names are highly consistent
+   (.modal-content, .modal-footer, .form-group, .section-header and so on), so
+   a single set of rules reaches nearly all of them, and there is one place to
+   change a breakpoint rather than 37.
+
+   On !important: Angular's emulated encapsulation compiles a component rule
+   `.modal-content` into `.modal-content[_ngcontent-abc]`, which carries class
+   plus attribute specificity and so outranks anything written here. These
+   declarations only exist inside media queries, where the intent is precisely
+   to override the desktop rule, so the escalation is deliberate and bounded
+   rather than a shortcut around a specificity problem elsewhere.
+
+   Breakpoints: 1024px tablet and below, 640px phone and below.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  /* Multi-column grids collapse to two, then to one at phone width. */
+  .stats-grid,
+  .metrics-grid,
+  .cards-grid,
+  .dashboard-grid,
+  .split-controls {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Wide tables scroll horizontally instead of forcing the page to. */
+  .report-table,
+  .leaves-table,
+  .pr-table,
+  .matrix-table {
+    display: block !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* --- Modals become full-screen sheets --------------------------------- */
+  /* Fixed widths such as 680px and 540px overflow a 375px viewport, so every
+     dialog is clamped to the screen and the rounded card styling is dropped. */
+  .modal-backdrop {
+    padding: 0 !important;
+    align-items: flex-start !important;
+  }
+
+  .modal-content,
+  .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+  }
+
+  /* Footer buttons stack and go full width so they are reachable by thumb.
+     column-reverse keeps the primary action nearest the bottom of the screen. */
+  .modal-footer,
+  .footer-right {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+  }
+
+  .modal-footer > button,
+  .footer-right > button,
+  .btn-save,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    width: 100% !important;
+  }
+
+  /* --- Layout ------------------------------------------------------------ */
+  .stats-grid,
+  .metrics-grid,
+  .cards-grid,
+  .dashboard-grid,
+  .split-controls,
+  .control-col,
+  .form-row {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+  }
+
+  /* Section headers put their title above the actions rather than squeezing
+     both onto one line. */
+  .section-header,
+  .modal-header,
+  .title-wrap {
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  /* --- Inputs ------------------------------------------------------------ */
+  /* 16px is the threshold below which iOS Safari zooms the page on focus,
+     which then leaves the layout scrolled sideways. */
+  .interactive-input,
+  .interactive-textarea,
+  .picker-select,
+  input,
+  select,
+  textarea {
+    font-size: 1rem !important;
+    max-width: 100% !important;
+  }
+
+  /* --- Chips and horizontal strips --------------------------------------- */
+  .preset-chips,
+  .filter-chips {
+    flex-wrap: wrap !important;
+  }
+
+  /* Nothing should be able to push the page wider than the viewport. */
+  .page-container,
+  .content-wrap,
+  .tab-content {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    overflow-x: hidden !important;
+  }
+}
+
+/* Charts drawn as SVG scale with their container rather than keeping the fixed
+   viewBox aspect ratio, which stretched them on narrow screens. */
+.burndown-svg,
+svg.chart {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+/* Hard ceiling so no dialog can ever exceed the viewport, at any width.
+   Two modals declare a fixed `width` of 680px and 540px, which overflows every
+   phone and some small tablets. This constrains them without needing
+   !important, because `max-width` and `width` are different properties and so
+   do not compete on specificity: the component keeps its preferred width and
+   this simply caps it. */
+.modal-content,
+.modal-box {
+  max-width: calc(100vw - 1.5rem);
+}
+
+/* ==========================================================================
+   Light-theme corrections
+   ==========================================================================
+   Several components hardcode `color: #fff` and dark slate fills rather than
+   using the theme variables. In dark mode they look correct, so the problem is
+   invisible until someone switches to light and gets white text on a white
+   card. The offenders fall into three groups, corrected below by class.
+
+   White on a *solid accent* background (.user-msg on --accent-primary, badge
+   pills on gradient buttons) is deliberately left alone: white is the right
+   colour there in both themes.
+
+   These sit in one block for the same reason as the responsive layer: the
+   alternative is editing the same two declarations across a dozen component
+   files. !important is needed because Angular compiles a component's
+   `.modal-title` into `.modal-title[_ngcontent-abc]`, and injects it after
+   this stylesheet, so it wins both on specificity and on cascade order.
+   -------------------------------------------------------------------------- */
+
+[data-theme='light'] .modal-title,
+[data-theme='light'] .pin-title,
+[data-theme='light'] .section-title,
+[data-theme='light'] .stat-num {
+  color: var(--text-primary) !important;
+}
+
+/* Text inputs hardcode a dark slate fill, which stays dark in light mode and
+   leaves dark placeholder text on a near-black field. */
+[data-theme='light'] .interactive-input,
+[data-theme='light'] .interactive-textarea {
+  background: var(--bg-glass) !important;
+  border-color: var(--border-glass) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Selected and hovered chips tint the surface with a low-opacity accent. Over a
+   light background that yields a pale wash, so the white label disappears. */
+[data-theme='light'] .category-card.selected,
+[data-theme='light'] .preset-chip:hover,
+[data-theme='light'] .sla-chip.selected,
+[data-theme='light'] .scope-pill:hover,
+[data-theme='light'] .scope-pill.active {
+  color: var(--text-primary) !important;
+}
+
+/* ==========================================================================
+   Form validation
+   ==========================================================================
+   Users could not tell which fields were mandatory until a submit failed. These
+   rules fix that globally rather than editing a dozen modal templates: they key
+   off the `required` attribute and off the ng-* classes Angular already applies
+   to every ngModel control, so marking a field mandatory is one word in the
+   template and the asterisk, the focus ring and the error state all follow.
+
+   The `:has()` selector is what makes this possible — it lets a label be styled
+   according to the control beside it. Supported in every browser this app
+   targets; in anything older the asterisk is simply absent, which degrades to
+   the behaviour we already had.
+   -------------------------------------------------------------------------- */
+
+/* Asterisk on the label of any group containing a required control. */
+.form-group:has(input[required], textarea[required], select[required]) .input-label::after {
+  content: ' *';
+  font-weight: 700;
+  color: var(--accent-danger);
+}
+
+/* Screen readers get the word rather than the punctuation, which is read
+   inconsistently or skipped entirely depending on verbosity settings. */
+.form-group:has(input[required], textarea[required], select[required]) .input-label {
+  position: relative;
+}
+
+/* Invalid only once the user has actually interacted. Flagging an untouched
+   empty field turns a blank form red before anyone has typed anything, which
+   reads as broken rather than helpful. */
+.interactive-input.ng-invalid.ng-touched,
+.interactive-textarea.ng-invalid.ng-touched,
+input.ng-invalid.ng-touched,
+textarea.ng-invalid.ng-touched,
+select.ng-invalid.ng-touched {
+  border-color: var(--accent-danger) !important;
+  background: color-mix(in srgb, var(--accent-danger) 6%, transparent) !important;
+}
+
+.interactive-input.ng-invalid.ng-touched:focus-visible,
+.interactive-textarea.ng-invalid.ng-touched:focus-visible,
+input.ng-invalid.ng-touched:focus-visible,
+textarea.ng-invalid.ng-touched:focus-visible {
+  outline: 2px solid var(--accent-danger) !important;
+  outline-offset: 1px;
+}
+
+/* A valid required field gets a quiet confirmation, so a long form shows
+   progress rather than only ever showing failure. */
+.form-group:has(input[required], textarea[required], select[required])
+  .interactive-input.ng-valid.ng-touched {
+  border-color: color-mix(in srgb, var(--accent-success) 45%, transparent);
+}
+
+/* Inline message sitting directly under its field. The existing banner at the
+   top of each modal says that something is wrong; this says which field. */
+.field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--accent-danger);
+}
+
+/* Legend explaining the asterisk. Shown once per form rather than per field. */
+.required-legend {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.required-legend::before {
+  content: '*';
+  margin-right: 0.3rem;
+  font-weight: 700;
+  color: var(--accent-danger);
+}
+
+/* Submit disabled because the form is incomplete should look unavailable rather
+   than broken, and must still be focusable so keyboard users can reach it and
+   read why. */
+.btn-save:disabled,
+.modal-footer .btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

@@ -1,6 +1,7 @@
 namespace ScrumPulse.Api.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using ScrumPulse.Api.Filters;
 using Microsoft.AspNetCore.OutputCaching;
 using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.Sprints;
@@ -42,6 +43,7 @@ public class SprintsController(IMediator mediator, ITenantContext? tenantContext
         return result != null ? Ok(result) : NotFound();
     }
 
+    [RequireScrumMaster]
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(SprintDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -69,6 +71,7 @@ public class SprintsController(IMediator mediator, ITenantContext? tenantContext
         return result != null ? Ok(result) : NotFound();
     }
 
+    [RequireScrumMaster]
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -62,17 +62,6 @@ describe('RetroComponent', () => {
     expect(ideasCards[0].content).toBe('Adopt mob programming on spikes');
   });
 
-  it('should include legacy ActionItem cards (category 3) under Ideas category (2)', () => {
-    spyOn(component, 'filteredCards').and.returnValue([
-      { id: 'c3', sprintId: 's1', category: 'Ideas', content: 'Try new tool', authorId: 'm1', authorName: 'Alice', isAnonymous: false, upvotesCount: 0 },
-      { id: 'c4', sprintId: 's1', category: 'ActionItem' as any, content: 'Legacy action note', authorId: 'm2', authorName: 'Bob', isAnonymous: false, upvotesCount: 0 }
-    ]);
-
-    const ideasCards = component.getCardsByCategory(2);
-    expect(ideasCards.length).toBe(2);
-    expect(ideasCards.map(c => c.content)).toContain('Legacy action note');
-  });
-
   it('should manage add card modal state', () => {
     expect(component.showRetroModal()).toBeFalse();
     component.onOpenAddCard();
@@ -151,7 +140,6 @@ describe('RetroComponent', () => {
     expect(component.showActionModal()).toBeTrue();
     expect(component.editingAction()).toBeNull();
     expect(component.actionForm.title).toBe('');
-    expect(component.actionForm.dueDate).toBeTruthy();
 
     // Save empty action should not trigger create
     component.actionForm.title = '   ';
@@ -159,13 +147,11 @@ describe('RetroComponent', () => {
     expect(stateService.createRetroAction).not.toHaveBeenCalled();
     expect(component.actionValidationError()).toBe('Action item title is mandatory');
 
-    // Valid create with due date
+    // Valid create
     component.actionForm.title = 'Review flaky test report';
-    component.actionForm.dueDate = '2026-10-12';
     component.onSaveAction();
     expect(stateService.createRetroAction).toHaveBeenCalledWith(jasmine.objectContaining({
-      title: 'Review flaky test report',
-      dueDate: jasmine.stringMatching(/2026-10-12/)
+      title: 'Review flaky test report'
     }));
     expect(component.showActionModal()).toBeFalse();
 

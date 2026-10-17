@@ -79,4 +79,36 @@ public static class WorkingHoursCalculator
 
     public static bool IsWorkingDay(DayOfWeek day) =>
         day != DayOfWeek.Saturday && day != DayOfWeek.Sunday;
+
+    /// <summary>
+    /// Counts the weekdays in an inclusive date range. Used for sprint capacity.
+    /// </summary>
+    /// <param name="startDate">First day of the range. Time of day is ignored.</param>
+    /// <param name="endDate">Last day of the range, inclusive. Time of day is ignored.</param>
+    /// <returns>Number of Monday-to-Friday days in the range, or zero if the range is inverted.</returns>
+    /// <remarks>
+    /// Sprint capacity was previously counted by a copy of this loop inlined into the AI
+    /// context builder, so two places could disagree about how long a sprint was. Public
+    /// holidays are still not modelled anywhere, so a squad with a holiday mid-sprint will
+    /// see its capacity overstated by a day.
+    /// </remarks>
+    public static int CountWorkingDays(DateTime startDate, DateTime endDate)
+    {
+        if (endDate.Date < startDate.Date)
+        {
+            return 0;
+        }
+
+        var workingDays = 0;
+
+        for (var day = startDate.Date; day <= endDate.Date; day = day.AddDays(1))
+        {
+            if (IsWorkingDay(day.DayOfWeek))
+            {
+                workingDays++;
+            }
+        }
+
+        return workingDays;
+    }
 }

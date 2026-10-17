@@ -1,5 +1,7 @@
 namespace ScrumPulse.Tests.Architecture;
 
+using ScrumPulse.Tests.AI;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -29,7 +31,7 @@ public class SagaOrchestrationTests
         var uow = new EfUnitOfWork(db, eventDispatcher, NullLogger<EfUnitOfWork>.Instance);
         var store = new MemoryIdempotencyStore();
         var agentConfig = new AgentConfiguration();
-        var aiService = new MicrosoftAgentService(db, store, agentConfig, NullLogger<MicrosoftAgentService>.Instance);
+        var aiService = AiTestHarness.CreateService(db, store);
 
         var step1 = new ValidateQualityGatesStep(uow);
         var step2 = new TransitionWorkItemStatusStep(uow);

@@ -1,0 +1,202 @@
+<div class="modal-backdrop" (click)="close()">
+  <div
+    class="modal-box scribe-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="scribe-title"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="modal-header">
+      <h2 id="scribe-title">Log standup from the call</h2>
+
+      @if (capture.isCapturing()) {
+        <!-- Always visible while recording, so nobody is captured unknowingly. -->
+        <span class="recording-indicator" role="status" aria-live="polite">
+          <span class="recording-dot" aria-hidden="true"></span>
+          Recording
+        </span>
+      }
+
+      <button type="button" class="icon-button" (click)="close()" aria-label="Close">&times;</button>
+    </header>
+
+    @switch (stage()) {
+      @case ('consent') {
+        <section class="modal-body">
+          <p class="lead">
+            Capture the call while your squad speaks. The updates are written to the standup feed
+            for you.
+          </p>
+
+          <div class="notice notice-warning">
+            <h3>Before you start</h3>
+            <p>
+              This records the meeting audio and sends it for transcription. Tell your squad you
+              are recording, and give anyone who would rather not be recorded the chance to send
+              their update in writing instead.
+            </p>
+            <p>
+              The audio is transcribed and discarded, never stored. The updates are saved
+              automatically once the standup ends, and you can edit any of them afterwards from
+              the standup feed.
+            </p>
+          </div>
+
+          <div class="notice notice-info">
+            <h3>Sharing the right audio</h3>
+            <p>
+              Your browser will ask what to share. Choose <strong>Entire Screen</strong> and tick
+              <strong>"Also share system audio"</strong> at the bottom of the dialog.
+            </p>
+            <p>
+              Do not pick <strong>Window</strong>. Chrome and Edge cannot capture audio from a
+              single window, so sharing the Teams window records the picture and silence. Entire
+              Screen works whether Teams is the desktop app or a browser tab.
+            </p>
+            <p>
+              You will also be asked for microphone access. System audio carries the other
+              participants but not you, so the microphone is what puts <strong>your own</strong>
+              update in the transcript.
+            </p>
+          </div>
+
+          @if (!capture.isSupported) {
+            <div class="notice notice-info">
+              This browser cannot capture meeting audio. Chrome and Edge can. You can still paste a
+              transcript from Teams instead.
+            </div>
+          }
+
+          <label class="consent-checkbox">
+            <input
+              type="checkbox"
+              [checked]="hasConfirmedSquadWasTold()"
+              (change)="hasConfirmedSquadWasTold.set($any($event.target).checked)"
+            />
+            <span>I have told the squad that this standup is being transcribed.</span>
+          </label>
+        </section>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-ghost" (click)="beginManualEntry()">
+            Paste a transcript instead
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="!canStartCapture" (click)="beginCapture()">
+            Choose what to share
+          </button>
+        </footer>
+      }
+
+      @case ('capture') {
+        <section class="modal-body">
+          <p class="lead">
+            Let it run through the standup. Text appears roughly every 30 seconds. Call each
+            person's name before their turn so their update is attributed to them.
+          </p>
+
+          @if (capture.isCapturing() && !capture.isMicrophoneIncluded()) {
+            <!--
+              System audio carries the other participants but not the local speaker, so without
+              the microphone the facilitator's own update would go missing with no visible sign
+              until the feed came back a person short.
+            -->
+            <div class="notice notice-warning">
+              Your microphone is not being captured, so anything <strong>you</strong> say will not
+              be logged. Everyone else on the call is captured normally. Allow microphone access
+              and restart the capture to include yourself.
+            </div>
+          }
+
+          @if (capture.errorMessage(); as errorMessage) {
+            <div class="notice notice-error" role="alert">{{ errorMessage }}</div>
+          }
+
+          @if (loggingError(); as error) {
+            <div class="notice notice-error" role="alert">{{ error }}</div>
+          }
+
+          <label class="field-label" for="transcript">
+            Transcript
+            <span class="field-hint">Edit anything that was misheard</span>
+          </label>
+
+          <textarea
+            id="transcript"
+            class="transcript-area"
+            rows="12"
+            [value]="capture.transcript()"
+            (input)="onTranscriptEdited($any($event.target).value)"
+            placeholder="Transcribed speech appears here as your squad talks, or paste a transcript from Teams."
+          ></textarea>
+
+          <p class="character-count" aria-live="polite">
+            {{ capture.transcript().trim().length }} characters captured
+          </p>
+        </section>
+
+        <footer class="modal-footer">
+          @if (capture.isSupported) {
+            <button type="button" class="btn btn-ghost" (click)="toggleCapture()">
+              {{ capture.isCapturing() ? 'Stop capture' : 'Start capture' }}
+            </button>
+          }
+
+          <button type="button" class="btn btn-primary" [disabled]="!canLogStandups" (click)="logStandups()">
+            {{ isLogging() ? 'Logging standups...' : 'Log standups' }}
+          </button>
+        </footer>
+      }
+
+      @case ('result') {
+        <section class="modal-body">
+          @if (savedCount() > 0) {
+            <div class="notice notice-success">
+              <h3>Logged {{ savedCount() }} standup{{ savedCount() === 1 ? '' : 's' }}</h3>
+              <p>{{ savedMemberNames().join(', ') }}</p>
+              <p>
+                These are in the standup feed now as ordinary entries. Edit any of them there if
+                something was misheard.
+              </p>
+            </div>
+          } @else {
+            <div class="notice notice-warning">
+              <h3>Nothing was logged</h3>
+              <p>
+                Nobody in the transcript could be matched to your roster, so no updates were
+                written rather than filing them under the wrong person.
+              </p>
+            </div>
+          }
+
+          @if (skippedSpeakers().length > 0) {
+            <!--
+              The one failure mode the facilitator has to know about: an update that was heard
+              but never saved. Reported rather than dropped quietly.
+            -->
+            <div class="notice notice-warning">
+              <h3>Not logged</h3>
+              <p>
+                Heard but not matched to anyone on the roster:
+                <strong>{{ skippedSpeakers().join(', ') }}</strong>
+              </p>
+              <p>
+                Their updates were not saved. Check the spelling on your Team Roster, or add them
+                manually from the standup page.
+              </p>
+            </div>
+          }
+
+          @if (!wasModelGenerated()) {
+            <div class="notice notice-warning">
+              The assistant was unavailable, so the transcript could not be split by speaker.
+            </div>
+          }
+        </section>
+
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-primary" (click)="close()">Done</button>
+        </footer>
+      }
+    }
+  </div>
+</div>

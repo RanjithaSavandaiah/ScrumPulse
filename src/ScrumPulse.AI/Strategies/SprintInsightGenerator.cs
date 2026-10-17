@@ -9,7 +9,7 @@ public class SprintInsightGenerator : IInsightGenerator
 {
     public string Level => "Project";
 
-    public Task<AiSuggestionResponse> GenerateAsync(InsightContext ctx, CancellationToken ct = default)
+    public AiSuggestionResponse Generate(InsightContext ctx)
     {
         if (ctx.CommittedPoints == 0 && ctx.DeliveredPoints == 0 && ctx.ActiveBlockers == 0)
         {
@@ -25,14 +25,14 @@ public class SprintInsightGenerator : IInsightGenerator
                 "Update work item statuses as development proceeds to generate Say-Do predictability.",
                 "Track blockers and daily standups to evaluate sprint delivery risks."
             };
-            return Task.FromResult(new AiSuggestionResponse(
+            return new AiSuggestionResponse(
                 "Project",
-                $"Microsoft AI Sprint Risk Radar & Executive Insights: {ctx.SprintName}",
+                $"Sprint health summary: {ctx.SprintName}",
                 $"Awaiting sprint backlog telemetry for {ctx.SprintName}.",
                 noDataFindings, noDataRecs,
                 "No Data (Telemetry Pending)",
                 DateTime.UtcNow
-            ));
+            );
         }
 
         int sayDoPercent = ctx.CommittedPoints > 0 ? (int)((ctx.DeliveredPoints / (double)ctx.CommittedPoints) * 100) : 0;
@@ -59,13 +59,13 @@ public class SprintInsightGenerator : IInsightGenerator
             "Celebrate sprint delivery milestones on the Kudos Wall to reinforce team morale and recognition."
         };
 
-        return Task.FromResult(new AiSuggestionResponse(
+        return new AiSuggestionResponse(
             "Project",
-            $"Microsoft AI Sprint Risk Radar & Executive Insights: {ctx.SprintName}",
+            $"Sprint health summary: {ctx.SprintName}",
             $"Autonomous executive synthesis covering Velocity, Auto-Calculated Capacity, Tech Talks, Daily Standups, and 1:1 Feedback.",
             findings, recs,
             ctx.ActiveBlockers > 2 ? "High (Sprint Scope at Risk)" : (ctx.ConfidenceScore < 7 ? "Medium" : "Low (Optimal Flow)"),
             DateTime.UtcNow
-        ));
+        );
     }
 }
