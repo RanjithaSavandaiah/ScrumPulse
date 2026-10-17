@@ -12,17 +12,14 @@ Generated_Code/
 
 # ── Frontend Build Artifacts in the API's wwwroot ─────────────────────────────
 # The Angular bundle is produced by `npm run build` and copied into wwwroot by the
-# Dockerfile, so it is build output and does not belong in version control. The repo
-# previously carried eleven differently hashed copies of main-*.js totalling 18 MB, only
-# one of which any deployment actually served.
+# Dockerfile and CI, so it is build output and does not belong in version control.
 #
-# The genuinely static files the Angular build copies through from
-# src/ScrumPulse.UI/public (ads.txt, favicon.ico, robots.txt, sitemap.xml) stay tracked.
-src/ScrumPulse.Api/wwwroot/index.html
-src/ScrumPulse.Api/wwwroot/*.js
-src/ScrumPulse.Api/wwwroot/*.css
-src/ScrumPulse.Api/wwwroot/*.map
-src/ScrumPulse.Api/wwwroot/media/
+# The genuinely static files copied through from src/ScrumPulse.UI/public stay tracked.
+src/ScrumPulse.Api/wwwroot/*
+!src/ScrumPulse.Api/wwwroot/ads.txt
+!src/ScrumPulse.Api/wwwroot/favicon.ico
+!src/ScrumPulse.Api/wwwroot/robots.txt
+!src/ScrumPulse.Api/wwwroot/sitemap.xml
 
 # ── Node & Angular ────────────────────────────────────────────────────────────
 node_modules/
