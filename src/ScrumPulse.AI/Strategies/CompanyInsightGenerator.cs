@@ -29,7 +29,7 @@ public class CompanyInsightGenerator : IInsightGenerator
 
             return new AiSuggestionResponse(
                 "Company",
-                "Delivery trend summary",
+                "Strategic Delivery Trend Summary",
                 "Enterprise-level analysis for CDL, Scrum Master, and Client leadership (Awaiting telemetry).",
                 noDataFindings,
                 noDataRecs,
@@ -130,7 +130,7 @@ public class CompanyInsightGenerator : IInsightGenerator
 
         var response = new AiSuggestionResponse(
             "Company",
-            "Delivery trend summary",
+            "Strategic Delivery Trend Summary",
             "Rule-based rollup of delivery, quality and blocker figures across all recorded sprints.",
             findings,
             recs,

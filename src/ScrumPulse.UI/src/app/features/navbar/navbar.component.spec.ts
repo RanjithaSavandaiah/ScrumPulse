@@ -35,10 +35,10 @@ describe('NavbarComponent', () => {
   });
 
   it('should toggle theme attribute on html element', () => {
-    const initialTheme = component.isDark;
+    const initialTheme = component.isDark();
     component.toggleTheme();
-    expect(component.isDark).toBe(!initialTheme);
-    expect(document.documentElement.getAttribute('data-theme')).toBe(component.isDark ? 'dark' : 'light');
+    expect(component.isDark()).toBe(!initialTheme);
+    expect(document.documentElement.getAttribute('data-theme')).toBe(component.isDark() ? 'dark' : 'light');
   });
 
   it('should prompt PIN modal when switching to ScrumMaster role without authentication', () => {

@@ -21,6 +21,12 @@ public class AppDbContext : DbContext, IAppDbContext
     }
 
     /// <summary>
+    /// Whether a tenant context is active for this DbContext instance.
+    /// When null (e.g. in unit tests or background initializers), tenant query filtering is bypassed.
+    /// </summary>
+    private bool HasTenantContext => _tenantContext != null;
+
+    /// <summary>
     /// Team the current request is allowed to see, or <see cref="Guid.Empty"/> when there is no session.
     /// </summary>
     /// <remarks>
@@ -110,11 +116,17 @@ public class AppDbContext : DbContext, IAppDbContext
 
             if (entityType.ClrType != typeof(Team))
             {
-                // entity.TeamId == this.ActiveTeamId
+                // !this.HasTenantContext || entity.TeamId == this.ActiveTeamId
                 //
                 // Reading ActiveTeamId through a property access on the context instance keeps
                 // the filter dynamic. EF parameterises it per query, so a scoped context picks
                 // up the team of the request it was created for.
+                var hasTenantContext = Expression.Property(
+                    Expression.Constant(this),
+                    nameof(HasTenantContext));
+
+                var notHasTenantContext = Expression.Not(hasTenantContext);
+
                 var activeTeamId = Expression.Property(
                     Expression.Constant(this),
                     nameof(ActiveTeamId));
@@ -123,7 +135,9 @@ public class AppDbContext : DbContext, IAppDbContext
                     Expression.Property(entity, nameof(BaseEntity.TeamId)),
                     Expression.Convert(activeTeamId, typeof(Guid?)));
 
-                filter = Expression.AndAlso(filter, tenantMatches);
+                var tenantFilter = Expression.OrElse(notHasTenantContext, tenantMatches);
+
+                filter = Expression.AndAlso(filter, tenantFilter);
             }
 
             modelBuilder.Entity(entityType.ClrType)
@@ -211,8 +225,12 @@ public class AppDbContext : DbContext, IAppDbContext
         // Creation metadata and team ownership are immutable after insert. Marking them
         // unmodified means an update cannot rewrite history or move a row between squads,
         // even if something upstream mutated the tracked entity.
+        // TeamMember is exempt because members can be assigned/reassigned to squads.
         entry.Property(nameof(BaseEntity.CreatedAtUtc)).IsModified = false;
         entry.Property(nameof(BaseEntity.CreatedBy)).IsModified = false;
-        entry.Property(nameof(BaseEntity.TeamId)).IsModified = false;
+        if (entry.Entity is not TeamMember)
+        {
+            entry.Property(nameof(BaseEntity.TeamId)).IsModified = false;
+        }
     }
 }

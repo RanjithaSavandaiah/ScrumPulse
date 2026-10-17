@@ -381,7 +381,7 @@ public class ControllerTests
 
         // 6. Toggle Action Item
         var toggleResult = await controller.ToggleActionItem(actionDto.Id, Ct);
-        var toggleOk = Assert.IsType<OkObjectResult>(toggleResult);
+        var toggleOk = Assert.IsType<OkObjectResult>(toggleResult.Result);
         Assert.NotNull(toggleOk.Value);
 
         // 7. Delete Card and Action Item

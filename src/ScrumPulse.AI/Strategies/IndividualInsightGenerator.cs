@@ -27,7 +27,7 @@ public class IndividualInsightGenerator : IInsightGenerator
             };
             return new AiSuggestionResponse(
                 "Individual",
-                $"Delivery summary: {ctx.MemberName}",
+                $"Coaching Plan & Delivery Summary: {ctx.MemberName}",
                 $"Awaiting telemetry for {ctx.MemberName} — metrics will populate as sprint activities and standups are logged.",
                 noDataFindings, noDataRecs,
                 "No Data (Telemetry Pending)",
@@ -67,7 +67,7 @@ public class IndividualInsightGenerator : IInsightGenerator
 
         return new AiSuggestionResponse(
             "Individual",
-            $"Delivery summary: {ctx.MemberName}",
+            $"Coaching Plan & Delivery Summary: {ctx.MemberName}",
             $"Holistic evaluation synthesizing Velocity ({ctx.TotalStoryPoints} pts), Net Capacity ({ctx.TotalLeaveDays}d leave), {ctx.TechTalksGiven} Tech Talks, Standups & 1:1 Feedback.",
             findings, recs,
             ctx.HappinessIndex < 6 ? "Medium (Burnout Sentinel Triggered)" : "Low (Healthy Morale & High Flow)",

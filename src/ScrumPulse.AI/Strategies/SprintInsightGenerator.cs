@@ -27,7 +27,7 @@ public class SprintInsightGenerator : IInsightGenerator
             };
             return new AiSuggestionResponse(
                 "Project",
-                $"Sprint health summary: {ctx.SprintName}",
+                $"Sprint Risk & Health Summary: {ctx.SprintName}",
                 $"Awaiting sprint backlog telemetry for {ctx.SprintName}.",
                 noDataFindings, noDataRecs,
                 "No Data (Telemetry Pending)",
@@ -61,7 +61,7 @@ public class SprintInsightGenerator : IInsightGenerator
 
         return new AiSuggestionResponse(
             "Project",
-            $"Sprint health summary: {ctx.SprintName}",
+            $"Sprint Risk & Health Summary: {ctx.SprintName}",
             $"Autonomous executive synthesis covering Velocity, Auto-Calculated Capacity, Tech Talks, Daily Standups, and 1:1 Feedback.",
             findings, recs,
             ctx.ActiveBlockers > 2 ? "High (Sprint Scope at Risk)" : (ctx.ConfidenceScore < 7 ? "Medium" : "Low (Optimal Flow)"),

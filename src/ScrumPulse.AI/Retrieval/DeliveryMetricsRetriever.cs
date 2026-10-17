@@ -36,32 +36,35 @@ public sealed class DeliveryMetricsRetriever(IAppDbContext dbContext) : IDeliver
             .Select(member => member.Name)
             .FirstOrDefaultAsync(ct);
 
-        // One grouped query instead of fetching the rows and reducing them client side.
-        // DefaultIfEmpty guards the averages: averaging an empty sequence throws in SQL too.
-        var delivery = await dbContext.WorkItems
+        var memberWorkItems = await dbContext.WorkItems
             .AsNoTracking()
+            .Include(workItem => workItem.Sprint)
             .Where(workItem => workItem.AssigneeId == memberId)
-            .GroupBy(_ => 1)
-            .Select(group => new
-            {
-                TotalAssigned = group.Count(),
-                Completed = group.Count(workItem => workItem.Status == WorkItemStatus.Done),
-                StoryPoints = group
-                    .Where(workItem => workItem.Status == WorkItemStatus.Done)
-                    .Sum(workItem => (int?)workItem.StoryPoints) ?? 0,
-                AvgDevCycleHours = group
-                    .Where(workItem => workItem.DevCycleTimeHours != null)
-                    .Average(workItem => (double?)workItem.DevCycleTimeHours) ?? 0,
-                AvgReviewLatencyHours = group
-                    .Where(workItem => workItem.PrReviewLatencyHours != null)
-                    .Average(workItem => (double?)workItem.PrReviewLatencyHours) ?? 0
-            })
-            .FirstOrDefaultAsync(ct);
+            .ToListAsync(ct);
 
-        var approvedLeaveDays = await dbContext.TeamLeaves
+        var totalAssigned = memberWorkItems.Count;
+        var completed = memberWorkItems.Count(workItem => workItem.Status == WorkItemStatus.Done);
+        var storyPoints = memberWorkItems
+            .Where(workItem => workItem.Status == WorkItemStatus.Done)
+            .Sum(workItem => workItem.StoryPoints);
+        var devCycleItems = memberWorkItems
+            .Where(workItem => workItem.DevCycleTimeHours != null)
+            .ToList();
+        var avgDevCycleHours = devCycleItems.Count > 0
+            ? devCycleItems.Average(workItem => workItem.DevCycleTimeHours!.Value)
+            : 0;
+        var reviewLatencyItems = memberWorkItems
+            .Where(workItem => workItem.PrReviewLatencyHours != null)
+            .ToList();
+        var avgReviewLatencyHours = reviewLatencyItems.Count > 0
+            ? reviewLatencyItems.Average(workItem => workItem.PrReviewLatencyHours!.Value)
+            : 0;
+
+        var approvedLeaves = await dbContext.TeamLeaves
             .AsNoTracking()
             .Where(leave => leave.TeamMemberId == memberId && leave.IsApproved)
-            .SumAsync(leave => (double?)leave.TotalDays, ct) ?? 0;
+            .ToListAsync(ct);
+        var approvedLeaveDays = approvedLeaves.Sum(leave => leave.TotalDays);
 
         var standupCount = await dbContext.DailyStandups
             .AsNoTracking()
@@ -91,11 +94,11 @@ public sealed class DeliveryMetricsRetriever(IAppDbContext dbContext) : IDeliver
         {
             MemberId = memberId,
             MemberName = string.IsNullOrWhiteSpace(memberName) ? "this engineer" : memberName,
-            TotalAssigned = delivery?.TotalAssigned ?? 0,
-            CompletedItems = delivery?.Completed ?? 0,
-            TotalStoryPoints = delivery?.StoryPoints ?? 0,
-            AvgDevCycleHours = delivery?.AvgDevCycleHours ?? 0,
-            AvgReviewLatencyHours = delivery?.AvgReviewLatencyHours ?? 0,
+            TotalAssigned = totalAssigned,
+            CompletedItems = completed,
+            TotalStoryPoints = storyPoints,
+            AvgDevCycleHours = avgDevCycleHours,
+            AvgReviewLatencyHours = avgReviewLatencyHours,
             TotalLeaveDays = approvedLeaveDays,
             NetCapacityHours = await CalculateNetCapacityHoursAsync(approvedLeaveDays, ct),
             StandupCount = standupCount,
@@ -133,10 +136,11 @@ public sealed class DeliveryMetricsRetriever(IAppDbContext dbContext) : IDeliver
             // throw at runtime.
             .CountAsync(blocker => blocker.SprintId == sprintId && blocker.ResolvedAtUtc == null, ct);
 
-        var leaveDays = await dbContext.TeamLeaves
+        var sprintLeaves = await dbContext.TeamLeaves
             .AsNoTracking()
             .Where(leave => leave.IsApproved)
-            .SumAsync(leave => (double?)leave.TotalDays, ct) ?? 0;
+            .ToListAsync(ct);
+        var leaveDays = sprintLeaves.Sum(leave => leave.TotalDays);
 
         var morale = await dbContext.Monthly1on1Feedbacks
             .AsNoTracking()
