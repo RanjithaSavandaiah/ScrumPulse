@@ -3,7 +3,7 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Blocker Hours Impact on Capacity, Burndown & Executive Report E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
   });
 

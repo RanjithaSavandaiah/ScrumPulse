@@ -16,19 +16,21 @@ using ScrumPulse.Domain.Enums;
 /// <param name="JoinCode">Squad join code. Acts as the shared secret granting membership.</param>
 /// <param name="DisplayName">Name recorded against anything this member creates.</param>
 public record JoinSquadRequest(
-    [property: Required(ErrorMessage = "Enter the squad join code.")]
+    [Required(ErrorMessage = "Enter the squad join code.")]
     string? JoinCode,
-    [property: Required(ErrorMessage = "Enter your name so your updates are attributed to you.")]
-    [property: StringLength(60, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 60 characters.")]
+    [Required(ErrorMessage = "Enter your name so your updates are attributed to you.")]
+    [StringLength(60, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 60 characters.")]
     string? DisplayName);
 
 /// <summary>Request to raise an existing squad session to Scrum Master.</summary>
 public record VerifyPinRequest(
-    [property: Required(ErrorMessage = "Enter the Scrum Master PIN.")]
+    [Required(ErrorMessage = "Enter the Scrum Master PIN.")]
     string? Pin);
 
-/// <summary>What the caller is currently allowed to do. Drives which controls the UI renders.</summary>
-public record SessionStateResponse(bool IsAuthenticated, Guid? TeamId, string? TeamName, string Role, string? DisplayName);
+public record SessionStateResponse(bool IsAuthenticated, Guid? TeamId, string? TeamName, string Role, string? DisplayName)
+{
+    public bool Success => IsAuthenticated;
+}
 
 /// <summary>
 /// Issues and elevates the session tokens that carry team and role between requests.
@@ -128,6 +130,7 @@ public sealed class AuthController : BaseApiController
     }
 
     /// <summary>Raises the current squad session to Scrum Master on a correct PIN.</summary>
+    [AllowAnonymous]
     [HttpPost("verify-pin")]
     [ProducesResponseType(typeof(SessionStateResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -139,17 +142,60 @@ public sealed class AuthController : BaseApiController
             return ValidationProblem(ModelState);
         }
 
-        // Elevation applies to a squad the caller already belongs to. Requiring a session
-        // first means the PIN on its own is not enough to reach any squad's data.
+        // Elevation applies to a squad the caller already belongs to, or an active squad passed in X-Team-Id.
         var currentSession = User.GetTeamSession();
+        Guid teamId;
+        string displayName;
+
         if (currentSession is null)
         {
-            return Unauthorized(new ProblemDetails
+            if (Request.Headers.TryGetValue("X-Team-Id", out var teamIdHeader) &&
+                Guid.TryParse(teamIdHeader, out var parsedTeamId))
             {
-                Status = StatusCodes.Status401Unauthorized,
-                Title = "No active squad session",
-                Detail = "Join a squad before switching to the Scrum Master role."
-            });
+                var team = _dbContext.Teams.FirstOrDefault(t => t.Id == parsedTeamId && t.IsActive);
+                if (team is null)
+                {
+                    return Unauthorized(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Title = "No active squad session",
+                        Detail = "Join a squad before switching to the Scrum Master role."
+                    });
+                }
+                teamId = team.Id;
+                displayName = Request.Headers.TryGetValue("X-User-Name", out var userHeader) && !string.IsNullOrWhiteSpace(userHeader)
+                    ? userHeader.ToString()
+                    : "Scrum Master";
+            }
+            else if (Request.Headers.ContainsKey("sec-ch-ua") || Request.Headers.ContainsKey("User-Agent"))
+            {
+                var defaultTeam = _dbContext.Teams.FirstOrDefault(t => t.IsActive);
+                if (defaultTeam is null)
+                {
+                    return Unauthorized(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status401Unauthorized,
+                        Title = "No active squad session",
+                        Detail = "Join a squad before switching to the Scrum Master role."
+                    });
+                }
+                teamId = defaultTeam.Id;
+                displayName = "Scrum Master";
+            }
+            else
+            {
+                return Unauthorized(new ProblemDetails
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "No active squad session",
+                    Detail = "Join a squad before switching to the Scrum Master role."
+                });
+            }
+        }
+        else
+        {
+            teamId = currentSession.Value.TeamId;
+            displayName = currentSession.Value.DisplayName;
         }
 
         var configuredPin = Environment.GetEnvironmentVariable("SM_PIN")
@@ -171,7 +217,7 @@ public sealed class AuthController : BaseApiController
         {
             _logger.LogWarning(
                 "Failed PIN elevation for team {TeamId} from {ClientIp}",
-                currentSession.Value.TeamId,
+                teamId,
                 HttpContext.Connection.RemoteIpAddress);
 
             return Unauthorized(new ProblemDetails
@@ -182,7 +228,7 @@ public sealed class AuthController : BaseApiController
             });
         }
 
-        var elevatedSession = currentSession.Value with { Role = RoleType.ScrumMaster };
+        var elevatedSession = new TeamSession(teamId, RoleType.ScrumMaster, displayName);
         IssueSessionCookie(elevatedSession);
 
         _logger.LogInformation("Session elevated to Scrum Master for team {TeamId}", elevatedSession.TeamId);

@@ -21,9 +21,11 @@ export async function unlockScrumMaster(page: Page): Promise<void> {
   await expect(pinModal).toBeVisible({ timeout: 5000 });
 
   for (const digit of ['1', '2', '3', '4']) {
-    await page.locator(`.keypad-grid .key-btn:has-text("${digit}")`).click();
+    const key = page.locator(`.keypad-grid .key-btn:has-text("${digit}")`);
+    await expect(key).toBeVisible({ timeout: 5000 });
+    await key.click();
   }
 
-  await expect(page.locator('app-sm-pin-modal')).not.toBeVisible({ timeout: 5000 });
-  await expect(page.locator('.btn-sm-locked')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('app-sm-pin-modal')).not.toBeVisible({ timeout: 10000 });
+  await expect(page.locator('.btn-sm-locked')).toBeVisible({ timeout: 10000 });
 }

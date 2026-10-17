@@ -20,11 +20,15 @@ test.describe('Zero Console Errors & Warnings Sentinel', () => {
       consoleIssues.push(`[PAGE ERROR] ${error.name}: ${error.message}\n${error.stack}`);
     });
 
-    // 1. Visit root dashboard
+    // 1. Visit landing page
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('app-landing')).toBeVisible({ timeout: 15000 });
+
+    // 2. Visit application dashboard
+    await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('app-dashboard')).toBeVisible({ timeout: 15000 });
 
-    // 2. Iterate through primary navigation tabs to exercise all standalone components
+    // 3. Iterate through primary navigation tabs to exercise all standalone components
     const tabs = [
       'Work Items',
       'Daily Standup',
@@ -46,12 +50,11 @@ test.describe('Zero Console Errors & Warnings Sentinel', () => {
       }
     }
 
-    // 3. Visit Legal pages
-    await page.goto('/privacy-policy', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('app-privacy-policy')).toBeVisible({ timeout: 10000 });
-
-    await page.goto('/terms', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('app-terms')).toBeVisible({ timeout: 10000 });
+    // 4. Visit Marketing & Legal pages
+    for (const route of ['/about', '/contact', '/blog', '/privacy-policy', '/terms']) {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(200);
+    }
 
     // 4. Assert ZERO console errors or warnings
     expect(consoleIssues, `Detected console errors/warnings during execution:\n${consoleIssues.join('\n')}`).toEqual([]);

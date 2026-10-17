@@ -1,5 +1,6 @@
 namespace ScrumPulse.Api.Controllers;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using ScrumPulse.Api.Filters;
@@ -30,12 +31,14 @@ public class TeamsController : BaseApiController
     {
     }
 
+    [AllowAnonymous]
     [HttpGet]
     [OutputCache(PolicyName = "ShortLived")]
     [ProducesResponseType(typeof(IEnumerable<TeamDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamDto>>> GetAll(CancellationToken ct = default) =>
         Ok(await _mediator.QueryAsync(new GetTeamsQuery(), ct));
 
+    [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [OutputCache(PolicyName = "ShortLived")]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]

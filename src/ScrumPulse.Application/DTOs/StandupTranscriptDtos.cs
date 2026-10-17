@@ -10,8 +10,8 @@ using System.ComponentModel.DataAnnotations;
 /// </param>
 /// <param name="SprintId">Sprint the drafted updates belong to, when one is active.</param>
 public record DraftStandupsFromTranscriptRequest(
-    [property: Required(ErrorMessage = "There is no transcript to work from yet.")]
-    [property: StringLength(20000, MinimumLength = 40,
+    [Required(ErrorMessage = "There is no transcript to work from yet.")]
+    [StringLength(20000, MinimumLength = 40,
         ErrorMessage = "A transcript needs at least 40 characters before it can be split into updates.")]
     string? Transcript,
     Guid? SprintId);

@@ -531,7 +531,7 @@ export class ScrumStateService {
         }
         const found = list.find(team => team.id === savedId) || list[0] || null;
         if (found && (!this.currentTeam() || this.currentTeam()?.id !== found.id)) {
-          this.selectTeam(found, false);
+          this.selectTeam(found, !savedId);
         }
       },
       error: err => {

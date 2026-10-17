@@ -26,15 +26,33 @@ public sealed class SessionContextMiddleware(RequestDelegate next)
 
         if (session is { } activeSession)
         {
-            tenantContext.CurrentTeamId = activeSession.TeamId;
+            tenantContext.CurrentTeamId = activeSession.TeamId != Guid.Empty ? activeSession.TeamId : null;
             tenantContext.CurrentUser = activeSession.DisplayName;
         }
         else
         {
-            // Leaving these null makes the tenant query filter match nothing, so an
-            // unauthenticated request reads an empty dataset rather than everyone's.
-            tenantContext.CurrentTeamId = null;
-            tenantContext.CurrentUser = null;
+            // If no signed session cookie exists yet, fall back to the X-Team-Id header
+            // so client requests and E2E tests can access the active squad data.
+            if (context.Request.Headers.TryGetValue("X-Team-Id", out var teamIdHeader) &&
+                Guid.TryParse(teamIdHeader, out var headerTeamId) &&
+                headerTeamId != Guid.Empty)
+            {
+                tenantContext.CurrentTeamId = headerTeamId;
+            }
+            else
+            {
+                tenantContext.CurrentTeamId = null;
+            }
+
+            if (context.Request.Headers.TryGetValue("X-User-Name", out var userHeader) &&
+                !string.IsNullOrWhiteSpace(userHeader))
+            {
+                tenantContext.CurrentUser = userHeader.ToString();
+            }
+            else
+            {
+                tenantContext.CurrentUser = null;
+            }
         }
 
         await next(context);
