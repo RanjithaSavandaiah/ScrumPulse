@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build && node -e \"const fs=require('fs'); if(fs.existsSync('dist/scrum-pulse.ui/browser')) fs.cpSync('dist/scrum-pulse.ui/browser', '../ScrumPulse.Api/wwwroot', {recursive:true, force:true});\"",
     "test": "ng test",
     "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCI",
     "test:e2e": "playwright test",

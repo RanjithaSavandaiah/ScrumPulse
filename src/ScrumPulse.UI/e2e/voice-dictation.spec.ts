@@ -17,9 +17,19 @@ test.describe('Voice dictation', () => {
   const consentDialog = '.consent-box';
 
   async function openDashboard(page: Page): Promise<void> {
-    await page.goto('/');
+    await page.goto('/app');
     await page.waitForLoadState('networkidle');
   }
+
+  test('the control is hidden on marketing and theory pages', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator(captureBar)).toHaveCount(0);
+
+    await page.goto('/blog');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator(captureBar)).toHaveCount(0);
+  });
 
   test('the control is reachable from the page', async ({ page }) => {
     await openDashboard(page);
@@ -169,7 +179,7 @@ test.describe('Voice dictation', () => {
     await openDashboard(page);
     await expect(page.locator(captureBar)).toBeVisible();
 
-    await page.goto('/blockers');
+    await page.goto('/app/board-connection');
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator(captureBar)).toBeVisible();

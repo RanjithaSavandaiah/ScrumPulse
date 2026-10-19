@@ -59,5 +59,7 @@ export class DashboardComponent implements OnInit {
         this.activeTab.set(fragment);
       }
     });
+    this.state.loadTeams();
+    this.state.refreshAllData();
   }
 }

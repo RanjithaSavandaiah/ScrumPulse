@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs';
 import { DemoModeService } from './demo-mode.service';
 
 /**
@@ -10,14 +12,14 @@ import { DemoModeService } from './demo-mode.service';
  * advance why saving is refused, so a visitor who tries to add a work item understands the
  * result rather than concluding the product is broken.
  *
- * Renders nothing outside demo mode, so the application shell is unaffected in normal use.
+ * Renders nothing outside demo mode or outside application workspace screens.
  */
 @Component({
   selector: 'app-demo-banner',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (demoMode.isActive()) {
+    @if (demoMode.isActive() && isAppRoute()) {
       <div class="demo-banner" role="status">
         <span class="demo-badge">Demo</span>
 
@@ -93,6 +95,20 @@ import { DemoModeService } from './demo-mode.service';
 export class DemoBannerComponent {
   protected readonly demoMode = inject(DemoModeService);
   private readonly router = inject(Router);
+
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects || e.url)
+    ),
+    { initialValue: this.router.url }
+  );
+
+  protected readonly isAppRoute = computed(() => {
+    const url = this.currentUrl() ?? '';
+    const cleanPath = url.split('?')[0].split('#')[0];
+    return cleanPath.startsWith('/app') || cleanPath === '/dashboard';
+  });
 
   /** Leaves demo mode and returns to the public home page. */
   protected exitDemo(): void {

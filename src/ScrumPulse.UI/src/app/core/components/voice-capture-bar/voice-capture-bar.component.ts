@@ -1,19 +1,25 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { filter, map } from 'rxjs';
 import { VoiceDictationService } from '../../services/voice-dictation.service';
 
 /**
- * Floating speech-to-text control, in the application shell so every text field can use it.
+ * Floating speech-to-text control, in the application shell for interactive workspace screens.
  *
  * Dictating types the microphone into the focused field. Capturing a meeting adds system
  * audio, where the other participants' voices exist only as speaker output, and gates on
  * consent because recording colleagues sends their audio to a transcription service.
+ *
+ * It is only displayed on application routes (/app, /dashboard, /demo) where text fields
+ * and standup meetings exist, and hidden on theory, marketing, and legal pages.
  */
 @Component({
   selector: 'app-voice-capture-bar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (dictation.isSupported()) {
+    @if (isVisible() && dictation.isSupported()) {
       <div class="voice-bar" [class.is-live]="dictation.isCapturing()">
         @if (dictation.isCapturing()) {
           <span class="live-dot" aria-hidden="true"></span>
@@ -87,7 +93,7 @@ import { VoiceDictationService } from '../../services/voice-dictation.service';
       </div>
     }
 
-    @if (dictation.errorMessage(); as error) {
+    @if (isVisible() && dictation.errorMessage(); as error) {
       <div class="voice-error" role="alert">{{ error }}</div>
     }
   `,
@@ -95,7 +101,30 @@ import { VoiceDictationService } from '../../services/voice-dictation.service';
 })
 export class VoiceCaptureBarComponent {
   protected readonly dictation = inject(VoiceDictationService);
+  private readonly router = inject(Router);
   protected readonly isAwaitingConsent = signal(false);
+
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects || e.url)
+    ),
+    { initialValue: this.router.url }
+  );
+
+  /**
+   * Only show the bar on application/workspace screens (/app, /demo, /dashboard)
+   * or while an active capture session is ongoing.
+   * Suppressed on theory, blog, landing, and marketing pages.
+   */
+  readonly isVisible = computed(() => {
+    if (this.dictation.isCapturing()) {
+      return true;
+    }
+    const url = this.currentUrl() ?? '';
+    const cleanPath = url.split('?')[0].split('#')[0];
+    return cleanPath.startsWith('/app') || cleanPath === '/dashboard' || cleanPath === '/demo';
+  });
 
   protected async dictate(): Promise<void> {
     await this.dictation.startDictation();

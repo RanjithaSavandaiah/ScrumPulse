@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MarketingHeaderComponent } from '../marketing-header.component';
 import { PageMetadataService } from '../page-metadata.service';
+import { DemoModeService } from '../../demo/demo-mode.service';
 
 /**
  * Public home page.
@@ -30,7 +31,7 @@ import { PageMetadataService } from '../page-metadata.service';
         </p>
 
         <div class="hero-actions">
-          <a class="cta cta-primary" routerLink="/app">Launch Dashboard &amp; Tabs &rarr;</a>
+          <a class="cta cta-primary" routerLink="/app" (click)="launchDashboard()">Launch Dashboard &amp; Tabs &rarr;</a>
           <a class="cta cta-secondary" routerLink="/blog">Read delivery notes</a>
           <a class="cta cta-secondary" routerLink="/demo">Explore the live demo</a>
         </div>
@@ -114,7 +115,7 @@ import { PageMetadataService } from '../page-metadata.service';
       </p>
 
       <div class="hero-actions" style="justify-content: flex-start; margin-top: 2rem">
-        <a class="cta cta-primary" routerLink="/app">Launch Dashboard &amp; Tabs &rarr;</a>
+        <a class="cta cta-primary" routerLink="/app" (click)="launchDashboard()">Launch Dashboard &amp; Tabs &rarr;</a>
         <a class="cta cta-secondary" routerLink="/blog">Read delivery notes</a>
         <a class="cta cta-secondary" routerLink="/contact">Get in touch</a>
       </div>
@@ -122,6 +123,8 @@ import { PageMetadataService } from '../page-metadata.service';
   `
 })
 export class LandingComponent {
+  private readonly demoMode = inject(DemoModeService);
+
   constructor() {
     inject(PageMetadataService).apply({
       title: 'ScrumPulse - sprint delivery metrics for scrum masters',
@@ -129,5 +132,10 @@ export class LandingComponent {
         'Track cycle time by stage, blocker SLAs, capacity-adjusted velocity and review turnaround. A delivery metrics tool built by a scrum master.',
       path: '/'
     });
+  }
+
+  /** Explicitly launches real dashboard, exiting demo mode. */
+  protected launchDashboard(): void {
+    this.demoMode.disable();
   }
 }

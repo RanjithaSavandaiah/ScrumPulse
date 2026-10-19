@@ -327,4 +327,17 @@ describe('ScrumStateService (Modular NgRx Facade)', () => {
     expect(report?.lostStoryPointsCapacity).toBe(0);
     expect(report?.blockerCapacityImpactSummary).toContain('No blocker hours recorded this sprint');
   });
+
+  it('should reset in-memory items when clearAllData is called', () => {
+    store.dispatch(BlockerActions.loadBlockersSuccess({
+      blockers: [{ id: 'b-temp', title: 'Test', description: 'Temp', category: 'Testing', slaHoursLimit: 8, isResolved: false, isSlaBreached: false } as any]
+    }));
+    expect(service.blockers().length).toBe(1);
+
+    service.clearAllData();
+    expect(service.blockers().length).toBe(0);
+    expect(service.workItems().length).toBe(0);
+    expect(service.sprints().length).toBe(0);
+    expect(service.members().length).toBe(0);
+  });
 });

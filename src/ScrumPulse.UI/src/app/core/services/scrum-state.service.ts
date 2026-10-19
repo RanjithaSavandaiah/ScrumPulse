@@ -1,7 +1,8 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Store } from '@ngrx/store';
 import { Observable, catchError, map, of, tap } from 'rxjs';
+import { DemoModeService } from '../../demo/demo-mode.service';
 import {
   AppState,
   SprintActions,
@@ -94,6 +95,7 @@ export const DEFAULT_GROWTH_TREND_SPRINT_COUNT = 8;
 export class ScrumStateService {
   private readonly store = inject(Store<AppState>);
   private readonly http = inject(HttpClient);
+  private readonly demoMode = inject(DemoModeService);
   private readonly apiUrl = '/api';
 
   // Modular Signals exposed via feature selectors
@@ -207,6 +209,18 @@ export class ScrumStateService {
   constructor() {
     this.loadTeams();
     this.refreshAllData();
+
+    // Whenever demo mode changes, clear previous dataset and fetch the new context
+    let previousDemoState = this.demoMode.isActive();
+    effect(() => {
+      const currentDemoState = this.demoMode.isActive();
+      if (currentDemoState !== previousDemoState) {
+        previousDemoState = currentDemoState;
+        this.clearAllData();
+        this.loadTeams();
+        this.refreshAllData();
+      }
+    });
   }
 
   refreshAllData(): void {
@@ -222,6 +236,21 @@ export class ScrumStateService {
     this.store.dispatch(TechHubActions.loadTechHub());
     this.store.dispatch(PullRequestActions.loadPullRequests({}));
     this.store.dispatch(PullRequestActions.loadDeveloperPrMetrics({}));
+  }
+
+  clearAllData(): void {
+    this.store.dispatch(SprintActions.loadSprintsSuccess({ sprints: [] }));
+    this.store.dispatch(TeamMemberActions.loadTeamMembersSuccess({ members: [] }));
+    this.store.dispatch(WorkItemActions.loadWorkItemsSuccess({ items: [] }));
+    this.store.dispatch(BlockerActions.loadBlockersSuccess({ blockers: [] }));
+    this.store.dispatch(StandupActions.loadStandupsSuccess({ standups: [] }));
+    this.store.dispatch(LeaveActions.loadLeavesSuccess({ leaves: [] }));
+    this.store.dispatch(ReviewActions.loadFeedbacksSuccess({ feedbacks: [] }));
+    this.store.dispatch(RetroActions.loadRetrosSuccess({ cards: [], actions: [] }));
+    this.store.dispatch(KudosActions.loadKudosSuccess({ kudos: [] }));
+    this.store.dispatch(TechHubActions.loadTechHubSuccess({ techDebt: [], techTalks: [] }));
+    this.store.dispatch(PullRequestActions.loadPullRequestsSuccess({ prLogs: [] }));
+    this.store.dispatch(PullRequestActions.loadDeveloperPrMetricsSuccess({ metrics: [] }));
   }
 
   loadSprintData(sprintId: string): void {

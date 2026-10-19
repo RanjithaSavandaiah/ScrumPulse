@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { DemoModeService } from '../demo/demo-mode.service';
 
 /**
  * Navigation shared by every public page.
@@ -31,9 +32,16 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <a routerLink="/blog" routerLinkActive="is-active">Notes</a>
         <a routerLink="/about" routerLinkActive="is-active">About</a>
         <a routerLink="/contact" routerLinkActive="is-active">Contact</a>
-        <a routerLink="/app" class="btn-launch">Launch Dashboard &rarr;</a>
+        <a routerLink="/app" (click)="launchDashboard()" class="btn-launch">Launch Dashboard &rarr;</a>
       </nav>
     </header>
   `
 })
-export class MarketingHeaderComponent {}
+export class MarketingHeaderComponent {
+  private readonly demoMode = inject(DemoModeService);
+
+  /** Explicitly launches real dashboard, disabling fixture demo mode. */
+  protected launchDashboard(): void {
+    this.demoMode.disable();
+  }
+}
