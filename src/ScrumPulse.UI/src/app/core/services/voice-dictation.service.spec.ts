@@ -57,6 +57,11 @@ describe('VoiceDictationService', () => {
       this.isListening.set(false);
     }
 
+    reportPermissionDenied(): void {
+      this.errorMessage.set('Microphone access was refused. Allow it in the browser address bar to dictate.');
+      this.isListening.set(false);
+    }
+
     /** Commits a phrase, as the browser recogniser would. */
     commit(phrase: string): void {
       this.onFinalText?.(phrase);

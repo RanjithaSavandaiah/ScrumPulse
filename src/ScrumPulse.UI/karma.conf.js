@@ -39,7 +39,9 @@ module.exports = function (config) {
           '--no-sandbox',
           '--disable-gpu',
           '--disable-dev-shm-usage',
-          '--disable-extensions'
+          '--disable-extensions',
+          '--use-fake-ui-for-media-stream',
+          '--use-fake-device-for-media-stream'
         ]
       }
     },

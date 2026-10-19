@@ -120,6 +120,14 @@ export class LiveSpeechRecognitionService {
     this.release();
   }
 
+  reportPermissionDenied(): void {
+    this.errorMessageSignal.set(
+      'Microphone access was refused. Allow it in the browser address bar to dictate.'
+    );
+    this.isStopping = true;
+    this.release();
+  }
+
   private handleResult(event: SpeechRecognitionResultEventLike): void {
     this.lastResultAtMs = Date.now();
 

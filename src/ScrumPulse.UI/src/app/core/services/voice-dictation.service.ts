@@ -83,6 +83,23 @@ export class VoiceDictationService {
   async startDictation(): Promise<void> {
     this.sourceSignal.set('microphone');
 
+    // If permission has not yet been granted, trigger the browser's native permission prompt via getUserMedia
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        const permStatus = await navigator.permissions?.query?.({ name: 'microphone' as PermissionName }).catch(() => null);
+        if (permStatus?.state !== 'granted') {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((track) => track.stop());
+        }
+      } catch (err: unknown) {
+        const errorName = (err as { name?: string })?.name;
+        if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+          this.liveRecognition.reportPermissionDenied();
+          return;
+        }
+      }
+    }
+
     if (this.liveRecognition.start((phrase) => this.queueForTyping(`${phrase} `))) {
       this.usingLiveRecognition.set(true);
       return;
