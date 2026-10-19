@@ -6,6 +6,7 @@ import { DailyStandup } from '../../core/models/scrum.models';
 import { StandupFeedComponent } from './components/standup-feed/standup-feed.component';
 import { StandupTimerComponent } from './components/standup-timer/standup-timer.component';
 import { LogStandupModalComponent } from './components/log-standup-modal/log-standup-modal.component';
+import { StandupScribeModalComponent } from './components/standup-scribe-modal/standup-scribe-modal.component';
 import { isDeliveryRole } from '../../core/utils/format-utils';
 
 export const DEFAULT_STANDUP_SPEAKER_SECONDS = 120;
@@ -14,7 +15,13 @@ export const TIMER_TICK_INTERVAL_MS = 1000;
 @Component({
   selector: 'app-standup',
   standalone: true,
-  imports: [CommonModule, StandupFeedComponent, StandupTimerComponent, LogStandupModalComponent],
+  imports: [
+    CommonModule,
+    StandupFeedComponent,
+    StandupTimerComponent,
+    LogStandupModalComponent,
+    StandupScribeModalComponent
+  ],
   templateUrl: './standup.component.html',
   styleUrl: './standup.component.css'
 })
@@ -24,6 +31,9 @@ export class StandupComponent implements OnDestroy {
 
   showStandupModal = signal(false);
   selectedEditStandup = signal<DailyStandup | null>(null);
+
+  /** Controls the voice scribe dialog that captures the call and logs updates. */
+  showScribeModal = signal(false);
 
   timerSeconds = signal<number>(DEFAULT_STANDUP_SPEAKER_SECONDS);
   timerRunning = signal<boolean>(false);
@@ -37,6 +47,29 @@ export class StandupComponent implements OnDestroy {
   openCreateStandup(): void {
     this.selectedEditStandup.set(null);
     this.showStandupModal.set(true);
+  }
+
+  /** Opens the voice scribe, which captures the call and writes the updates itself. */
+  openVoiceScribe(): void {
+    this.showScribeModal.set(true);
+  }
+
+  /**
+   * Refreshes the feed after the scribe has written standups straight to the database.
+   *
+   * The scribe bypasses this component's own save path, so without an explicit reload the
+   * new entries would not appear until the user navigated away and back.
+   */
+  onScribeLogged(savedCount: number): void {
+    this.showScribeModal.set(false);
+
+    if (savedCount > 0) {
+      this.state.refreshAllData();
+      this.notification.showSuccess(
+        'Standups logged',
+        `${savedCount} update${savedCount === 1 ? '' : 's'} captured from the call.`
+      );
+    }
   }
 
   openEditStandup(standup: DailyStandup): void {

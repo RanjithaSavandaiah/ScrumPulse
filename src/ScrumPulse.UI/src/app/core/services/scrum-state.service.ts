@@ -526,6 +526,7 @@ export class ScrumStateService {
         let savedId: string | null = null;
         try {
           savedId = localStorage.getItem('scrumpulse_current_team_id');
+          this.restorePersistedRole();
         } catch (storageErr) {
           console.warn('[ScrumStateService] Could not read saved team ID from localStorage:', storageErr);
         }
@@ -595,7 +596,6 @@ export class ScrumStateService {
     return this.http.get<SprintComparison>(`${this.apiUrl}/executive-reports/compare?sprintA=${sprintA}&sprintB=${sprintB}`);
   }
 
-  // ── Team Performance & Growth ──────────────────────────────────────
   getTeamPerformanceSummary(sprintCount: number = DEFAULT_PERFORMANCE_SPRINT_COUNT): Observable<TeamPerformanceSummary> {
     return this.http.get<TeamPerformanceSummary>(`${this.apiUrl}/team-performance/summary?sprintCount=${sprintCount}`);
   }
@@ -629,5 +629,31 @@ export class ScrumStateService {
     anchorElement.download = `ScrumPulse_Export_${new Date().toISOString().slice(0, ISO_DATE_SUBSTRING_LENGTH)}.json`;
     anchorElement.click();
     window.URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Re-applies the role chosen before the last reload.
+   *
+   * setCurrentRole writes the role to local storage, but nothing ever read it back, so the
+   * store re-initialised to Developer on every load and the dropdown appeared to forget the
+   * selection. Scrum Master is deliberately not restored: that role is gated behind the PIN,
+   * and granting it from a value the user can edit in dev tools would hand out privilege for
+   * free. An elevated session re-establishes itself from the session cookie instead.
+   */
+  private restorePersistedRole(): void {
+    let savedRole: string | null = null;
+
+    try {
+      savedRole = localStorage.getItem('scrumpulse_current_role');
+    } catch (storageError) {
+      console.warn('[ScrumStateService] Could not read the saved role from localStorage:', storageError);
+      return;
+    }
+
+    if (!savedRole || savedRole === 'ScrumMaster' || savedRole === this.currentRole()) {
+      return;
+    }
+
+    this.setCurrentRole(savedRole as RoleType);
   }
 }

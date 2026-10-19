@@ -24,7 +24,10 @@ test.describe('Zero Console Errors & Warnings Sentinel', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('app-landing')).toBeVisible({ timeout: 15000 });
 
-    // 2. Visit application dashboard
+    // 2. Visit application dashboard with squad session
+    await page.request.post('/api/auth/join', {
+      data: { joinCode: 'FIKA123', displayName: 'Developer' }
+    });
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('app-dashboard')).toBeVisible({ timeout: 15000 });
 

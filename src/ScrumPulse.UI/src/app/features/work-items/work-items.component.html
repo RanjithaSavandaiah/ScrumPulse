@@ -15,7 +15,7 @@
         <app-icon name="calendar" [size]="16" color="var(--accent-primary)"></app-icon>
         <label for="sprintSelect" class="filter-label">Sprint:</label>
         <select
-          id="sprintSelect"
+          id="sprintSelect" persistSelection="workitems.sprint"
           name="sprintSelect"
           [ngModel]="selectedSprintId()"
           (ngModelChange)="selectedSprintId.set($event)"
@@ -35,7 +35,7 @@
         <app-icon name="user-check" [size]="16" color="var(--accent-secondary)"></app-icon>
         <label for="assigneeFilter" class="filter-label">Assignee:</label>
         <select
-          id="assigneeFilter"
+          id="assigneeFilter" persistSelection="workitems.assignee"
           name="assigneeFilter"
           [ngModel]="selectedAssigneeId()"
           (ngModelChange)="selectedAssigneeId.set($event)"

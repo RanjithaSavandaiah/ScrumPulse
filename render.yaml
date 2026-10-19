@@ -6,6 +6,14 @@ services:
     region: oregon
     dockerfilePath: Dockerfile
     healthCheckPath: /healthz
+
+    # Render watches the repository and deploys on push by default, which bypasses GitHub
+    # Actions entirely. The CI pipeline already gates deploy-to-render behind the backend,
+    # frontend and E2E suites, but that gate is worthless while Render deploys the same commit
+    # on its own. Turning this off makes the tested path the only path: CI calls the deploy
+    # hook once the suites pass.
+    autoDeploy: false
+
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
@@ -19,5 +27,16 @@ services:
         value: "true"
       - key: DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE
         value: "false"
+
+      # Signs the session tokens carrying team and role. Generated once by Render and kept out
+      # of the repository: a committed key would let anyone mint a token for any squad.
+      # Startup fails outside Development when this is missing, which is deliberate.
       - key: SESSION_SIGNING_KEY
         generateValue: true
+
+      # AI providers. Absent keys are not an error: the coach serves its deterministic
+      # analysis instead, so the application stays usable on a deployment without them.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

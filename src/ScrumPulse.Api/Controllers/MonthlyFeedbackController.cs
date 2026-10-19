@@ -11,7 +11,6 @@ using ScrumPulse.Domain.Entities;
 [Route("api/[controller]")]
 [Route("api/feedback")]
 [Route("api/monthly-feedback")]
-[Route("api/monthlyfeedback")]
 /// <summary>Monthly 1:1 feedback management with AI-synthesized insights.</summary>
 public class MonthlyFeedbackController(IAppDbContext db) : BaseApiController
 {

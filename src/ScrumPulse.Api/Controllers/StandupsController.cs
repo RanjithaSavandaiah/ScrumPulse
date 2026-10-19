@@ -7,7 +7,7 @@ using ScrumPulse.Application.CQRS.Standups;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 
-/// <summary>Daily standup management with protected admin endpoints — thin controller delegating to CQRS.</summary>
+/// <summary>Daily standup management with protected admin endpoints - thin controller delegating to CQRS.</summary>
 public class StandupsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -76,7 +76,7 @@ public class StandupsController : BaseApiController
 
     /// <summary>
     /// Administrative endpoint to clear all standup data.
-    /// Protected — requires the X-Admin-Key header matching the configured SM_PIN.
+    /// Protected - requires the X-Admin-Key header matching the configured SM_PIN.
     /// </summary>
     [RequireScrumMaster]
     [HttpDelete("clear-all")]

@@ -1,0 +1,442 @@
+<div class="board-page">
+  <header class="board-nav glass-panel">
+    <div class="nav-content">
+      <a routerLink="/" class="nav-brand">
+        <div class="brand-icon">
+          <app-icon name="zap" [size]="20" color="#ffffff"></app-icon>
+        </div>
+        <span class="brand-title">ScrumPulse</span>
+      </a>
+      <div class="nav-actions">
+        <a routerLink="/app" class="btn-nav-return">
+          <app-icon name="arrow-right" [size]="14"></app-icon>
+          <span>Back to Dashboard</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="board-container">
+    <section class="board-hero">
+      <div class="badge-pill">
+        <app-icon name="git-branch" [size]="14" color="var(--accent-primary)"></app-icon>
+        <span>Delivery board</span>
+      </div>
+      <h1>Azure DevOps connection</h1>
+      <p class="hero-subtitle">
+        Links this squad to the board its work actually lives on, so cycle time, say-do and
+        review latency are measured from real delivery rather than from what someone remembered
+        to re-enter here.
+      </p>
+    </section>
+
+    @if (isLoading()) {
+      <p class="board-loading" role="status">Loading the squad's board connection…</p>
+    } @else {
+      <!-- Status first: whether the board is connected and when it last produced anything is
+           the question a Scrum Master opens this page to answer. -->
+      <section class="glass-panel status-panel" data-testid="connection-status">
+        <div class="status-headline">
+          <span
+            class="status-dot"
+            [class.is-connected]="isConnected()"
+            [class.is-disabled]="isSyncingPaused()"
+            aria-hidden="true"
+          ></span>
+          <div>
+            @if (connection(); as current) {
+              <strong>
+                {{ current.hasStoredCredential ? 'Connected' : 'Configured, no token stored' }}
+                @if (!current.isEnabled) {
+                  <span class="status-suffix">· syncing paused</span>
+                }
+              </strong>
+              <p class="status-detail">{{ current.organizationUrl }} · {{ current.projectName }}</p>
+            } @else {
+              <strong>No board connected</strong>
+              <p class="status-detail">
+                Fill in the form below to start importing this squad's work items.
+              </p>
+            }
+          </div>
+        </div>
+
+        @if (connection(); as current) {
+          <dl class="status-facts">
+            <div>
+              <dt>Last sync</dt>
+              <dd>
+                {{ current.lastSyncedAtUtc ? (current.lastSyncedAtUtc | date: 'medium') : 'Never' }}
+              </dd>
+            </div>
+            <div>
+              <dt>Result</dt>
+              <dd>{{ current.lastSyncStatus || 'Not run yet' }}</dd>
+            </div>
+            <div>
+              <dt>Items imported</dt>
+              <dd>{{ current.lastSyncItemCount }}</dd>
+            </div>
+          </dl>
+        }
+      </section>
+
+      @if (errorMessage(); as message) {
+        <p class="board-alert is-error" role="alert" data-testid="error-banner">
+          <app-icon name="alert-triangle" [size]="16"></app-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+
+      @if (statusMessage(); as message) {
+        <p class="board-alert is-success" role="status">
+          <app-icon name="check-circle" [size]="16"></app-icon>
+          <span>{{ message }}</span>
+        </p>
+      }
+
+      @if (testResult(); as result) {
+        <p
+          class="board-alert"
+          [class.is-success]="result.succeeded"
+          [class.is-error]="!result.succeeded"
+          role="status"
+          data-testid="test-result"
+        >
+          <app-icon [name]="result.succeeded ? 'check-circle' : 'alert-circle'" [size]="16"></app-icon>
+          <span>{{ result.message }}</span>
+        </p>
+      }
+
+      <form class="glass-panel form-panel" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <h2>Connection details</h2>
+        <p class="required-legend">Fields marked with an asterisk are required.</p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="input-label" for="organizationUrl">Organisation URL</label>
+            <input
+              id="organizationUrl"
+              class="interactive-input"
+              type="url"
+              inputmode="url"
+              formControlName="organizationUrl"
+              placeholder="https://dev.azure.com/contoso"
+              required
+              autocomplete="off"
+              data-testid="organization-url"
+            />
+            <app-field-error
+              [control]="form.controls.organizationUrl"
+              label="Organisation URL"
+              [showImmediately]="hasAttemptedSubmit()"
+            />
+            <p class="field-hint">
+              The HTTPS address of the Azure DevOps organisation. Older
+              <code>{{ '{organisation}' }}.visualstudio.com</code> addresses work too.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="projectName">Project name</label>
+            <input
+              id="projectName"
+              class="interactive-input"
+              type="text"
+              formControlName="projectName"
+              placeholder="Delivery Platform"
+              required
+              autocomplete="off"
+              data-testid="project-name"
+            />
+            <app-field-error
+              [control]="form.controls.projectName"
+              label="Project name"
+              [showImmediately]="hasAttemptedSubmit()"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="teamOrAreaPath">Area path (optional)</label>
+            <input
+              id="teamOrAreaPath"
+              class="interactive-input"
+              type="text"
+              formControlName="teamOrAreaPath"
+              placeholder="Delivery Platform\Payments Squad"
+              autocomplete="off"
+              data-testid="area-path"
+            />
+            <app-field-error [control]="form.controls.teamOrAreaPath" label="Area path" />
+            <p class="field-hint">
+              Narrows the import when the project is shared with the client's own teams.
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="personalAccessToken">Personal access token</label>
+            <!-- Write-only. The API returns no token in any form, so there is nothing to show
+                 here and nothing a stale value could overwrite: blank means keep the stored
+                 one. autocomplete is off so a browser never offers to save a client's
+                 credential into a shared profile. -->
+            <input
+              id="personalAccessToken"
+              class="interactive-input"
+              type="password"
+              formControlName="personalAccessToken"
+              [placeholder]="tokenPlaceholder"
+              autocomplete="off"
+              spellcheck="false"
+              data-testid="personal-access-token"
+            />
+            <app-field-error
+              [control]="form.controls.personalAccessToken"
+              label="Personal access token"
+              [showImmediately]="hasAttemptedSubmit()"
+            />
+            <p class="field-hint">
+              @if (isConnected()) {
+                A token is already stored. It is never shown back, so leave this blank unless
+                you are replacing it.
+              } @else {
+                Needs Work Items (Read) only. Anything more than that is access this
+                application does not use.
+              }
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="assigneeFilter">Whose work to import</label>
+            <select
+              id="assigneeFilter"
+              class="interactive-input"
+              formControlName="assigneeFilter"
+              data-testid="assignee-filter"
+            >
+              @for (option of assigneeFilters; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            <p class="field-hint">{{ selectedAssigneeFilterHint() }}</p>
+          </div>
+
+          <div class="form-group">
+            <label class="input-label" for="contentPolicy">Content policy</label>
+            <select
+              id="contentPolicy"
+              class="interactive-input"
+              formControlName="contentPolicy"
+              data-testid="content-policy"
+            >
+              @for (option of contentPolicies; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+            <p class="field-hint">{{ selectedContentPolicyHint() }}</p>
+          </div>
+        </div>
+
+        <!-- The one setting on this page that can leak a client's data, so the reasoning is
+             on screen rather than in a wiki nobody opens. -->
+        <aside class="policy-note" data-testid="content-policy-note">
+          <app-icon name="shield" [size]="18" color="var(--accent-warning)"></app-icon>
+          <p>
+            The content policy decides how much of your client's writing is copied into this
+            database. Metrics only is the default because cycle time, review latency and say-do
+            are calculated from states, dates and points - the titles and descriptions add
+            nothing to the numbers, and they are where customer names, environment URLs and
+            pasted credentials actually turn up. Raise it only if you have read your own board
+            and know what is in it.
+          </p>
+        </aside>
+
+        <label class="toggle-row">
+          <input type="checkbox" formControlName="isEnabled" data-testid="is-enabled" />
+          <span>
+            <strong>Syncing enabled</strong>
+            <small>Turn this off to keep the connection but stop it importing.</small>
+          </span>
+        </label>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="pendingAction() !== null" data-testid="save-connection">
+            {{ pendingAction() === 'save' ? 'Saving…' : 'Save' }}
+          </button>
+
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="testConnection()"
+            [disabled]="pendingAction() !== null || !isConnected()"
+            data-testid="test-connection"
+          >
+            {{ pendingAction() === 'test' ? 'Testing…' : 'Test connection' }}
+          </button>
+
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="sync(false)"
+            [disabled]="pendingAction() !== null || !isConnected()"
+            data-testid="sync-now"
+          >
+            {{ pendingAction() === 'sync' ? 'Syncing…' : 'Sync now' }}
+          </button>
+
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="sync(true)"
+            [disabled]="pendingAction() !== null || !isConnected()"
+            data-testid="full-resync"
+          >
+            {{ pendingAction() === 'resync' ? 'Re-reading backlog…' : 'Full resync' }}
+          </button>
+
+          @if (connection()) {
+            <button
+              type="button"
+              class="btn-danger"
+              (click)="requestDelete()"
+              [disabled]="pendingAction() !== null"
+              data-testid="delete-connection"
+            >
+              Delete connection
+            </button>
+          }
+        </div>
+
+        @if (isConfirmingDelete()) {
+          <div class="confirm-row" role="alertdialog" aria-label="Confirm deletion" data-testid="delete-confirm">
+            <p>
+              Removing the connection destroys the stored token. Work items already imported
+              stay; nothing further will be pulled until a new token is entered.
+            </p>
+            <div class="confirm-actions">
+              <button type="button" class="btn-danger" (click)="confirmDelete()" data-testid="delete-confirm-yes">
+                Yes, remove it
+              </button>
+              <button type="button" class="btn-secondary" (click)="cancelDelete()" data-testid="delete-confirm-no">
+                Keep the connection
+              </button>
+            </div>
+          </div>
+        }
+      </form>
+
+      <!-- The route for squads whose client will not issue a token. Anyone who can open the
+           board can export a query, so the feature does not depend on winning that argument. -->
+      <section class="glass-panel import-panel">
+        <h2>Import from a CSV export</h2>
+        <p class="panel-intro">
+          In Azure DevOps open your query, then choose Export to CSV. The same content policy
+          applies to an imported file as to a sync.
+        </p>
+        <label class="file-picker">
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            (change)="importFile($event)"
+            [disabled]="pendingAction() !== null"
+            data-testid="import-file"
+          />
+          <span>{{ pendingAction() === 'import' ? 'Importing…' : 'Choose a .csv file' }}</span>
+        </label>
+      </section>
+
+      @if (syncResult(); as result) {
+        <section class="glass-panel result-panel" data-testid="sync-result">
+          <h2>Last run</h2>
+          <dl class="status-facts">
+            <div>
+              <dt>Items imported</dt>
+              <dd>{{ result.importedCount }}</dd>
+            </div>
+            <div>
+              <dt>Newly created</dt>
+              <dd>{{ result.createdCount }}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>{{ result.syncedAtUtc | date: 'medium' }}</dd>
+            </div>
+          </dl>
+
+          <!-- Shown rather than counted. An unmapped column silently defaulted would distort
+               every figure derived from it with nothing on screen to explain why. -->
+          @if (result.unmappedStates.length > 0) {
+            <div class="result-callout is-warning" data-testid="unmapped-states">
+              <h3>Board columns with no mapping</h3>
+              <p>
+                Work sitting in these columns was not counted. Map each one below, then run a
+                full resync.
+              </p>
+              <ul>
+                @for (state of result.unmappedStates; track state) {
+                  <li>{{ state }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result.unmatchedAssignees.length > 0) {
+            <div class="result-callout is-warning" data-testid="unmatched-assignees">
+              <h3>Board users not on the roster</h3>
+              <p>
+                Their items were imported, but nothing is attributed to them. Add them to the
+                squad roster if they belong to this squad.
+              </p>
+              <ul>
+                @for (assignee of result.unmatchedAssignees; track assignee) {
+                  <li>{{ assignee }}</li>
+                }
+              </ul>
+            </div>
+          }
+
+          @if (result.warnings.length > 0) {
+            <div class="result-callout" data-testid="sync-warnings">
+              <h3>Warnings</h3>
+              <ul>
+                @for (warning of result.warnings; track warning) {
+                  <li>{{ warning }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      }
+
+      @if (stateMappingRows().length > 0) {
+        <section class="glass-panel mapping-panel" data-testid="state-mapping">
+          <h2>State mapping</h2>
+          <p class="panel-intro">
+            Each column on your board becomes a ScrumPulse stage. The defaults cover the stock
+            Agile, Scrum and CMMI templates; change them if your board has been customised.
+            Mapping changes take effect on the next full resync.
+          </p>
+          <ul class="mapping-list">
+            @for (row of stateMappingRows(); track row.boardState) {
+              <li class="mapping-row">
+                <span class="board-state">{{ row.boardState }}</span>
+                <app-icon name="arrow-right" [size]="14" color="var(--text-muted)"></app-icon>
+                <select
+                  class="interactive-input"
+                  [value]="row.status"
+                  (change)="onStateMapped(row.boardState, $event)"
+                  [attr.aria-label]="'ScrumPulse stage for board state ' + row.boardState"
+                  [persistSelection]="'boardConnection.stateMapping.' + row.boardState"
+                >
+                  @for (status of workItemStatuses; track status.value) {
+                    <option [value]="status.value">{{ status.label }}</option>
+                  }
+                </select>
+              </li>
+            }
+          </ul>
+          <p class="field-hint">Save the connection to store the mapping.</p>
+        </section>
+      }
+    }
+  </main>
+</div>

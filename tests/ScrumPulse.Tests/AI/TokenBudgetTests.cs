@@ -8,7 +8,7 @@ using Xunit;
 /// </summary>
 /// <remarks>
 /// These assert properties rather than exact counts. The estimate is deliberately
-/// approximate — two providers tokenise differently and neither exposes its tokeniser — so
+/// approximate - two providers tokenise differently and neither exposes its tokeniser - so
 /// pinning an exact number would only lock in today's constants. What has to hold is that
 /// the estimate is conservative and that trimming never leaves a half-written metric.
 /// </remarks>

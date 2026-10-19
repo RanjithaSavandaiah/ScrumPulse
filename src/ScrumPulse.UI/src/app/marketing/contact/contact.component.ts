@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MarketingHeaderComponent } from '../marketing-header.component';
 import { PageMetadataService } from '../page-metadata.service';
 
 /**
@@ -12,15 +13,17 @@ import { PageMetadataService } from '../page-metadata.service';
 @Component({
   selector: 'app-contact',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MarketingHeaderComponent],
   styleUrl: '../marketing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-marketing-header />
+
     <main class="marketing-page">
       <h1>Contact</h1>
 
       <p>
-        Questions about ScrumPulse, feedback on the metrics, or a bug to report — any of these
+        Questions about ScrumPulse, feedback on the metrics, or a bug to report - any of these
         are welcome. Messages go directly to the person who builds it.
       </p>
 
@@ -55,7 +58,7 @@ import { PageMetadataService } from '../page-metadata.service';
       <h2>Reporting a problem</h2>
       <p>
         If something is broken, the most useful report says what you expected, what happened,
-        and roughly when. If it involves a specific sprint or work item, the squad name helps —
+        and roughly when. If it involves a specific sprint or work item, the squad name helps -
         please do not paste anything confidential to your organisation.
       </p>
 
@@ -82,7 +85,7 @@ export class ContactComponent {
 
   constructor() {
     inject(PageMetadataService).apply({
-      title: 'Contact — ScrumPulse',
+      title: 'Contact - ScrumPulse',
       description:
         'Get in touch about ScrumPulse: feedback on the delivery metrics, bug reports, security disclosures, or data removal requests.',
       path: '/contact'

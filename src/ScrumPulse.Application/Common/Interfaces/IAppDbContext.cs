@@ -18,6 +18,7 @@ public interface IAppDbContext
     DbSet<TechDebtItem> TechDebtItems { get; }
     DbSet<TechTalkLog> TechTalkLogs { get; }
     DbSet<PullRequestReviewLog> PullRequestReviewLogs { get; }
+    DbSet<BoardConnection> BoardConnections { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

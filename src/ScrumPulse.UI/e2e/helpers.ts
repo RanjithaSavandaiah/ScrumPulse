@@ -1,6 +1,10 @@
 import { Page, expect } from '@playwright/test';
 
 export async function unlockScrumMaster(page: Page): Promise<void> {
+  await page.request.post('/api/auth/join', {
+    data: { joinCode: 'FIKA123', displayName: 'Scrum Master' }
+  });
+
   const roleSelect = page.locator('[data-testid="role-select"]');
   await expect(roleSelect).toBeVisible({ timeout: 15000 });
 

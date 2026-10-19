@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
 import { Blocker } from '../../../../core/models/scrum.models';
+import { VoiceInputDirective } from '../../../../core/directives/voice-input.directive';
 
 @Component({
   selector: 'app-add-blocker-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, VoiceInputDirective],
   templateUrl: './add-blocker-modal.component.html',
   styleUrl: './add-blocker-modal.component.css'
 })

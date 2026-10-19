@@ -56,7 +56,7 @@
         <input
           id="blockerSummaryInput"
           name="blockerSummaryInput"
-          [(ngModel)]="blocker.title"
+          [(ngModel)]="blocker.title" required
           placeholder="e.g. Waiting on DB credentials..."
           class="interactive-input"
         />
@@ -67,7 +67,7 @@
         <textarea
           id="blockerContextTextarea"
           name="blockerContextTextarea"
-          [(ngModel)]="blocker.description"
+          [(ngModel)]="blocker.description" voiceInput="Blocker context" required
           placeholder="Explain what is blocked and who is needed..."
           class="interactive-input"
           rows="2"

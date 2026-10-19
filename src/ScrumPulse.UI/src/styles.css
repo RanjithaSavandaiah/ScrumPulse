@@ -646,9 +646,6 @@ select optgroup {
   margin-bottom: 0.5rem;
 }
 
-
-
-
 /* ==========================================================================
    Responsive layer
    ==========================================================================
@@ -849,7 +846,7 @@ svg.chart {
    to every ngModel control, so marking a field mandatory is one word in the
    template and the asterisk, the focus ring and the error state all follow.
 
-   The `:has()` selector is what makes this possible — it lets a label be styled
+   The `:has()` selector is what makes this possible - it lets a label be styled
    according to the control beside it. Supported in every browser this app
    targets; in anything older the asterisk is simply absent, which degrades to
    the behaviour we already had.

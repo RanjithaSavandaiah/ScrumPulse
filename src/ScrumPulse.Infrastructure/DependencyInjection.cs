@@ -8,8 +8,10 @@ using ScrumPulse.Application.CQRS;
 using ScrumPulse.Application.CQRS.WorkItems;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
+using ScrumPulse.Application.Integration;
 using ScrumPulse.Application.Sagas.WorkItemCompletion;
 using ScrumPulse.Application.Services;
+using ScrumPulse.Infrastructure.Integration;
 using ScrumPulse.Infrastructure.Persistence;
 using ScrumPulse.Infrastructure.Registration;
 using ScrumPulse.Infrastructure.Repositories;
@@ -54,6 +56,27 @@ public static class DependencyInjection
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped(typeof(IAsyncRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+
+        // -- Delivery Board Integration --
+        // Registered whether or not a board is connected: the settings screen and the CSV
+        // import both need the service with no credential present.
+        services.AddSingleton(TimeProvider.System);
+        services.AddDataProtection();
+        services.AddScoped<ICredentialProtector, DataProtectionCredentialProtector>();
+
+        services.AddHttpClient<IBoardSyncClient, AzureDevOpsSyncClient>(httpClient =>
+        {
+            // A sync runs inside a request someone is waiting on, and a client's Azure DevOps
+            // can be slow over a cold connection. The default 100s would hold a free instance's
+            // thread long after the user gave up.
+            httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+            // Azure DevOps rejects requests with no user agent, and naming the application lets
+            // a client's administrators identify this traffic when they audit it.
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("ScrumPulse-BoardSync/1.0");
+        });
+
+        services.AddScoped<IBoardConnectionService, BoardConnectionService>();
 
         // --- Domain Events ----
         // Scoped: dispatcher uses IServiceProvider to resolve handlers per request

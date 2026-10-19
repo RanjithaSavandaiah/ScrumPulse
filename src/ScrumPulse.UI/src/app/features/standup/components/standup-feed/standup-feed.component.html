@@ -22,7 +22,7 @@
       <!-- Sprint Filter -->
       <div class="filter-item">
         <label for="standupSprintFilter" class="filter-label">Sprint Board</label>
-        <select id="standupSprintFilter" name="standupSprintFilter" [ngModel]="selectedSprintId()" (ngModelChange)="selectedSprintId.set($event); currentPage.set(1)" class="filter-select">
+        <select id="standupSprintFilter" persistSelection="standup.sprint" name="standupSprintFilter" [ngModel]="selectedSprintId()" (ngModelChange)="selectedSprintId.set($event); currentPage.set(1)" class="filter-select">
           <option value="ALL">All Sprints Combined</option>
           @for (sprint of state.sprints(); track sprint.id) {
             <option [value]="sprint.id">{{ sprint.name }} {{ sprint.isActive ? '(Active)' : '' }}</option>
@@ -33,7 +33,7 @@
       <!-- Developer Filter -->
       <div class="filter-item">
         <label for="standupEngineerFilter" class="filter-label">Engineer</label>
-        <select id="standupEngineerFilter" name="standupEngineerFilter" [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event); currentPage.set(1)" class="filter-select">
+        <select id="standupEngineerFilter" persistSelection="standup.engineer" name="standupEngineerFilter" [ngModel]="selectedMemberId()" (ngModelChange)="selectedMemberId.set($event); currentPage.set(1)" class="filter-select">
           <option value="ALL">All Engineers</option>
           @for (member of contributingMembers(); track member.id) {
             <option [value]="member.id">{{ member.name | cleanName }}</option>
@@ -116,7 +116,7 @@
 
       <div class="page-size-selector">
         <label for="standupPageSize">Per page:</label>
-        <select id="standupPageSize" name="standupPageSize" [ngModel]="pageSize()" (ngModelChange)="pageSize.set($event); currentPage.set(1)" class="page-size-select">
+        <select id="standupPageSize" persistSelection="standup.pageSize" name="standupPageSize" [ngModel]="pageSize()" (ngModelChange)="pageSize.set($event); currentPage.set(1)" class="page-size-select">
           <option [ngValue]="5">5</option>
           <option [ngValue]="10">10</option>
           <option [ngValue]="20">20</option>

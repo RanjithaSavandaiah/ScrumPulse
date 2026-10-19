@@ -1,4 +1,21 @@
 <section class="animate-fade-in standup-section">
+  <!--
+    Voice capture sits above the feed rather than inside the log dialog: it replaces the whole
+    manual flow rather than being a field within it, and the Scrum Master reaches for it at the
+    start of the ceremony.
+  -->
+  @if (state.isScrumMaster()) {
+    <div class="scribe-launch">
+      <button type="button" class="btn-voice-scribe" (click)="openVoiceScribe()">
+        <span class="voice-icon" aria-hidden="true">&#127908;</span>
+        <span class="voice-label">
+          <strong>Log standup by voice</strong>
+          <small>Capture the call and let the assistant write each person's update</small>
+        </span>
+      </button>
+    </div>
+  }
+
   <div class="standup-grid">
     <app-standup-feed
       [standups]="state.standups()"
@@ -17,6 +34,15 @@
       (selectSpeaker)="selectSpeaker($event)"
     ></app-standup-timer>
   </div>
+
+  <!-- Voice scribe: captures the meeting audio and logs the updates -->
+  @if (showScribeModal()) {
+    <app-standup-scribe-modal
+      [sprintId]="state.activeSprint()?.id ?? null"
+      (standupsLogged)="onScribeLogged($event)"
+      (closed)="showScribeModal.set(false)"
+    ></app-standup-scribe-modal>
+  }
 
   <!-- Log / Edit Standup Modal -->
   @if (showStandupModal()) {

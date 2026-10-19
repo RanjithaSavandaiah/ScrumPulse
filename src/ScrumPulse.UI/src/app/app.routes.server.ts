@@ -15,7 +15,6 @@ import { BLOG_POSTS } from './marketing/blog/blog-posts.data';
  * index.
  */
 export const serverRoutes: ServerRoute[] = [
-  // ── Public pages, rendered to static HTML at build time ─────────────────
   { path: '', renderMode: RenderMode.Prerender },
   { path: 'about', renderMode: RenderMode.Prerender },
   { path: 'contact', renderMode: RenderMode.Prerender },
@@ -31,10 +30,10 @@ export const serverRoutes: ServerRoute[] = [
     getPrerenderParams: async () => BLOG_POSTS.map((post) => ({ slug: post.slug }))
   },
 
-  // ── Application, left to the browser ────────────────────────────────────
   // Session-scoped and data-driven. Prerendering it would produce a snapshot of an empty
   // dashboard and ship it to every visitor before their real data loaded.
   { path: 'app', renderMode: RenderMode.Client },
+  { path: 'demo', renderMode: RenderMode.Client },
 
   // Redirect-only paths. Nothing to prerender; the router resolves them client side.
   { path: 'dashboard', renderMode: RenderMode.Client },

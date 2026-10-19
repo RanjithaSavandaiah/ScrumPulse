@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Team Growth & Velocity Performance Telemetry', () => {
   test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/auth/join', {
+      data: { joinCode: 'FIKA123', displayName: 'Developer' }
+    });
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await page.locator('.tab-btn', { hasText: 'Team Growth & Performance' }).click();
     await expect(page.locator('.performance-section')).toBeVisible({ timeout: 15000 });

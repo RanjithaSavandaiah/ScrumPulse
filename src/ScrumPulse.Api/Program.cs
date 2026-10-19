@@ -36,7 +36,11 @@ if (!File.Exists(Path.Combine(wwwrootPath, "index.html")))
         Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
         Path.Combine(Directory.GetCurrentDirectory(), "src", "ScrumPulse.Api", "wwwroot"),
         Path.Combine(Directory.GetCurrentDirectory(), "..", "ScrumPulse.Api", "wwwroot"),
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "wwwroot")
+        Path.Combine(Directory.GetCurrentDirectory(), "src", "ScrumPulse.UI", "dist", "scrum-pulse.ui", "browser"),
+        Path.Combine(Directory.GetCurrentDirectory(), "..", "ScrumPulse.UI", "dist", "scrum-pulse.ui", "browser"),
+        Path.Combine(builder.Environment.ContentRootPath, "..", "ScrumPulse.UI", "dist", "scrum-pulse.ui", "browser"),
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "wwwroot"),
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "ScrumPulse.UI", "dist", "scrum-pulse.ui", "browser")
     };
     foreach (var candidate in candidates)
     {
@@ -55,7 +59,6 @@ if (!Directory.Exists(wwwrootPath))
     Directory.CreateDirectory(wwwrootPath);
 }
 
-// ── API Controllers & OpenAPI ────────────────────────────────────────────
 builder.Services.AddControllers()
     .AddJsonOptions(jsonOptions =>
     {
@@ -72,11 +75,9 @@ builder.Services.AddSwaggerGen(swaggerGenOptions =>
     });
 });
 
-// ── Clean Architecture Layer Registration ────────────────────────────────
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddAiServices(builder.Configuration);
 
-// ── Session Authentication ───────────────────────────────────────────────
 // Team and role come from a signed token this server issued, never from a request header.
 // Outside development a missing SESSION_SIGNING_KEY fails startup rather than silently
 // weakening every session that follows.
@@ -133,13 +134,17 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    // Secure by default: every controller endpoint requires a session unless it opts out with
+    // [AllowAnonymous]. Without this a newly added controller is reachable by anyone, which is
+    // how fourteen mutating endpoints were left unprotected before.
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build());
 
-// ── Health Checks ────────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("database");
 
-// ── Rate Limiting (Critical for public site) ─────────────────────────────
 builder.Services.AddRateLimiter(rateLimiterOptions =>
 {
     rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -181,10 +186,24 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
             });
         }
 
-        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        var endpoint = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
+        var isVerifyPin = endpoint.Contains("verify-pin");
+
+        // In Development, joining squads needs generous headroom because dozens of E2E tests
+        // authenticate sequentially from localhost. Verifying PIN uses a burst limiter (5 permits
+        // per 2s window in dev) so repeated brute-force PIN attempts are rejected with 429 without
+        // starving subsequent tests. In production, both endpoints strictly allow 5 attempts per minute.
+        var permitLimit = builder.Environment.IsDevelopment() && !isVerifyPin ? 500 : 5;
+        var window = builder.Environment.IsDevelopment() && isVerifyPin
+            ? TimeSpan.FromSeconds(2)
+            : TimeSpan.FromMinutes(1);
+
+        var partitionKey = $"{clientIp}:{endpoint}";
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = builder.Environment.IsDevelopment() ? 500 : 5,
-            Window = TimeSpan.FromMinutes(1),
+            PermitLimit = permitLimit,
+            Window = window,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
         });
@@ -210,7 +229,6 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
     });
 });
 
-// ── Response Compression (Brotli + GZip) ─────────────────────────────────
 builder.Services.AddResponseCompression(compressionOptions =>
 {
     // Compression stays off for HTTPS responses. Compressing a response that mixes a secret
@@ -227,7 +245,6 @@ builder.Services.AddResponseCompression(compressionOptions =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
     options.Level = System.IO.Compression.CompressionLevel.Fastest);
 
-// ── CORS (Hardened for public hosting) ───────────────────────────────────
 builder.Services.AddCors(corsOptions =>
 {
     corsOptions.AddPolicy("Production", corsPolicy =>
@@ -256,7 +273,6 @@ builder.Services.AddCors(corsOptions =>
     }
 });
 
-// ── Output Caching ───────────────────────────────────────────────────────
 // Every policy keys on the requesting session's team. See TenantOutputCachePolicy for why
 // varying on a request header would have leaked one squad's report to the next.
 builder.Services.AddOutputCache(options =>
@@ -275,7 +291,6 @@ if (sessionSigningKey.IsEphemeral)
         "when this process restarts. Set the variable before deploying.");
 }
 
-// ── Middleware Pipeline ──────────────────────────────────────────────────
 // Order matters. The exception handler runs first so that it also catches failures thrown by
 // the middleware below it. It previously sat fourth, which left security header, logging and
 // tenant resolution faults to surface as unhandled stack traces.
@@ -320,7 +335,6 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// ── Static Files & Routing ───────────────────────────────────────────────
 var corsPolicy = app.Environment.IsDevelopment() ? "Development" : "Production";
 app.UseCors(corsPolicy);
 

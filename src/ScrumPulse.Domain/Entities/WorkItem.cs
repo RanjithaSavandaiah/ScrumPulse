@@ -45,6 +45,31 @@ public class WorkItem : BaseEntity
     public bool IsEscapedDefect { get; set; } = false;
     public string? DefectRootCause { get; set; }
 
+    // -- Delivery board origin --------------------------------------------------------------
+
+    /// <summary>
+    /// Anything other than Manual is owned by the source board; local edits are overwritten by
+    /// the next sync and leave two answers to the same question.
+    /// </summary>
+    public WorkItemOrigin Origin { get; set; } = WorkItemOrigin.Manual;
+
+    /// <summary>
+    /// Source board identifier. Matching on this rather than the title keeps repeated syncs
+    /// idempotent, since a renamed story would otherwise import twice.
+    /// </summary>
+    public string? ExternalId { get; set; }
+
+    // Stored only when the content policy permits: the URL carries the client's organisation
+    // and project names.
+    public string? ExternalUrl { get; set; }
+
+    /// <summary>The board's own state name, so an unmapped column can be reported by name.</summary>
+    public string? BoardState { get; set; }
+
+    public DateTime? LastSyncedAtUtc { get; set; }
+
+    public bool IsReadOnlyFromBoard => Origin != WorkItemOrigin.Manual;
+
     // Computed Latencies (Working Hours Only)
     public double? PickupLatencyHours => PickedUpAtUtc.HasValue 
         ? WorkingHoursCalculator.CalculateWorkingHours(CreatedAtUtc, PickedUpAtUtc.Value, Sprint?.DailyWorkingHours ?? WorkingHoursCalculator.DefaultDailyWorkingHours) 

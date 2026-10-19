@@ -388,8 +388,6 @@ export interface SprintComparison {
   comparisonSummary: string;
 }
 
-// ── Team Performance & Growth Dashboard Models ──────────────────────
-
 export interface GrowthMetric {
   metricName: string;
   category: string;

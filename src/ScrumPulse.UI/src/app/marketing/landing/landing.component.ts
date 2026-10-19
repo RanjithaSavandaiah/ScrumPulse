@@ -1,31 +1,24 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MarketingHeaderComponent } from '../marketing-header.component';
 import { PageMetadataService } from '../page-metadata.service';
 
 /**
  * Public home page.
  *
  * This replaced the dashboard at the site root. Previously a first-time visitor, and any
- * crawler, landed on a squad dashboard that showed nothing without a join code — which is
+ * crawler, landed on a squad dashboard that showed nothing without a join code - which is
  * both a poor introduction and the reason the site read as having no content. The
  * application now lives at /app and this page explains what it is.
  */
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MarketingHeaderComponent],
   styleUrl: '../marketing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <header class="marketing-header">
-      <a routerLink="/" class="brand">Scrum<span>Pulse</span></a>
-      <nav>
-        <a routerLink="/blog">Notes</a>
-        <a routerLink="/about">About</a>
-        <a routerLink="/contact">Contact</a>
-        <a routerLink="/app" class="btn-launch">Launch Dashboard &rarr;</a>
-      </nav>
-    </header>
+    <app-marketing-header />
 
     <main class="marketing-page wide">
       <section class="hero">
@@ -39,7 +32,7 @@ import { PageMetadataService } from '../page-metadata.service';
         <div class="hero-actions">
           <a class="cta cta-primary" routerLink="/app">Launch Dashboard &amp; Tabs &rarr;</a>
           <a class="cta cta-secondary" routerLink="/blog">Read delivery notes</a>
-          <a class="cta cta-secondary" routerLink="/about">About the author</a>
+          <a class="cta cta-secondary" routerLink="/demo">Explore the live demo</a>
         </div>
       </section>
 
@@ -116,7 +109,7 @@ import { PageMetadataService } from '../page-metadata.service';
       <h2>Where to start</h2>
       <p>
         The <a routerLink="/blog">delivery notes</a> cover the reasoning behind each metric in
-        more depth — why the blocker SLA is eight working hours, and why say-do is a forecast
+        more depth - why the blocker SLA is eight working hours, and why say-do is a forecast
         rather than a score.
       </p>
 
@@ -131,7 +124,7 @@ import { PageMetadataService } from '../page-metadata.service';
 export class LandingComponent {
   constructor() {
     inject(PageMetadataService).apply({
-      title: 'ScrumPulse — sprint delivery metrics for scrum masters',
+      title: 'ScrumPulse - sprint delivery metrics for scrum masters',
       description:
         'Track cycle time by stage, blocker SLAs, capacity-adjusted velocity and review turnaround. A delivery metrics tool built by a scrum master.',
       path: '/'

@@ -23,8 +23,8 @@ using Xunit;
 /// The suite this replaces asserted only that a correct PIN returned <c>Success = true</c>.
 /// That was the whole of the old contract, and it was the problem: the server told the
 /// browser it had authenticated and then kept no record of it, so every later request had to
-/// be trusted on the client's word. These tests assert what the endpoints now produce — a
-/// signed cookie the server can verify — and that the two secrets cannot be bypassed.
+/// be trusted on the client's word. These tests assert what the endpoints now produce - a
+/// signed cookie the server can verify - and that the two secrets cannot be bypassed.
 /// </remarks>
 public class AuthControllerTests
 {
@@ -93,8 +93,6 @@ public class AuthControllerTests
         controller.Response.Headers.SetCookie
             .Any(header => header is not null && header.Contains("ScrumPulseSession", StringComparison.Ordinal));
 
-    // ── Joining a squad ──────────────────────────────────────────────────
-
     [Fact]
     public async Task Join_WithCorrectJoinCode_IssuesDeveloperSession()
     {
@@ -133,8 +131,6 @@ public class AuthControllerTests
 
         Assert.IsType<UnauthorizedObjectResult>(result.Result);
     }
-
-    // ── PIN elevation ────────────────────────────────────────────────────
 
     [Fact]
     public void VerifyPin_WithCorrectPin_ElevatesExistingSession()
@@ -203,8 +199,6 @@ public class AuthControllerTests
         Assert.IsType<UnauthorizedObjectResult>(result.Result);
     }
 
-    // ── Session state ────────────────────────────────────────────────────
-
     [Fact]
     public async Task GetSession_ForAnonymousCaller_ReportsUnauthenticated()
     {
@@ -231,8 +225,6 @@ public class AuthControllerTests
         Assert.Equal("Platform Squad", response.TeamName);
         Assert.Equal(nameof(RoleType.ScrumMaster), response.Role);
     }
-
-    // ── Cookie hardening ─────────────────────────────────────────────────
 
     [Fact]
     public async Task Join_IssuesCookieThatScriptCannotReadAndOtherSitesCannotSend()

@@ -6,37 +6,18 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 /// <summary>
-/// Supplies the symmetric key used to sign and validate session tokens.
+/// Supplies the symmetric key used to sign and validate session tokens. Read from the
+/// SESSION_SIGNING_KEY environment variable so it never lands in this public repository.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The key is read from the SESSION_SIGNING_KEY environment variable so it never appears
-/// in source control. The repository is public; a committed key would let anyone mint a
-/// token for any team and role.
-/// </para>
-/// <para>
-/// Outside development a missing or too-short key is a startup failure rather than a
-/// warning. Falling back to a generated key in production would silently invalidate every
-/// session on restart and, on a multi-instance deployment, let tokens signed by one
-/// instance be rejected by another.
-/// </para>
-/// </remarks>
 public sealed class SessionSigningKey
 {
-    /// <summary>
-    /// Shortest key accepted. HMAC-SHA256 keys shorter than the 256-bit hash output
-    /// weaken the signature, and <see cref="SymmetricSecurityKey"/> rejects them outright.
-    /// </summary>
     private const int MinimumKeyLengthBytes = 32;
 
     private const string EnvironmentVariableName = "SESSION_SIGNING_KEY";
 
     public SymmetricSecurityKey Key { get; }
 
-    /// <summary>
-    /// True when no key was configured and an ephemeral one was generated for local use.
-    /// Sessions do not survive a restart in this mode.
-    /// </summary>
+    // Ephemeral keys mean sessions die on restart.
     public bool IsEphemeral { get; }
 
     private SessionSigningKey(SymmetricSecurityKey key, bool isEphemeral)
@@ -45,14 +26,8 @@ public sealed class SessionSigningKey
         IsEphemeral = isEphemeral;
     }
 
-    /// <summary>
-    /// Resolves the signing key, or throws when running outside development without one.
-    /// </summary>
-    /// <param name="configuration">Configuration consulted after the environment variable.</param>
-    /// <param name="isDevelopment">When true, allows an ephemeral key so the app runs with no setup.</param>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown outside development when the key is absent or shorter than 32 bytes.
-    /// </exception>
+    // Throws outside development rather than generating a key: a generated one would invalidate
+    // every session on restart, and across instances leave one node rejecting another's tokens.
     public static SessionSigningKey Resolve(IConfiguration configuration, bool isDevelopment)
     {
         var configuredKey = Environment.GetEnvironmentVariable(EnvironmentVariableName)

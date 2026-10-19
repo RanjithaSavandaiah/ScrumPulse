@@ -240,7 +240,7 @@ public class TeamPerformanceService(
 
             new("Quality Score", "Quality", recentEscaped, totalEscaped, recentEscaped == 0 ? 100 : -recentEscaped * 10,
                 recentEscaped == 0 ? "Up" : "Down", "defects",
-                recentEscaped == 0 ? "Zero escaped defects in recent sprints — production quality maintained" : $"{recentEscaped} escaped defects in recent sprints",
+                recentEscaped == 0 ? "Zero escaped defects in recent sprints - production quality maintained" : $"{recentEscaped} escaped defects in recent sprints",
                 "shield"),
 
             new("PR Review Turnaround", "Efficiency", latestPr, previousPr, prImprovement,
@@ -255,7 +255,7 @@ public class TeamPerformanceService(
 
             new("Team Engagement", "Culture", avgMood, TargetTeamMoodBaseline, Math.Round((avgMood - TargetTeamMoodBaseline) / TargetTeamMoodBaseline * 100, 1),
                 avgMood >= TargetTeamMoodBaseline ? "Up" : "Down", "/5",
-                $"Team morale at {avgMood}/5 — {(avgMood >= TargetTeamMoodBaseline ? "healthy and motivated" : "needs attention")}",
+                $"Team morale at {avgMood}/5 - {(avgMood >= TargetTeamMoodBaseline ? "healthy and motivated" : "needs attention")}",
                 "heart"),
 
             new("Avg Sprint Velocity", "Capacity", avgVelocity, prevAvg,
@@ -267,7 +267,7 @@ public class TeamPerformanceService(
             new("Commitment Consistency", "Maturity", latest.CommittedPoints, previous.CommittedPoints,
                 previous.CommittedPoints > 0 ? Math.Round(((double)latest.CommittedPoints - previous.CommittedPoints) / previous.CommittedPoints * 100, 1) : 0,
                 Math.Abs(latest.CommittedPoints - previous.CommittedPoints) <= 5 ? "Stable" : "Up", "SP",
-                $"Sprint commitment: {latest.CommittedPoints} SP — {(Math.Abs(latest.CommittedPoints - previous.CommittedPoints) <= 5 ? "consistent planning maturity" : "adjusting capacity")}",
+                $"Sprint commitment: {latest.CommittedPoints} SP - {(Math.Abs(latest.CommittedPoints - previous.CommittedPoints) <= 5 ? "consistent planning maturity" : "adjusting capacity")}",
                 "activity")
         };
     }
@@ -286,37 +286,37 @@ public class TeamPerformanceService(
             if (velocityMetric.DeltaPercent > 0)
                 highlights.Add(new("rocket", "Delivery", $"Team delivered {velocityMetric.DeltaPercent}% more story points than previous sprint while maintaining quality standards.", "Positive"));
             else if (velocityMetric.DeltaPercent == 0 && velocityMetric.CurrentValue > 0)
-                highlights.Add(new("bar-chart", "Delivery", $"Consistent delivery at {velocityMetric.CurrentValue} story points — stable velocity maintained.", "Positive"));
+                highlights.Add(new("bar-chart", "Delivery", $"Consistent delivery at {velocityMetric.CurrentValue} story points - stable velocity maintained.", "Positive"));
         }
 
         // Say-Do highlight
         var sayDoMetric = metrics.FirstOrDefault(metric => metric.MetricName == "Say-Do Predictability");
         if (sayDoMetric != null && sayDoMetric.CurrentValue >= 80)
-            highlights.Add(new("target", "Predictability", $"Team delivers on commitments with {sayDoMetric.CurrentValue}% Say-Do predictability — high reliability for sprint planning.", "Positive"));
+            highlights.Add(new("target", "Predictability", $"Team delivers on commitments with {sayDoMetric.CurrentValue}% Say-Do predictability - high reliability for sprint planning.", "Positive"));
 
         // Zero defects highlight
         var qualityMetric = metrics.FirstOrDefault(metric => metric.MetricName == "Quality Score");
         if (qualityMetric != null && qualityMetric.CurrentValue == 0)
-            highlights.Add(new("shield-check", "Quality", "Zero escaped production defects in recent sprints — robust quality gates and testing practices in place.", "Positive"));
+            highlights.Add(new("shield-check", "Quality", "Zero escaped production defects in recent sprints - robust quality gates and testing practices in place.", "Positive"));
 
         // PR review turnaround
         var prMetric = metrics.FirstOrDefault(metric => metric.MetricName == "PR Review Turnaround");
         if (prMetric != null && prMetric.CurrentValue <= MaxTargetPrReviewTurnaroundHours)
-            highlights.Add(new("zap", "Engineering", $"Code review turnaround at {prMetric.CurrentValue} hours — fast feedback loops enabling rapid iteration.", "Positive"));
+            highlights.Add(new("zap", "Engineering", $"Code review turnaround at {prMetric.CurrentValue} hours - fast feedback loops enabling rapid iteration.", "Positive"));
 
         // Blocker SLA
         var blockerMetric = metrics.FirstOrDefault(metric => metric.MetricName == "Blocker Resolution SLA");
         if (blockerMetric != null && blockerMetric.CurrentValue >= 90)
-            highlights.Add(new("check-circle", "Risk", $"{blockerMetric.CurrentValue}% blocker resolution SLA compliance — proactive impediment management.", "Positive"));
+            highlights.Add(new("check-circle", "Risk", $"{blockerMetric.CurrentValue}% blocker resolution SLA compliance - proactive impediment management.", "Positive"));
 
         // Team morale
         var engagementMetric = metrics.FirstOrDefault(metric => metric.MetricName == "Team Engagement");
         if (engagementMetric != null && engagementMetric.CurrentValue >= TargetTeamMoodBaseline)
-            highlights.Add(new("heart", "Culture", $"Team morale score at {engagementMetric.CurrentValue}/5 — high engagement and collaborative culture.", "Positive"));
+            highlights.Add(new("heart", "Culture", $"Team morale score at {engagementMetric.CurrentValue}/5 - high engagement and collaborative culture.", "Positive"));
 
         // Sprint count & maturity
         if (snapshots.Count >= 4)
-            highlights.Add(new("trending-up", "Maturity", $"Performance data aggregated across {snapshots.Count} sprints — demonstrating sustained delivery discipline and engineering maturity.", "Positive"));
+            highlights.Add(new("trending-up", "Maturity", $"Performance data aggregated across {snapshots.Count} sprints - demonstrating sustained delivery discipline and engineering maturity.", "Positive"));
 
         // If few highlights, add a growth focused one
         if (highlights.Count < 3 && snapshots.Count >= 2)
@@ -396,15 +396,15 @@ public class TeamPerformanceService(
 
     private static string GenerateHeadline(string grade, IReadOnlyList<SprintGrowthSnapshotDto> snapshots, IReadOnlyList<GrowthMetricDto> metrics)
     {
-        if (snapshots.Count == 0) return "Team delivery cadence active — performance telemetry tracking initialized.";
+        if (snapshots.Count == 0) return "Team delivery cadence active - performance telemetry tracking initialized.";
         var latest = snapshots[^1];
         var sayDo = metrics.FirstOrDefault(metric => metric.MetricName == "Say-Do Predictability");
         return grade switch
         {
-            "A+" => $"Outstanding delivery performance — {latest.DeliveredPoints} SP delivered at {sayDo?.CurrentValue ?? 0}% predictability.",
-            "A" => $"Strong delivery execution — consistent velocity with high commitment accuracy.",
-            "B+" => $"Good momentum — team is trending upward with solid engineering practices.",
-            _ => $"Building foundations — team is establishing delivery cadence across {snapshots.Count} sprints."
+            "A+" => $"Outstanding delivery performance - {latest.DeliveredPoints} SP delivered at {sayDo?.CurrentValue ?? 0}% predictability.",
+            "A" => $"Strong delivery execution - consistent velocity with high commitment accuracy.",
+            "B+" => $"Good momentum - team is trending upward with solid engineering practices.",
+            _ => $"Building foundations - team is establishing delivery cadence across {snapshots.Count} sprints."
         };
     }
 
@@ -423,7 +423,7 @@ public class TeamPerformanceService(
     private static IReadOnlyList<TeamHighlightDto> GetDefaultHighlights() =>
     [
         new("rocket", "Delivery", "Team delivery tracking initialized and ready for cross-sprint performance analysis.", "Positive"),
-        new("shield-check", "Quality", "Zero escaped defects recorded — high quality standards active.", "Positive"),
+        new("shield-check", "Quality", "Zero escaped defects recorded - high quality standards active.", "Positive"),
         new("heart", "Culture", "Collaborative team environment with continuous agile improvement loops.", "Positive")
     ];
 

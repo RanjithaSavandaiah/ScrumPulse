@@ -58,7 +58,7 @@
           <input
             id="workItemTitleInput"
             name="workItemTitleInput"
-            [(ngModel)]="item.title"
+            [(ngModel)]="item.title" required
             placeholder="e.g. Build OAuth Flow..."
             class="interactive-input"
           />
@@ -100,6 +100,7 @@
           id="workItemDoRTextarea"
           name="workItemDoRTextarea"
           [(ngModel)]="item.acceptanceCriteria"
+          [required]="isUserStory"
           (ngModelChange)="validationError.set(null)"
           placeholder="Given / When / Then criteria required for Definition of Ready (DoR)..."
           class="interactive-input"

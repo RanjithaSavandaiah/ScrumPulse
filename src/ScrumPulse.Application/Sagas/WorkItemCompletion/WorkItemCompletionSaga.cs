@@ -95,7 +95,7 @@ public class WorkItemCompletionSaga : ISagaOrchestrator<WorkItemCompletionContex
                 }
                 catch (Exception ex)
                 {
-                    // Compensation resilience — log explicitly so failures are visible in telemetry
+                    // Compensation resilience - log explicitly so failures are visible in telemetry
                     _logger?.LogError(ex, "Failed to compensate saga step {StepName} for work item {WorkItemId}", step.StepName, context.WorkItemId);
                 }
             }

@@ -9,7 +9,7 @@ using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Services;
 using ScrumPulse.Domain.Enums;
 
-/// <summary>Leave management with capacity calculation integration — thin controller delegating to CQRS.</summary>
+/// <summary>Leave management with capacity calculation integration - thin controller delegating to CQRS.</summary>
 public class LeavesController : BaseApiController
 {
     private readonly IMediator _mediator;

@@ -9,6 +9,7 @@ import { CORE_PIPES } from '../../../../core/pipes';
 import { cleanName, isDeliveryRole } from '../../../../core/utils/format-utils';
 
 import { ConfirmModalComponent } from '../../../../core/components/confirm-modal/confirm-modal.component';
+import { PersistSelectionDirective } from '../../../../core/directives/persist-selection.directive';
 
 export const DEFAULT_PAGE_SIZE = 5;
 export const INITIAL_PAGE_NUMBER = 1;
@@ -16,7 +17,7 @@ export const INITIAL_PAGE_NUMBER = 1;
 @Component({
   selector: 'app-standup-feed',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, ConfirmModalComponent, ...CORE_PIPES],
+  imports: [CommonModule, FormsModule, IconComponent, ConfirmModalComponent, ...CORE_PIPES, PersistSelectionDirective],
   templateUrl: './standup-feed.component.html',
   styleUrl: './standup-feed.component.css'
 })

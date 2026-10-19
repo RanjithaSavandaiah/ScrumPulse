@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MarketingHeaderComponent } from '../marketing-header.component';
 import { PageMetadataService } from '../page-metadata.service';
 
 /**
@@ -13,10 +14,12 @@ import { PageMetadataService } from '../page-metadata.service';
 @Component({
   selector: 'app-about',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, MarketingHeaderComponent],
   styleUrl: '../marketing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-marketing-header />
+
     <main class="marketing-page">
       <h1>About ScrumPulse</h1>
 
@@ -32,7 +35,7 @@ import { PageMetadataService } from '../page-metadata.service';
       <p>
         Standard delivery tooling is good at recording state. It will tell you what is in
         progress, what is done, and how many points closed. It is much weaker at the questions
-        a scrum master actually gets asked — why the sprint slipped, whether the next one is
+        a scrum master actually gets asked - why the sprint slipped, whether the next one is
         realistic, and what to change on Monday.
       </p>
       <p>
@@ -46,7 +49,7 @@ import { PageMetadataService } from '../page-metadata.service';
       <h2>The principle it is built on</h2>
       <p>
         A metric that cannot change a decision is decoration. Every measurement in ScrumPulse
-        attaches to an action available this sprint — a review window to introduce, a blocker to
+        attaches to an action available this sprint - a review window to introduce, a blocker to
         escalate, a commitment to revise. Measurements that only produce a chart were left out
         deliberately, however good they look in a report.
       </p>
@@ -62,7 +65,7 @@ import { PageMetadataService } from '../page-metadata.service';
         ASP.NET Core on .NET 10 with a clean-architecture separation, Angular on the front end,
         PostgreSQL in production. The AI coaching runs on the Microsoft Agent Framework over
         Groq and Gemini, and degrades to a deterministic rule-based analysis when the model
-        quota is exhausted rather than failing — the reasoning being that a tool which stops
+        quota is exhausted rather than failing - the reasoning being that a tool which stops
         working when a free tier runs out is not a tool anyone can rely on.
       </p>
       <p>
@@ -72,7 +75,7 @@ import { PageMetadataService } from '../page-metadata.service';
 
       <h2>Contact</h2>
       <p>
-        Feedback, corrections and disagreement are all welcome — particularly disagreement about
+        Feedback, corrections and disagreement are all welcome - particularly disagreement about
         the metrics, which is how they get better. The <a routerLink="/contact">contact page</a>
         has the ways to get in touch.
       </p>

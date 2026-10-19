@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { MarketingHeaderComponent } from '../marketing-header.component';
 import { PageMetadataService } from '../page-metadata.service';
 import { postsNewestFirst } from './blog-posts.data';
 
@@ -8,14 +9,16 @@ import { postsNewestFirst } from './blog-posts.data';
 @Component({
   selector: 'app-blog-list',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, MarketingHeaderComponent],
   styleUrl: '../marketing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-marketing-header />
+
     <main class="marketing-page">
       <h1>Delivery notes</h1>
       <p>
-        Working notes on sprint metrics, flow and scrum practice — the reasoning behind how
+        Working notes on sprint metrics, flow and scrum practice - the reasoning behind how
         ScrumPulse measures things, and what changed on the teams it came from.
       </p>
 
@@ -41,7 +44,7 @@ export class BlogListComponent {
 
   constructor() {
     inject(PageMetadataService).apply({
-      title: 'Delivery notes — ScrumPulse',
+      title: 'Delivery notes - ScrumPulse',
       description:
         'Notes on sprint metrics, cycle time, blocker SLAs and scrum practice from a working scrum master.',
       path: '/blog'

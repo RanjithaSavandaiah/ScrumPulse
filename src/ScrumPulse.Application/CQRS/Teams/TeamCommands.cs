@@ -10,8 +10,6 @@ using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Common;
 using ScrumPulse.Domain.Entities;
 
-// ── Queries ──────────────────────────────────────────────────────────────
-
 public record GetTeamsQuery : IQuery<IEnumerable<TeamDto>>;
 
 public class GetTeamsQueryHandler(IAppDbContext db) : IQueryHandler<GetTeamsQuery, IEnumerable<TeamDto>>
@@ -54,8 +52,6 @@ public class GetQualityGatesQueryHandler(IAppDbContext db) : IQueryHandler<GetQu
         );
     }
 }
-
-// ── Commands ─────────────────────────────────────────────────────────────
 
 public record CreateTeamCommand(CreateTeamRequest Request) : ICommand<Result<TeamDto>>;
 

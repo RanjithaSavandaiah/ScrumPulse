@@ -8,3 +8,77 @@
   grid-template-columns: 2fr 1fr;
   gap: 20px;
 }
+
+/* --- Voice scribe launcher ------------------------------------------------
+   Sits above the feed as a full-width action rather than a toolbar icon. It
+   replaces the entire manual logging flow, so it needs to explain itself; a
+   bare microphone glyph would not tell a first-time user what it does. */
+
+.scribe-launch {
+  margin-bottom: 1.25rem;
+}
+
+.btn-voice-scribe {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-primary) 14%, transparent),
+    color-mix(in srgb, var(--accent-purple) 10%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 35%, transparent);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn-voice-scribe:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+.btn-voice-scribe:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.voice-icon {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.voice-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.voice-label strong {
+  font-family: var(--font-heading);
+  font-size: 0.98rem;
+}
+
+.voice-label small {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .btn-voice-scribe {
+    align-items: flex-start;
+    padding: 0.85rem 1rem;
+  }
+
+  /* The explanatory line costs more room than it earns on a phone, where the
+     heading alone is enough once the feature is familiar. */
+  .voice-label small {
+    display: none;
+  }
+}

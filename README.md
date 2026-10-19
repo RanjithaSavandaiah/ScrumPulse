@@ -216,11 +216,14 @@ adding two tracks to one stream would not work. Microphone access is best-effort
 declined the capture continues without it and the dialog says so, rather than producing a
 short transcript with no explanation.
 
-Audio is recorded in 30-second chunks, each posted to `/api/standup-scribe/transcribe` as it
-completes. That length is chosen against Groq's Whisper free tier — roughly 20 requests/minute
-and 8 hours of audio/day — so a standup costs about two requests per minute, and the transcript
-builds up during the ceremony instead of arriving in one upload at the end. A failed chunk costs
-a few seconds, not the whole standup.
+Audio is recorded in 15-second chunks, each posted to `/api/standup-scribe/transcribe` as it
+completes. The chunk length sets the floor on how far behind the transcript runs, because
+nothing in a chunk can be transcribed until the chunk has finished recording. Fifteen seconds is
+the shortest length that stays defensible against Groq's Whisper free tier — roughly 20
+requests/minute and 8 hours of audio/day — at four requests per minute. Going shorter buys
+little, since the round trip starts to dominate below about ten seconds, and costs real
+accuracy: every boundary cuts a sentence mid-word and denies the model the surrounding context
+it uses to disambiguate. A failed chunk costs a few seconds, not the whole standup.
 
 Four deliberate constraints:
 
@@ -237,6 +240,133 @@ Browsers without `getDisplayMedia` (and any tenant that blocks audio capture) fa
 pasting a transcript — including one exported from Teams live transcription, which carries
 speaker labels and so gives noticeably better attribution than Whisper alone.
 
+### Dictation on every page
+
+Capturing a call and dictating into a form look like the same feature and are not. They run on
+separate pipelines, because the constraint that forces recording on the first one does not apply
+to the second.
+
+Dictation uses the browser's own recogniser (`SpeechRecognition`), which streams words back as
+they are spoken. There is no recording window and no upload, so text appears while the sentence
+is still being said rather than up to fifteen seconds later. It also spends none of the
+transcription allowance, which matters because dictation is the frequent case — a blocker note,
+a retro card, a comment — and routing all of it through Whisper would consume the daily budget
+the standup transcript depends on. Browsers with no recogniser fall back to recorded chunks,
+which produce the same text through the same endpoint, just a chunk at a time.
+
+Two notes on that choice. In Chrome the recogniser sends audio to Google's servers rather than
+recognising on-device, so it is used **only for the user's own voice, after an explicit click** —
+never for a colleague, which is why capturing a call stays on the recorded path and keeps its
+consent gate. And a live recogniser hears only the microphone, so it could not transcribe a call
+even if that were acceptable.
+
+Any field opts in with one attribute:
+
+```html
+<textarea [(ngModel)]="blocker.description" voiceInput="Blocker description"></textarea>
+```
+
+Focusing the field makes it the destination; the floating capture bar names it, so with several
+fields on screen the user can see where text will land before they start talking.
+
+**Text is revealed progressively rather than pasted in blocks.** Both pipelines emit in bursts —
+the recogniser commits at phrase boundaries, the recorded path returns a whole chunk at once —
+and dropping a finished sentence into a field in a single frame reads as a glitch: the eye
+registers that something changed but not what, so the user re-reads the field to find it. A
+small queue releases the text a few characters at a time instead. Its drain rate is bounded
+rather than fixed, so it speeds up when a backlog builds; a fixed typing speed would fall
+further behind the longer someone talked, and by the end of a standup the field would be showing
+a sentence from minutes earlier. Clicking Stop flushes whatever is queued immediately, because
+the text already belongs to the user and making them watch an animation finish would be the
+effect serving itself.
+
+Uncommitted speech is shown in the capture bar, not written into the field. The recogniser
+revises its guess as it hears more, and a field that rewrote itself mid-sentence would be
+unreadable.
+
+
+## Delivery Board Integration
+
+The objection to a tool like this is always the same: the squad already tracks work somewhere,
+and nobody will enter it twice. So ScrumPulse reads the board rather than asking anyone to
+retype it.
+
+What it adds over the board's own reports is history. Azure DevOps records every state
+transition with a timestamp, as a side effect of people moving cards, and the sync reads that
+revision history to derive when each item was picked up, raised for review, approved, merged,
+reached QA and finished. Those become the cycle-time figures. Previously the same numbers came
+from someone remembering to advance an item here, which measured diligence rather than flow —
+and a delivery lead could not trace any figure back to anything. Now every one of them points
+at a transition on the board.
+
+Two decisions in the timeline builder are worth stating, because they are the difference
+between a figure that survives scrutiny and one that does not. The **first** entry into a stage
+is kept rather than the last, so an item bounced back from review shows the full elapsed time
+instead of a flattering restart. And a stage the item skipped stays null rather than being
+backfilled, because inventing a timestamp for a step that never happened silently shortens
+every cycle time built on it.
+
+### Two routes in, because access is political
+
+**Personal access token.** The squad's Scrum Master stores a PAT and ScrumPulse queries the
+board directly. Incremental by default, with a two-hour overlap on the last run — board clocks
+and this server's clock are not the same clock, and asking for changes since the exact moment
+of the last sync drops anything edited during it, invisibly.
+
+**File import.** In a distributed engagement the client often will not issue a token, and that
+is not an argument a delivery team wins. Anyone who can open the board can run a query and
+click Export to CSV, so the second route needs no permission at all. It parses the export into
+the same shape the live sync produces, so everything downstream — matching, upserting,
+recomputing — is one code path rather than two that drift.
+
+The file route cannot do everything the token route does, and says so rather than pretending. A
+CSV holds current column values and no revision history, so stage timestamps are mostly
+unknowable from it. They stay null and the metrics read "not measured" — a cycle time inferred
+from an export would look exactly like a measured one on a dashboard, with no way to tell them
+apart later. A file import also never clears a timestamp an earlier live sync established,
+because absence in an export means "not exported", not "did not happen".
+
+### Keeping the client's data out of a public deployment
+
+This repository is public and the deployment is free-tier. A naive sync would move a client's
+material into both, so two filters are on by default and have to be deliberately relaxed.
+
+**Roster members only.** The offshore squad usually shares an Azure DevOps project with the
+client's own developers and QA. Importing everyone would bury the squad's delivery signal and
+would pull records about people who never agreed to be tracked here. The live sync applies this
+in the board query itself, so the client's work never travels; the file route re-applies it on
+arrival, since a human exported that file and may well have included the whole project.
+Unassigned items are kept either way — they are usually the squad's own unstarted backlog.
+
+**Metrics only.** Work item titles and descriptions are unstructured client material: customer
+names, environment hostnames, pasted stack traces, links to screenshots. None of it is needed
+to measure delivery, so by default none of it is stored. The title becomes the item's own
+reference (`AB#1234`), the description is dropped, and the board URL is not kept either —
+it names the client's organisation and project. Two looser policies exist for teams who need
+titles, and both run the text through a redactor that strips URLs, attachments, secrets, tokens,
+email addresses and IP addresses before storage; descriptions are never read from a CSV at any
+policy, being the single most likely column to carry the things you least want copied.
+
+The credential is encrypted at rest with ASP.NET Core Data Protection under its own purpose
+string, and **no endpoint returns it in any form** — not masked, not its length. The UI learns
+only whether one exists. Leaving the token field blank on a later save keeps the stored one, so
+correcting a typo in the project name cannot silently disconnect the board. One operational
+caveat: the Data Protection key ring lives on the local file system, so replacing the container
+loses it and stored tokens stop decrypting. That is handled rather than hidden — decryption
+returns null instead of throwing, and the UI asks for the token again.
+
+The organisation URL is validated to HTTPS on `dev.azure.com` or `*.visualstudio.com` before it
+is saved. That is not cosmetic: the value becomes the host of a server-side request, and
+without the check a Scrum Master could point the connection at an internal address and use the
+sync as a request-forgery primitive, reaching services the browser never could.
+
+Imports are idempotent, matched on the board's own item id rather than on the title — a renamed
+story is still the same story, and matching by text would import it twice and double its
+contribution to every count. Anything created by hand in ScrumPulse is never overwritten by an
+import, and the count of items left alone is reported. So are board states no mapping covers
+and assignees matching nobody on the roster: both are shown by name, because defaulting an
+unknown column distorts every figure derived from it, and attributing one person's work to
+another is far worse than an obvious gap.
 
 
 ## Getting Started

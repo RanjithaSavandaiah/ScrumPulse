@@ -22,7 +22,7 @@ type ScribeStage = 'consent' | 'capture' | 'result';
  * its audit trail, which records that it was transcribed rather than typed so a mistake can
  * be traced and corrected later.
  *
- * Logging is unattended by design — the facilitator is running a ceremony, not filling in a
+ * Logging is unattended by design - the facilitator is running a ceremony, not filling in a
  * form. The safety is in what the server refuses to write rather than in a review gate: only
  * updates matched to a real roster member are saved, and anyone who could not be matched is
  * reported back so the gap is visible instead of silent.

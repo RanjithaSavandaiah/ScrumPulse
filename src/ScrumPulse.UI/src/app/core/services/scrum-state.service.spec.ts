@@ -13,6 +13,7 @@ describe('ScrumStateService (Modular NgRx Facade)', () => {
   let store: Store;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         ScrumStateService,
@@ -32,6 +33,7 @@ describe('ScrumStateService (Modular NgRx Facade)', () => {
 
   afterEach(() => {
     httpMock.verify();
+    localStorage.clear();
   });
 
   it('should be created and expose reactive signals for state slices', () => {

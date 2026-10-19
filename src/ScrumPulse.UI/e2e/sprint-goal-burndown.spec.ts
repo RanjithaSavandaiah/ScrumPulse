@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Sprint Goal, Auto-Capacity & Burndown Radar', () => {
   test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/auth/join', {
+      data: { joinCode: 'FIKA123', displayName: 'Developer' }
+    });
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
   });
 

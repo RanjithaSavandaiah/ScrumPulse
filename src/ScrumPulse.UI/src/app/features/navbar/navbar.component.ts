@@ -172,6 +172,8 @@ export class NavbarComponent {
 
   onPinAuthenticated(): void {
     this.showPinModal.set(false);
+    this.state.loadTeams();
+    this.state.refreshAllData();
   }
 
   onPinCancelled(): void {

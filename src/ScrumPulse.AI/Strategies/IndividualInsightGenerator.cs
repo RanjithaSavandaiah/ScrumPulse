@@ -28,7 +28,7 @@ public class IndividualInsightGenerator : IInsightGenerator
             return new AiSuggestionResponse(
                 "Individual",
                 $"Coaching Plan & Delivery Summary: {ctx.MemberName}",
-                $"Awaiting telemetry for {ctx.MemberName} — metrics will populate as sprint activities and standups are logged.",
+                $"Awaiting telemetry for {ctx.MemberName} - metrics will populate as sprint activities and standups are logged.",
                 noDataFindings, noDataRecs,
                 "No Data (Telemetry Pending)",
                 DateTime.UtcNow

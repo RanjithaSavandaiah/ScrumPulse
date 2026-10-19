@@ -10,16 +10,8 @@ using ScrumPulse.Application.Services;
 /// Drafts standup updates from what was said on the call.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Restricted to Scrum Masters. The endpoint accepts a record of other people speaking, so
-/// the person supplying it should be the one running the ceremony rather than anyone who can
-/// reach the API.
-/// </para>
-/// <para>
-/// Nothing here writes a standup. The response is a set of drafts the Scrum Master reviews
-/// and then submits through the normal standup endpoint, which keeps one validated write
-/// path rather than a second that bypasses it.
-/// </para>
+/// Scrum Masters only, since the input is a record of other people speaking. Audio and
+/// transcripts are never written to disk or logged anywhere in this controller.
 /// </remarks>
 [Route("api/standup-scribe")]
 [EnableRateLimiting("ai")]
@@ -29,22 +21,13 @@ public sealed class StandupScribeController(
     IAudioTranscriptionService audioTranscriptionService,
     ILogger<StandupScribeController> logger) : BaseApiController
 {
-    /// <summary>
-    /// Largest audio upload accepted, matching the provider's own ceiling.
-    /// </summary>
-    /// <remarks>
-    /// Enforced as endpoint metadata as well as checked below. Without the attribute, Kestrel
-    /// buffers the whole body before the action runs, so an oversized post would consume the
-    /// memory of a free instance before anything had the chance to reject it.
-    /// </remarks>
+    // Also endpoint metadata, so Kestrel rejects an oversized body before buffering it into a
+    // free instance's memory.
     private const int MaxAudioUploadBytes = 20 * 1024 * 1024;
 
-    /// <summary>Transcribes one chunk of captured meeting audio.</summary>
-    /// <remarks>
-    /// The browser records the meeting in short chunks and posts each one as it completes, so
-    /// the transcript builds up during the ceremony instead of arriving in a single upload at
-    /// the end. Chunks are transcribed and returned; nothing is stored server side.
-    /// </remarks>
+    /// <summary>
+    /// Transcribes one chunk of captured meeting audio. Nothing is stored server side.
+    /// </summary>
     [HttpPost("transcribe")]
     [RequestSizeLimit(MaxAudioUploadBytes)]
     [ProducesResponseType(typeof(AudioChunkTranscriptResponse), StatusCodes.Status200OK)]
@@ -68,8 +51,8 @@ public sealed class StandupScribeController(
 
         if (!audioTranscriptionService.IsAvailable)
         {
-            // 503 rather than 500: the deployment is working as configured, it simply has no
-            // transcription provider. The client uses this to fall back to pasting.
+            // 503 not 500: the deployment is fine, it just has no provider. The client reads
+            // this and falls back to pasting.
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new ProblemDetails
             {
                 Status = StatusCodes.Status503ServiceUnavailable,
@@ -85,8 +68,7 @@ public sealed class StandupScribeController(
             audio.FileName,
             ct);
 
-        // Audio is never written to disk and the transcript is never logged. Both are a
-        // recording of colleagues speaking, and neither belongs in application storage.
+        // Sizes only. The audio and the transcript are a recording of colleagues speaking.
         logger.LogInformation(
             "Transcribed a {ChunkBytes} byte audio chunk into {CharacterCount} characters",
             audio.Length,
@@ -95,12 +77,10 @@ public sealed class StandupScribeController(
         return Ok(new AudioChunkTranscriptResponse(transcript ?? string.Empty));
     }
 
-    /// <summary>Splits a transcript and logs the resulting standups straight to the feed.</summary>
-    /// <remarks>
-    /// The no-review path. Only updates matched to a real roster member are written, and each
-    /// is stamped as AI-drafted in its audit trail so it can be found and corrected later.
-    /// Re-running for the same day updates existing entries rather than duplicating them.
-    /// </remarks>
+    /// <summary>
+    /// No-review path: only roster-matched updates are written, each stamped AI-drafted in its
+    /// audit trail, and re-running for the same day updates rather than duplicates.
+    /// </summary>
     [HttpPost("auto-log")]
     [ProducesResponseType(typeof(AutoLoggedStandupsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -143,8 +123,7 @@ public sealed class StandupScribeController(
 
         var result = await transcriptService.DraftFromTranscriptAsync(request, ct);
 
-        // Transcript contents are never logged. They carry colleagues' unreviewed words, and
-        // application logs are the wrong place for that to end up.
+        // Length only, never the transcript body.
         logger.LogInformation(
             "Drafted {DraftCount} standup update(s) from a {TranscriptLength} character transcript (model generated: {WasModelGenerated})",
             result.Drafts.Count,

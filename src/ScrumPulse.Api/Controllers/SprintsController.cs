@@ -8,7 +8,7 @@ using ScrumPulse.Application.CQRS.Sprints;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 
-/// <summary>Sprint management — thin controller delegating to CQRS handlers.</summary>
+/// <summary>Sprint management - thin controller delegating to CQRS handlers.</summary>
 public class SprintsController(IMediator mediator, ITenantContext? tenantContext = null) : BaseApiController
 {
     [HttpGet]

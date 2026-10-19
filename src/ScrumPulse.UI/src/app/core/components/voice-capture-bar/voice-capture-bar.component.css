@@ -1,0 +1,222 @@
+/*
+ * Floating dictation control. Present on every page, so it must stay out of the way until
+ * wanted: bottom-right, compact, and never covering the primary action of a form.
+ */
+
+.voice-bar {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 900;
+
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(12px);
+}
+
+/* While recording the control becomes conspicuous on purpose. Someone whose voice is being
+   captured should be able to tell at a glance, and so should anyone looking over a shoulder
+   during a screen share. */
+.voice-bar.is-live {
+  border-color: var(--accent-danger);
+  box-shadow: 0 0 0 1px var(--accent-danger), var(--shadow-md);
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  background: var(--accent-danger);
+  border-radius: 50%;
+  animation: voice-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* The pulse signals an open microphone, so it must stay legible for anyone who has asked for
+   reduced motion. The dot remains; only the animation stops. */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
+.voice-status {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.voice-status strong {
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+
+.voice-status small {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+/* Live, uncommitted speech. Italic and dimmed so it reads as provisional rather than as text
+   that has already been written into the field, and clipped to one line so a long sentence
+   cannot stretch the bar across the screen. */
+.voice-status small.interim {
+  max-width: 22ch;
+  overflow: hidden;
+  font-style: italic;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transcribing {
+  font-size: 0.74rem;
+  color: var(--accent-secondary);
+}
+
+.voice-button {
+  flex-shrink: 0;
+  padding: 0.45rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  background: var(--accent-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+}
+
+.voice-button:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+}
+
+.voice-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.voice-button:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.voice-button.secondary {
+  color: var(--text-primary);
+  background: transparent;
+  border-color: var(--border-glass);
+}
+
+.voice-button.secondary:hover {
+  background: var(--bg-glass);
+}
+
+.voice-button.stop {
+  background: var(--accent-danger);
+}
+
+/* --- Consent dialog ------------------------------------------------------ */
+
+.consent-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.consent-box {
+  width: 100%;
+  max-width: min(460px, 100%);
+  padding: 1.5rem;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.consent-box h3 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+}
+
+.consent-box p {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.consent-hint {
+  padding: 0.7rem 0.85rem;
+  background: color-mix(in srgb, var(--accent-warning) 10%, transparent);
+  border-left: 3px solid var(--accent-warning);
+  border-radius: var(--radius-sm);
+}
+
+.consent-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+}
+
+.voice-error {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 5rem;
+  z-index: 900;
+  max-width: min(360px, calc(100vw - 2.5rem));
+  padding: 0.7rem 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent-danger) 12%, var(--bg-surface));
+  border: 1px solid var(--accent-danger);
+  border-radius: var(--radius-sm);
+}
+
+/* On a phone the bar spans the width rather than floating in a corner, where it would cover
+   form controls on a narrow screen. */
+@media (max-width: 640px) {
+  .voice-bar {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    justify-content: space-between;
+    border-radius: var(--radius-md);
+  }
+
+  .voice-status small {
+    display: none;
+  }
+
+  .consent-actions {
+    flex-direction: column-reverse;
+  }
+
+  .consent-actions .voice-button {
+    width: 100%;
+  }
+}

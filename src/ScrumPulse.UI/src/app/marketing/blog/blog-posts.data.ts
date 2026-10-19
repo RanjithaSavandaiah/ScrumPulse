@@ -227,7 +227,7 @@ export const BLOG_POSTS: readonly BlogPost[] = [
 
       <h2>What showed up immediately</h2>
       <p>
-        Development time — in progress to PR created — was fine. It was the number everyone
+        Development time - in progress to PR created - was fine. It was the number everyone
         assumed was the problem and it was not.
       </p>
       <p>
@@ -239,7 +239,7 @@ export const BLOG_POSTS: readonly BlogPost[] = [
       </p>
       <p>
         None of that would have been suggested by a single cycle-time figure, and the instinct
-        it does provoke — asking developers to work faster — targets the one stage that was not
+        it does provoke - asking developers to work faster - targets the one stage that was not
         contributing.
       </p>
 
@@ -293,7 +293,7 @@ export const BLOG_POSTS: readonly BlogPost[] = [
       </p>
       <p>
         Inverting that helped more than anything else we tried: updates written down before the
-        call, and the live window spent only on the things that need two people in a room —
+        call, and the live window spent only on the things that need two people in a room -
         blockers, decisions, pairing. The meeting got shorter and considerably more useful.
       </p>
 

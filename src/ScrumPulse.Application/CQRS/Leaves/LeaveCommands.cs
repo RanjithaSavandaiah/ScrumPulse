@@ -8,8 +8,6 @@ using ScrumPulse.Domain.Common;
 using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 
-// ── Queries ──────────────────────────────────────────────────────────────
-
 public record GetLeavesQuery(
     Guid? MemberId = null,
     int? Year = null,
@@ -76,8 +74,6 @@ public class GetLeaveByIdQueryHandler(IAppDbContext db) : IQueryHandler<GetLeave
         return leave?.ToDto();
     }
 }
-
-// ── Commands ─────────────────────────────────────────────────────────────
 
 public record SubmitLeaveCommand(SubmitLeaveRequest Request, string? CurrentUser = null) : ICommand<Result<TeamLeaveDto>>;
 

@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { IconComponent, IconName } from '../../../../core/components/icon/icon.component';
 import { MonthlyFeedback, TeamMember } from '../../../../core/models/scrum.models';
 import { ScrumStateService } from '../../../../core/services/scrum-state.service';
+import { VoiceInputDirective } from '../../../../core/directives/voice-input.directive';
 
 @Component({
   selector: 'app-record-feedback-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, VoiceInputDirective],
   templateUrl: './record-feedback-modal.component.html',
   styleUrl: './record-feedback-modal.component.css'
 })

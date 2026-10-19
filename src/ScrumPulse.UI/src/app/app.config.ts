@@ -5,8 +5,9 @@ import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { routes } from './app.routes';
+import { demoInterceptor } from './demo/demo.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
-import { tenantInterceptor } from './core/interceptors/tenant.interceptor';
+import { sessionCredentialsInterceptor } from './core/interceptors/session-credentials.interceptor';
 import { appEffects, appReducers } from './core/state';
 
 export const appConfig: ApplicationConfig = {
@@ -23,7 +24,7 @@ export const appConfig: ApplicationConfig = {
       // still scrolled halfway down.
       withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' })
     ),
-    provideHttpClient(withFetch(), withInterceptors([tenantInterceptor, errorInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([demoInterceptor, sessionCredentialsInterceptor, errorInterceptor])),
     provideStore(appReducers),
     provideEffects(appEffects),
     provideStoreDevtools({

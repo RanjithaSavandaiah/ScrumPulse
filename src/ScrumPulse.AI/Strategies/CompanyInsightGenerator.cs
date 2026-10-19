@@ -84,7 +84,7 @@ public class CompanyInsightGenerator : IInsightGenerator
         }
         else
         {
-            findings.Add("[CULTURE - Baseline]: Culture and knowledge sharing telemetry initializing — log Tech Talks and Kudos to track collaboration index.");
+            findings.Add("[CULTURE - Baseline]: Culture and knowledge sharing telemetry initializing - log Tech Talks and Kudos to track collaboration index.");
         }
 
         var recs = new List<string>();

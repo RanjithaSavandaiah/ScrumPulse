@@ -496,7 +496,7 @@ export class ReportExportService {
       'Date': new Date(mDate).toLocaleDateString(),
       'Member': data.memberLabel,
       'Status': 'MISSED (Not on leave)',
-      'Yesterday Accomplishments': 'MISSED — Person was not on leave and missed daily standup update',
+      'Yesterday Accomplishments': 'MISSED - Person was not on leave and missed daily standup update',
       'Today Focus Plan': 'MISSED UPDATE',
       'Impediments / Blockers': 'Missed Standup Cadence',
       'Mood Score (1-10)': 0
@@ -666,7 +666,7 @@ export class ReportExportService {
       String(item.type),
       `${item.storyPoints} Pts`,
       String(item.status),
-      item.pickedUpAtUtc ? new Date(item.pickedUpAtUtc).toLocaleDateString() : '—',
+      item.pickedUpAtUtc ? new Date(item.pickedUpAtUtc).toLocaleDateString() : '-',
       item.completedAtUtc ? new Date(item.completedAtUtc).toLocaleDateString() : (item.totalCycleTimeHours ? `${item.totalCycleTimeHours}h` : 'In Progress')
     ]);
 

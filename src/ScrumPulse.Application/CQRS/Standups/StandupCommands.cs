@@ -7,8 +7,6 @@ using ScrumPulse.Application.Mapping;
 using ScrumPulse.Domain.Common;
 using ScrumPulse.Domain.Entities;
 
-// ── Queries ──────────────────────────────────────────────────────────────
-
 public record GetStandupsQuery(Guid? SprintId = null, Guid? MemberId = null, DateTime? Date = null)
     : IQuery<IEnumerable<DailyStandupDto>>;
 
@@ -51,8 +49,6 @@ public class GetStandupByIdQueryHandler(IAppDbContext db) : IQueryHandler<GetSta
         return standup?.ToDto();
     }
 }
-
-// ── Commands ─────────────────────────────────────────────────────────────
 
 public record SubmitStandupCommand(SubmitStandupRequest Request) : ICommand<Result<DailyStandupDto>>;
 

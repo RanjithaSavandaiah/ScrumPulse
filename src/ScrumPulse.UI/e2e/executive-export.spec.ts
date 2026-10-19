@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Executive Suite Multi-Duration Export & AI Synthesis', () => {
   test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/auth/join', {
+      data: { joinCode: 'FIKA123', displayName: 'Developer' }
+    });
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await page.locator('.tab-btn', { hasText: 'Executive Suite' }).click();
     await expect(page.locator('.hero-title')).toBeVisible({ timeout: 10000 });

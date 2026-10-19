@@ -78,7 +78,7 @@
         <textarea
           id="standupYesterdaySummary"
           name="standupYesterdaySummary"
-          [(ngModel)]="standup.yesterdaySummary"
+          [(ngModel)]="standup.yesterdaySummary" voiceInput="Yesterday" required
           placeholder="Click quick presets above or type details..."
           class="interactive-input"
           rows="2"
@@ -98,7 +98,7 @@
         <textarea
           id="standupTodayPlan"
           name="standupTodayPlan"
-          [(ngModel)]="standup.todayPlan"
+          [(ngModel)]="standup.todayPlan" voiceInput="Today" required
           placeholder="Click quick presets above or type details..."
           class="interactive-input"
           rows="2"

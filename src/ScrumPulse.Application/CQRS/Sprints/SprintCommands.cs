@@ -5,8 +5,6 @@ using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Domain.Entities;
 
-// ── Queries ──────────────────────────────────────────────────────────────
-
 public record GetSprintsQuery : IQuery<IEnumerable<SprintDto>>;
 
 public class GetSprintsQueryHandler(IAppDbContext db) : IQueryHandler<GetSprintsQuery, IEnumerable<SprintDto>>
@@ -26,8 +24,6 @@ public class GetSprintsQueryHandler(IAppDbContext db) : IQueryHandler<GetSprints
         s.CommittedStoryPoints, s.DeliveredStoryPoints, s.ConfidenceScore,
         s.ConfidenceNotes, s.DailyWorkingHours, s.TeamId);
 }
-
-// ── Commands ─────────────────────────────────────────────────────────────
 
 public record CreateSprintCommand(CreateSprintRequest Request, Guid? TeamId) : ICommand<SprintDto>;
 

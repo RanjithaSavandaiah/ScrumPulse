@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-/** What the capture is currently doing, for the UI to render against. */
 export type CaptureStatus = 'idle' | 'capturing' | 'stopped' | 'error';
 
 interface AudioChunkTranscriptResponse {
@@ -10,34 +9,17 @@ interface AudioChunkTranscriptResponse {
 }
 
 /**
- * Captures the audio of a meeting and transcribes it server side.
- *
- * This replaces an earlier attempt built on the browser's `SpeechRecognition`, which could
- * not do the job. That API listens to the microphone, so during a Teams call it hears only
- * the local speaker: remote voices arrive as speaker output, and Teams' echo cancellation is
- * specifically designed to remove speaker output from the microphone signal. On headphones
- * it hears nothing of the call at all.
- *
- * `getDisplayMedia` with audio captures the meeting itself — the tab, or the whole system on
- * Windows — so every participant is picked up. Recognition also stalls in a background tab,
- * whereas `MediaRecorder` keeps running, which matters because the Scrum Master is usually
- * looking at Teams rather than at this page.
- *
- * Audio is recorded in short chunks and each is posted as it completes, so the transcript
- * builds up during the ceremony rather than arriving in one upload at the end, and a failed
- * chunk costs a few seconds instead of the whole standup.
+ * Captures meeting audio via `getDisplayMedia` and transcribes it server side in chunks.
+ * `SpeechRecognition` cannot do this job: it listens to the microphone, where remote voices
+ * arrive as speaker output and Teams' echo cancellation exists to strip exactly that.
  */
 @Injectable({ providedIn: 'root' })
 export class MeetingAudioCaptureService {
   /**
-   * Length of each recorded chunk.
-   *
-   * Thirty seconds balances three constraints: Groq's free tier allows about twenty requests
-   * a minute, so this uses two; the transcript stays close enough to live to be useful; and
-   * chunks stay well inside the upload ceiling. Much shorter would spend quota quickly and
-   * cut sentences mid-word, which degrades transcription accuracy at the boundaries.
+   * Sets the floor on transcript lag, since nothing is transcribed until its chunk finishes.
+   * Shorter chunks cut more sentences mid-word and cost accuracy for little latency gain.
    */
-  private static readonly ChunkDurationMs = 30_000;
+  private static readonly ChunkDurationMs = 15_000;
 
   private readonly httpClient = inject(HttpClient);
 
@@ -46,7 +28,6 @@ export class MeetingAudioCaptureService {
   private microphoneStream: MediaStream | null = null;
   private mixingContext: AudioContext | null = null;
 
-  /** True when the local microphone was mixed in, so the UI can say whose voice is covered. */
   private readonly microphoneIncluded = signal(false);
   readonly isMicrophoneIncluded = this.microphoneIncluded.asReadonly();
 
@@ -59,30 +40,27 @@ export class MeetingAudioCaptureService {
   readonly errorMessage = this.errorMessageSignal.asReadonly();
   readonly isCapturing = computed(() => this.statusSignal() === 'capturing');
 
-  /** True while at least one chunk is still being transcribed. */
   readonly isTranscribing = computed(() => this.pendingChunkCount() > 0);
 
-  /** Everything transcribed so far, in the order it was spoken. */
   readonly transcript = computed(() => this.transcriptSegments().join(' ').trim());
 
-  /** Whether this browser can capture system or tab audio at all. */
   readonly isSupported =
     typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getDisplayMedia === 'function';
 
   constructor() {
-    // A component torn down mid-standup must not leave the capture running. Registering
-    // here means the stream is released even on a route change the component never sees.
+    // Releases the stream even on a route change the component never sees.
     inject(DestroyRef).onDestroy(() => this.releaseCapture());
   }
 
-  /**
-   * Prompts for a source to capture, then starts recording its audio.
-   *
-   * The browser's own picker handles consent for the capture itself. The dialog gates on the
-   * separate question of whether the squad has been told they are being recorded.
-   */
-  async start(): Promise<void> {
+  async start(options: { includeSystemAudio?: boolean } = {}): Promise<void> {
     if (this.isCapturing()) {
+      return;
+    }
+
+    // Dictation needs only the microphone; a screen-share prompt for one person speaking
+    // would deter anyone from using it.
+    if (options.includeSystemAudio === false) {
+      await this.startMicrophoneOnly();
       return;
     }
 
@@ -94,19 +72,17 @@ export class MeetingAudioCaptureService {
     let stream: MediaStream;
 
     try {
-      // Video is requested because Chrome will not offer the "share system audio" option for
-      // an audio-only request. The video track is discarded immediately below.
+      // Video is requested only because Chrome hides "share system audio" on an audio-only
+      // request. The track is discarded below.
       stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     } catch {
-      // Thrown when the picker is dismissed, which is a choice rather than a fault.
+      // Picker dismissed, which is a choice rather than a fault.
       this.statusSignal.set('idle');
       return;
     }
 
-    // No audio track is the single most likely way this goes wrong, and the cause is almost
-    // always picking "Window": Chrome and Edge cannot capture audio from a single window on
-    // any platform, so the Teams desktop app has to be captured via Entire Screen. The
-    // message names the fix rather than just reporting the symptom.
+    // Almost always means the user picked "Window", which Chrome and Edge cannot capture
+    // audio from on any platform, so the message names the fix.
     if (stream.getAudioTracks().length === 0) {
       this.stopStreamTracks(stream);
       this.failWith(
@@ -116,8 +92,7 @@ export class MeetingAudioCaptureService {
       return;
     }
 
-    // The picture is not wanted and holding it would keep a screen capture alive for the
-    // whole ceremony, with the indicator and battery cost that implies.
+    // Holding the picture keeps a screen capture alive for the whole ceremony.
     for (const videoTrack of stream.getVideoTracks()) {
       videoTrack.stop();
       stream.removeTrack(videoTrack);
@@ -126,13 +101,11 @@ export class MeetingAudioCaptureService {
     this.capturedStream = stream;
     this.errorMessageSignal.set(null);
 
-    // Fires when the user ends sharing from the browser's own banner rather than this UI.
+    // Fires when sharing is ended from the browser's own banner rather than this UI.
     stream.getAudioTracks()[0].addEventListener('ended', () => this.stop());
 
-    // System audio carries only what the machine plays, which is everyone else on the call.
-    // The local speaker's own voice leaves through the microphone and never reaches the
-    // output stream, so without this the Scrum Master's own update is silently missing from
-    // the transcript. Mixing both sources covers the whole room.
+    // System audio carries everyone else on the call but not the local speaker, whose voice
+    // leaves through the microphone and never reaches the output stream.
     const recordedStream = await this.mixInMicrophone(stream);
 
     const recorder = new MediaRecorder(recordedStream, { mimeType: this.resolveSupportedMimeType() });
@@ -144,7 +117,34 @@ export class MeetingAudioCaptureService {
     this.statusSignal.set('capturing');
   }
 
-  /** Stops recording and releases the captured stream. The transcript is kept. */
+  private async startMicrophoneOnly(): Promise<void> {
+    let microphoneStream: MediaStream;
+
+    try {
+      microphoneStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+    } catch {
+      this.failWith(
+        'Microphone access was refused. Allow it in the browser address bar to dictate.'
+      );
+      return;
+    }
+
+    this.capturedStream = microphoneStream;
+    this.microphoneStream = microphoneStream;
+    this.microphoneIncluded.set(true);
+    this.errorMessageSignal.set(null);
+
+    const recorder = new MediaRecorder(microphoneStream, { mimeType: this.resolveSupportedMimeType() });
+    recorder.ondataavailable = (event) => void this.transcribeChunk(event.data);
+    recorder.onerror = () => this.failWith('Recording stopped unexpectedly. The text so far has been kept.');
+
+    this.mediaRecorder = recorder;
+    recorder.start(MeetingAudioCaptureService.ChunkDurationMs);
+    this.statusSignal.set('capturing');
+  }
+
   stop(): void {
     this.releaseCapture();
 
@@ -153,7 +153,6 @@ export class MeetingAudioCaptureService {
     }
   }
 
-  /** Clears the transcript and returns to idle. */
   reset(): void {
     this.stop();
     this.transcriptSegments.set([]);
@@ -162,25 +161,21 @@ export class MeetingAudioCaptureService {
     this.errorMessageSignal.set(null);
   }
 
-  /** Replaces the transcript, so a reviewer can correct a mis-heard passage before drafting. */
+  /** Lets a reviewer correct a mis-heard passage. */
   overwriteTranscript(text: string): void {
     this.transcriptSegments.set(text ? [text] : []);
   }
 
   /**
-   * Posts one recorded chunk for transcription and appends the result.
-   *
-   * A chunk that fails is dropped rather than retried. Retrying would spend quota replaying
-   * old audio while the meeting continues, and by the time it succeeded the transcript would
-   * be out of order.
+   * Posts one chunk and appends the result. Failures are dropped rather than retried: a retry
+   * spends quota on old audio and lands out of order.
    */
   private async transcribeChunk(chunk: Blob): Promise<void> {
     if (chunk.size === 0) {
       return;
     }
 
-    // Reserve the slot before awaiting, so the segment lands in spoken order even though
-    // several chunks may be in flight at once.
+    // Reserve the slot before awaiting; several chunks can be in flight at once.
     const segmentIndex = this.transcriptSegments().length;
     this.transcriptSegments.update((segments) => [...segments, '']);
     this.pendingChunkCount.update((count) => count + 1);
@@ -197,8 +192,7 @@ export class MeetingAudioCaptureService {
         segments.map((segment, index) => (index === segmentIndex ? response.text : segment))
       );
     } catch {
-      // Leaves the reserved slot empty rather than inserting a placeholder, so the gap does
-      // not end up quoted back as something a colleague said.
+      // The slot stays empty; a placeholder could be quoted back as something someone said.
       this.errorMessageSignal.set(
         'Part of the audio could not be transcribed. Recording is continuing; check the transcript for gaps.'
       );
@@ -208,18 +202,10 @@ export class MeetingAudioCaptureService {
   }
 
   /**
-   * Combines the captured system audio with the local microphone into one recorded stream.
+   * Mixes system audio and microphone through a Web Audio graph, because `MediaRecorder`
+   * encodes only the first audio track of a stream given two.
    *
-   * Uses a Web Audio graph rather than adding both tracks to a single `MediaStream`, because
-   * `MediaRecorder` encodes only the first audio track it is given. Routing both through a
-   * `MediaStreamAudioDestinationNode` mixes them into one track that carries everyone.
-   *
-   * Microphone access is best-effort. If the user declines, or no input device exists, the
-   * capture continues with system audio alone — a transcript missing the local speaker is
-   * far better than no transcript, and the dialog says which case applies.
-   *
-   * @returns The stream to record: mixed when the microphone is available, otherwise the
-   * original system-audio stream.
+   * @returns The mixed stream, or the original system audio if the microphone is unavailable.
    */
   private async mixInMicrophone(systemAudioStream: MediaStream): Promise<MediaStream> {
     let microphoneStream: MediaStream;
@@ -227,10 +213,8 @@ export class MeetingAudioCaptureService {
     try {
       microphoneStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          // Teams applies its own processing to what it sends, but this stream is raw local
-          // input. Cancellation matters most when the user is on speakers rather than
-          // headphones, where the microphone would otherwise re-record the remote voices
-          // already present in the system audio and hand Whisper everything twice.
+          // On speakers rather than headphones, the microphone would otherwise re-record
+          // the remote voices already in the system audio and hand Whisper both copies.
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
@@ -254,8 +238,7 @@ export class MeetingAudioCaptureService {
 
       return destination.stream;
     } catch {
-      // Mixing failed, so release the microphone rather than leaving it open and unused,
-      // which would keep the browser's recording indicator lit for no reason.
+      // Release the microphone rather than leave it open with the indicator lit.
       this.stopStreamTracks(microphoneStream);
       this.microphoneIncluded.set(false);
 
@@ -263,12 +246,7 @@ export class MeetingAudioCaptureService {
     }
   }
 
-  /**
-   * Picks a container the browser can actually record.
-   *
-   * Chrome and Edge produce WebM/Opus; Safari does not and falls back to MP4. Passing an
-   * unsupported type to MediaRecorder throws, so this is checked rather than assumed.
-   */
+  /** Chrome and Edge do WebM/Opus, Safari MP4, and an unsupported type throws. */
   private resolveSupportedMimeType(): string {
     const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
 
@@ -282,10 +260,8 @@ export class MeetingAudioCaptureService {
   }
 
   /**
-   * Stops the recorder and every captured track.
-   *
-   * Handlers are detached first: stopping a recorder fires a final `dataavailable`, and
-   * during teardown that chunk would post against a capture the user has already ended.
+   * Handlers come off first: stopping a recorder fires a final `dataavailable`, which would
+   * post a chunk against a capture the user already ended.
    */
   private releaseCapture(): void {
     const recorder = this.mediaRecorder;
@@ -306,19 +282,18 @@ export class MeetingAudioCaptureService {
       this.capturedStream = null;
     }
 
-    // The microphone is a second, separately acquired stream. Missing it here would leave
-    // the browser's recording indicator lit after the standup ended.
+    // Separately acquired, so missing it leaves the recording indicator lit after the
+    // standup ends.
     if (this.microphoneStream) {
       this.stopStreamTracks(this.microphoneStream);
       this.microphoneStream = null;
     }
 
-    // An AudioContext holds an audio thread and does not release it when its inputs stop.
-    // Leaving one open per standup leaks a thread each time, and browsers cap how many a
-    // page may hold before refusing to create more.
+    // An AudioContext holds an audio thread and keeps it after its inputs stop, so one leaks
+    // per standup and browsers cap how many a page may hold.
     if (this.mixingContext) {
       void this.mixingContext.close().catch(() => {
-        // Already closed, or closing during teardown. Nothing further to release.
+        // Already closed, or closing during teardown. Nothing left to release.
       });
 
       this.mixingContext = null;

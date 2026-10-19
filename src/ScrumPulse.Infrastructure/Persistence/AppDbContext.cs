@@ -20,32 +20,17 @@ public class AppDbContext : DbContext, IAppDbContext
         _tenantContext = tenantContext;
     }
 
-    /// <summary>
-    /// Whether a tenant context is active for this DbContext instance.
-    /// When null (e.g. in unit tests or background initializers), tenant query filtering is bypassed.
-    /// </summary>
+    // Null in unit tests and background initialisers, where tenant filtering is bypassed.
     private bool HasTenantContext => _tenantContext != null;
 
     /// <summary>
-    /// Team the current request is allowed to see, or <see cref="Guid.Empty"/> when there is no session.
+    /// Empty rather than null is what makes the filter fail closed: no row is persisted with an
+    /// empty TeamId, so an anonymous caller matches nothing, whereas a null comparison would
+    /// return every row whose TeamId was never assigned.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The tenant query filter closes over this property, so EF re-evaluates it per query
-    /// instead of baking the first request's team into the compiled model.
-    /// </para>
-    /// <para>
-    /// Collapsing "no session" to <see cref="Guid.Empty"/> rather than null is what makes the
-    /// filter fail closed. No row is ever persisted with an empty TeamId, so an anonymous
-    /// caller matches nothing. Comparing against null would instead return every row whose
-    /// TeamId was never assigned.
-    /// </para>
-    /// </remarks>
     private Guid ActiveTeamId => _tenantContext?.CurrentTeamId ?? Guid.Empty;
 
-    /// <summary>
-    /// Audit identity used for writes that happen outside a request, such as database seeding.
-    /// </summary>
+    /// <summary>Audit identity for writes outside a request, such as seeding.</summary>
     private const string SystemAuditIdentity = "system";
 
     public DbSet<Team> Teams => Set<Team>();
@@ -62,6 +47,7 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<TechDebtItem> TechDebtItems => Set<TechDebtItem>();
     public DbSet<TechTalkLog> TechTalkLogs => Set<TechTalkLog>();
     public DbSet<PullRequestReviewLog> PullRequestReviewLogs => Set<PullRequestReviewLog>();
+    public DbSet<BoardConnection> BoardConnections => Set<BoardConnection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,26 +63,15 @@ public class AppDbContext : DbContext, IAppDbContext
     }
 
     /// <summary>
-    /// Applies the soft-delete filter to every entity, and the tenant filter to every entity
-    /// except <see cref="Team"/>.
+    /// Soft-delete filter on every entity, tenant filter on all but <see cref="Team"/>.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Enforcing tenancy here rather than in each query is deliberate. Previously isolation
-    /// depended on every handler remembering to filter by team, and most did not, so any
-    /// caller could read another squad's standups and one-to-one feedback. A model-level
-    /// filter means a forgotten <c>Where</c> clause is no longer a data breach.
-    /// </para>
-    /// <para>
-    /// <see cref="Team"/> is exempt because a team row is identified by its own <c>Id</c>,
-    /// not by a <c>TeamId</c> pointing elsewhere, and because joining a squad has to find a
-    /// team the caller is not yet scoped to. Access to teams is instead gated by the join
-    /// code in the join handler and by the session token everywhere else.
-    /// </para>
-    /// <para>
-    /// Legitimate cross-team reads, such as organisation-wide rollups, opt out explicitly
-    /// with <c>IgnoreQueryFilters()</c> so that each one is visible in review.
-    /// </para>
+    /// Tenancy lives here because it used to depend on every handler remembering a
+    /// <c>Where</c> clause, and the ones that forgot exposed other squads' standups and
+    /// one-to-one feedback. <see cref="Team"/> is exempt: a team row is keyed by its own
+    /// <c>Id</c>, and joining a squad must find a team the caller is not yet scoped to, so
+    /// team access is gated by join code and session token instead. Cross-team rollups opt out
+    /// with <c>IgnoreQueryFilters()</c>.
     /// </remarks>
     private void ApplyGlobalQueryFilters(ModelBuilder modelBuilder)
     {
@@ -117,10 +92,8 @@ public class AppDbContext : DbContext, IAppDbContext
             if (entityType.ClrType != typeof(Team))
             {
                 // !this.HasTenantContext || entity.TeamId == this.ActiveTeamId
-                //
-                // Reading ActiveTeamId through a property access on the context instance keeps
-                // the filter dynamic. EF parameterises it per query, so a scoped context picks
-                // up the team of the request it was created for.
+                // Property access keeps it dynamic: EF re-evaluates per query rather than
+                // baking in the first request's team.
                 var hasTenantContext = Expression.Property(
                     Expression.Constant(this),
                     nameof(HasTenantContext));
@@ -145,10 +118,6 @@ public class AppDbContext : DbContext, IAppDbContext
         }
     }
 
-    /// <summary>
-    /// Overrides SaveChangesAsync to automatically stamp audit fields (CreatedAtUtc, UpdatedAtUtc)
-    /// on all entities inheriting from BaseEntity.
-    /// </summary>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         StampAuditFields();
@@ -190,8 +159,7 @@ public class AppDbContext : DbContext, IAppDbContext
         string currentUser,
         Guid? activeTeamId)
     {
-        // Seeded and imported rows carry their own historical timestamp, which the delivery
-        // metrics depend on. Only rows that left it unset get stamped with the current time.
+        // Seeded and imported rows carry a historical timestamp the metrics depend on.
         if (entry.Entity.CreatedAtUtc == default)
         {
             entry.Entity.CreatedAtUtc = now;
@@ -206,11 +174,9 @@ public class AppDbContext : DbContext, IAppDbContext
 
         entry.Entity.UpdatedBy ??= entry.Entity.CreatedBy;
 
-        // Team ownership is assigned from the session, never from the request body.
-        // Overwriting rather than defaulting is what stops a caller from planting a row in
-        // another squad by including a TeamId in the payload they post.
-        //
-        // Team rows are exempt: a team owns itself, and its TeamId stays null.
+        // Ownership comes from the session, never the request body. Overwriting rather than
+        // defaulting stops a caller planting a row in another squad via a posted TeamId.
+        // Team rows are exempt: a team owns itself and its TeamId stays null.
         if (activeTeamId.HasValue && entry.Entity is not Team)
         {
             entry.Entity.TeamId = activeTeamId;
@@ -222,10 +188,10 @@ public class AppDbContext : DbContext, IAppDbContext
         entry.Entity.UpdatedAtUtc = now;
         entry.Entity.UpdatedBy = currentUser;
 
-        // Creation metadata and team ownership are immutable after insert. Marking them
-        // unmodified means an update cannot rewrite history or move a row between squads,
-        // even if something upstream mutated the tracked entity.
-        // TeamMember is exempt because members can be assigned/reassigned to squads.
+        // Creation metadata and ownership are immutable after insert. Marking them unmodified
+        // blocks mass assignment: an update cannot rewrite history or move a row between
+        // squads even if something upstream mutated the tracked entity. TeamMember is exempt
+        // because members do get reassigned.
         entry.Property(nameof(BaseEntity.CreatedAtUtc)).IsModified = false;
         entry.Property(nameof(BaseEntity.CreatedBy)).IsModified = false;
         if (entry.Entity is not TeamMember)

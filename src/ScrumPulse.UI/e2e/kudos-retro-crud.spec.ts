@@ -3,6 +3,9 @@ import { unlockScrumMaster } from './helpers';
 
 test.describe('Kudos Wall & Retrospective Board Interactive Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/auth/join', {
+      data: { joinCode: 'FIKA123', displayName: 'Scrum Master' }
+    });
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
   });

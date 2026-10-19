@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import { MarketingHeaderComponent } from '../marketing-header.component';
 import { PageMetadataService } from '../page-metadata.service';
 import { findPostBySlug } from './blog-posts.data';
 
@@ -13,11 +14,13 @@ import { findPostBySlug } from './blog-posts.data';
 @Component({
   selector: 'app-blog-post',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, MarketingHeaderComponent],
   styleUrl: '../marketing.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (post(); as article) {
+      <app-marketing-header />
+
       <main class="marketing-page">
         <a class="back-link" routerLink="/blog">← All delivery notes</a>
 
@@ -61,7 +64,7 @@ export class BlogPostComponent {
     }
 
     this.pageMetadata.apply({
-      title: `${article.title} — ScrumPulse`,
+      title: `${article.title} - ScrumPulse`,
       description: article.summary,
       path: `/blog/${article.slug}`,
       publishedOn: article.publishedOn

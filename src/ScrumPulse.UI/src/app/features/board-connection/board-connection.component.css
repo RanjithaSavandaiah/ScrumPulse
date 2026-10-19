@@ -1,0 +1,515 @@
+/*
+ * Full-page configuration screen rather than a dashboard panel. Setting up a board link is a
+ * deliberate sit-down task that happens once per squad, and it needs room for the policy
+ * explanation and the mapping grid without either being scrolled past.
+ */
+
+.board-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Navigation ─────────────────────────────────────────────────────────── */
+
+.board-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+.nav-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0.75rem 1.5rem;
+}
+
+.nav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.brand-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-primary);
+}
+
+.brand-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.btn-nav-return {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.btn-nav-return:hover {
+  border-color: var(--border-glass-highlight);
+  transform: translateX(-2px);
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+
+.board-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.board-hero h1 {
+  margin-top: 0.6rem;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.hero-subtitle {
+  max-width: 62ch;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+}
+
+.board-loading {
+  padding: 2rem 0;
+  color: var(--text-secondary);
+}
+
+.glass-panel + .glass-panel,
+.form-panel,
+.status-panel,
+.import-panel,
+.result-panel,
+.mapping-panel {
+  padding: 1.25rem 1.5rem;
+}
+
+.form-panel h2,
+.import-panel h2,
+.result-panel h2,
+.mapping-panel h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.4rem;
+}
+
+.panel-intro {
+  max-width: 68ch;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Status ─────────────────────────────────────────────────────────────── */
+
+.status-headline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+/* Colour alone would leave the state unreadable for anyone who cannot distinguish it, so the
+   dot only repeats what the heading beside it already says in words. */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 0.45rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-dot.is-connected {
+  background: var(--accent-success);
+}
+
+.status-dot.is-disabled {
+  background: var(--accent-warning);
+}
+
+.status-suffix {
+  font-weight: 500;
+  color: var(--accent-warning);
+}
+
+.status-detail {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.status-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem 1.25rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.status-facts dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.status-facts dd {
+  margin-top: 0.2rem;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+/* ── Banners ────────────────────────────────────────────────────────────── */
+
+.board-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.board-alert.is-error {
+  border-color: color-mix(in srgb, var(--accent-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-danger) 10%, transparent);
+}
+
+.board-alert.is-success {
+  border-color: color-mix(in srgb, var(--accent-success) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-success) 10%, transparent);
+}
+
+/* ── Form ───────────────────────────────────────────────────────────────── */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem 1.25rem;
+  margin-top: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-label {
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.interactive-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+}
+
+.interactive-input:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 1px;
+}
+
+.field-hint {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.field-hint code {
+  font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+
+/* The only setting on this page that can move a client's text into this database, so it is
+   given the weight of a notice rather than being left as another grey hint. */
+.policy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-top: 1.25rem;
+  padding: 0.9rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent-warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-warning) 35%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.policy-note app-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  margin-top: 0.25rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent-primary);
+}
+
+.toggle-row span {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle-row small {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Disabled because something is missing should look unavailable rather than broken, and must
+   stay focusable so a keyboard user can reach it and read why. */
+.form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.confirm-row {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--accent-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 40%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+/* ── Import ─────────────────────────────────────────────────────────────── */
+
+/* The native file input is replaced by its label, because the browser's own control cannot be
+   styled consistently and reads as a leftover from a different application. */
+.file-picker {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  background: var(--bg-glass);
+  border: 1px dashed var(--border-glass-highlight);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.file-picker:hover {
+  background: var(--bg-card-hover);
+}
+
+/* Kept in the accessibility tree and focusable rather than display:none, so the control is
+   still reachable by keyboard and announced by a screen reader. */
+.file-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+
+.file-picker:focus-within {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ── Sync result ────────────────────────────────────────────────────────── */
+
+.result-callout {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  background: var(--bg-glass);
+}
+
+.result-callout.is-warning {
+  border-color: color-mix(in srgb, var(--accent-warning) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-warning) 8%, transparent);
+}
+
+.result-callout h3 {
+  font-size: 0.9rem;
+}
+
+.result-callout p {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.result-callout ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+  list-style: none;
+}
+
+.result-callout li {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  overflow-wrap: anywhere;
+}
+
+/* ── State mapping ──────────────────────────────────────────────────────── */
+
+.mapping-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.6rem 1.25rem;
+  list-style: none;
+}
+
+.mapping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.board-state {
+  font-size: 0.88rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mapping-panel .field-hint {
+  margin-top: 1rem;
+}
+
+/* ── Phones ─────────────────────────────────────────────────────────────── */
+
+/* Below this the action row and the mapping grid stop fitting side by side. Buttons go full
+   width rather than wrapping into a ragged two-and-a-half column block, and each mapping row
+   stacks so a long board state name is never truncated to fit its dropdown. */
+@media (max-width: 640px) {
+  .nav-content,
+  .board-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .board-container {
+    padding-top: 1.25rem;
+    gap: 1rem;
+  }
+
+  .form-panel,
+  .status-panel,
+  .import-panel,
+  .result-panel,
+  .mapping-panel {
+    padding: 1rem;
+  }
+
+  .form-actions button,
+  .confirm-actions button,
+  .file-picker {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mapping-row {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .mapping-row app-icon {
+    display: none;
+  }
+
+  .btn-nav-return span {
+    display: none;
+  }
+}

@@ -33,8 +33,6 @@ public class RetrospectivesControllerTests
         throw new InvalidOperationException($"Could not extract {typeof(T).Name}");
     }
 
-    // ── Action Item Create ───────────────────────────────────────────
-
     [Fact]
     public async Task CreateActionItem_ReturnsDto_WithCorrectFields()
     {
@@ -61,8 +59,6 @@ public class RetrospectivesControllerTests
         Assert.False(dto.IsCompleted);
     }
 
-    // ── Toggle Action Item (the bug fix) ─────────────────────────────
-
     [Fact]
     public async Task ToggleActionItem_ReturnsFullDto_NotAnonymousObject()
     {
@@ -82,12 +78,12 @@ public class RetrospectivesControllerTests
 
         var controller = new RetrospectivesController(db);
 
-        // Act — toggle from false to true
+        // Act - toggle from false to true
         var result = await controller.ToggleActionItem(actionItem.Id, Ct);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<RetroActionItemDto>(ok.Value);
 
-        // Assert — full DTO with all fields preserved
+        // Assert - full DTO with all fields preserved
         Assert.Equal(actionItem.Id, dto.Id);
         Assert.Equal("Setup Playwright scaffold", dto.Title);
         Assert.Equal(assignee.Id, dto.AssigneeId);
@@ -127,8 +123,6 @@ public class RetrospectivesControllerTests
         var result = await controller.ToggleActionItem(Guid.NewGuid(), Ct);
         Assert.IsType<NotFoundResult>(result.Result);
     }
-
-    // ── Update Action Item ──────────────────────────────────────────
 
     [Fact]
     public async Task UpdateActionItem_ReturnsUpdatedDto()
@@ -174,8 +168,6 @@ public class RetrospectivesControllerTests
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
-    // ── Delete Action Item ──────────────────────────────────────────
-
     [Fact]
     public async Task DeleteActionItem_ReturnsNoContent()
     {
@@ -200,8 +192,6 @@ public class RetrospectivesControllerTests
         var result = await controller.DeleteActionItem(Guid.NewGuid(), Ct);
         Assert.IsType<NotFoundResult>(result);
     }
-
-    // ── Cards: Create, Vote, Update, Delete ─────────────────────────
 
     [Fact]
     public async Task CreateCard_ReturnsAnonymousAuthorName_WhenIsAnonymous()

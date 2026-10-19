@@ -91,7 +91,7 @@
               id="leaveStartDateInput"
               name="leaveStartDateInput"
               type="date"
-              [(ngModel)]="leave.startDate"
+              [(ngModel)]="leave.startDate" required
               (ngModelChange)="onStartDateChange()"
               class="interactive-input date-input"
             />
@@ -102,7 +102,7 @@
               id="leaveEndDateInput"
               name="leaveEndDateInput"
               type="date"
-              [(ngModel)]="leave.endDate"
+              [(ngModel)]="leave.endDate" required
               [min]="leave.startDate"
               [disabled]="leave.leaveSlot !== 'FullDay'"
               class="interactive-input date-input"
@@ -159,7 +159,7 @@
         <input
           id="leaveReasonInput"
           name="leaveReasonInput"
-          [(ngModel)]="leave.reason"
+          [(ngModel)]="leave.reason" required
           placeholder="e.g. Doctor appointment / Personal errand..."
           class="interactive-input"
         />

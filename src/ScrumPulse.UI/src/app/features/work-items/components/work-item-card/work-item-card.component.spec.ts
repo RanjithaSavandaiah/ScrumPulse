@@ -159,8 +159,8 @@ describe('WorkItemCardComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const pickedUpTimestamp = compiled.querySelector('[data-testid="stage-timestamp-picked-up"]');
     const completedTimestamp = compiled.querySelector('[data-testid="stage-timestamp-completed"]');
-    expect(pickedUpTimestamp?.textContent?.trim()).toBe('—');
-    expect(completedTimestamp?.textContent?.trim()).toBe('—');
+    expect(pickedUpTimestamp?.textContent?.trim()).toBe('-');
+    expect(completedTimestamp?.textContent?.trim()).toBe('-');
   });
 
   it('should display actual elapsed working hours and NEVER Active on completed stages when Done', () => {

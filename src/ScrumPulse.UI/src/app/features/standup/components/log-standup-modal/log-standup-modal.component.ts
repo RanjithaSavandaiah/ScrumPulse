@@ -7,13 +7,14 @@ import { ScrumStateService } from '../../../../core/services/scrum-state.service
 import { isDeliveryRole } from '../../../../core/utils/format-utils';
 
 import { CORE_PIPES } from '../../../../core/pipes';
+import { VoiceInputDirective } from '../../../../core/directives/voice-input.directive';
 
 export const DEFAULT_STANDUP_MOOD_SCORE = 5;
 
 @Component({
   selector: 'app-log-standup-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, ...CORE_PIPES],
+  imports: [CommonModule, FormsModule, IconComponent, ...CORE_PIPES, VoiceInputDirective],
   templateUrl: './log-standup-modal.component.html',
   styleUrl: './log-standup-modal.component.css'
 })

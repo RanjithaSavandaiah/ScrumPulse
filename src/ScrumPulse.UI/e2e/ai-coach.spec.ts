@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Microsoft AI Intelligence & Coaching Studio', () => {
   test.beforeEach(async ({ page }) => {
+    await page.request.post('/api/auth/join', {
+      data: { joinCode: 'FIKA123', displayName: 'Developer' }
+    });
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await page.locator('.tab-btn', { hasText: 'Microsoft AI Coach' }).click();
     await expect(page.locator('.panel-title')).toBeVisible({ timeout: 10000 });

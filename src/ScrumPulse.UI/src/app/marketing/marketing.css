@@ -17,7 +17,9 @@
   justify-content: space-between;
   padding: 1rem 2rem;
   border-bottom: 1px solid var(--border-glass);
-  background: rgba(15, 23, 42, 0.75);
+  /* Theme variable, not a fixed slate: a hardcoded dark fill left the header dark
+     while the rest of the page turned light. */
+  background: color-mix(in srgb, var(--bg-surface) 85%, transparent);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -70,6 +72,29 @@
 
 .marketing-header .btn-launch:hover {
   background: var(--accent-primary-hover);
+}
+
+/* Current section, set by routerLinkActive. Gives a reader arriving from search
+   a sense of place, and marks the nav as interactive rather than decorative. */
+.marketing-header nav a.is-active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The nav wraps under the brand on a phone rather than overflowing the header,
+   and the launch button keeps its prominence by sitting on its own row. */
+@media (max-width: 640px) {
+  .marketing-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .marketing-header nav {
+    width: 100%;
+    gap: 1rem;
+    justify-content: space-between;
+  }
 }
 
 .marketing-page {
@@ -316,13 +341,13 @@
 
 .marketing-page a.cta-secondary {
   color: var(--text-primary) !important;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-glass);
   border-color: var(--border-glass);
 }
 
 .marketing-page a.cta-secondary:hover {
-  background: var(--bg-glass);
-  color: #ffffff !important;
+  background: var(--bg-card-hover);
+  color: var(--text-primary) !important;
 }
 
 @media (max-width: 640px) {

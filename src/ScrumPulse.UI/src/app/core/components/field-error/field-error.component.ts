@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { NgModel } from '@angular/forms';
+import { AbstractControl, NgModel } from '@angular/forms';
 
 /**
  * Shows the first validation message for one field, directly beneath it.
@@ -11,9 +11,14 @@ import { NgModel } from '@angular/forms';
  * Nothing renders until the control has been touched or the form submitted, so a blank form
  * does not greet the user in red before they have typed anything.
  *
- * Usage:
+ * Usage, template-driven:
  *   <input name="title" [(ngModel)]="item.title" #title="ngModel" required maxlength="120" />
  *   <app-field-error [control]="title" label="Title" />
+ *
+ * Usage, reactive - the same component rather than a second one, because two implementations
+ * of the same message would drift apart and a form would start wording its errors differently
+ * depending on which forms API it happened to use:
+ *   <app-field-error [control]="form.controls.title" label="Title" />
  */
 @Component({
   selector: 'app-field-error',
@@ -26,8 +31,8 @@ import { NgModel } from '@angular/forms';
   `
 })
 export class FieldErrorComponent {
-  /** The ngModel directive for the field, obtained with #ref="ngModel". */
-  readonly control = input.required<NgModel>();
+  /** The field's control: an ngModel obtained with #ref="ngModel", or a reactive control. */
+  readonly control = input.required<NgModel | AbstractControl>();
 
   /** Field name used in the message, so it reads as a sentence rather than a code. */
   readonly label = input('This field');
@@ -71,15 +76,18 @@ export class FieldErrorComponent {
     }
 
     if (errors['max']) {
-      return `${this.label()} must be no more than ${errors['max'].max}.`;
+      return `${this.label()} must be ${errors['max'].max} or less.`;
     }
 
-    if (errors['pattern']) {
-      return `${this.label()} is not in the expected format.`;
+    // Some validators supply a finished sentence of their own, because the rule they enforce
+    // is specific enough that a generic phrasing would lose the point. Pass it through
+    // unchanged rather than restating it badly.
+    if (typeof errors['message'] === 'string') {
+      return errors['message'];
     }
 
-    // Unknown validator. Naming the field is still more use than saying nothing, and the
-    // generic wording is a signal to add a specific case above.
+    // An unrecognised validator still means the field is wrong, and saying nothing would
+    // leave the user with a control marked invalid and no explanation.
     return `${this.label()} is not valid.`;
   }
 }
