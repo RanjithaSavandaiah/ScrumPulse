@@ -175,4 +175,30 @@ test.describe('Board connection discovery and navigation', () => {
     await expect(page).toHaveURL(/\/app\/board-connection/);
     await expect(page.getByRole('heading', { name: 'Azure DevOps connection' })).toBeVisible();
   });
+
+  test('clicking work items Azure DevOps link navigates to board connection page', async ({ page }) => {
+    await page.goto('/app#lifecycle');
+    const workItemsBtn = page.locator('[data-testid="workitems-azure-devops-btn"]');
+    await expect(workItemsBtn).toBeVisible();
+    await expect(workItemsBtn).toHaveAttribute('href', '/app/board-connection');
+    await workItemsBtn.click();
+    await expect(page).toHaveURL(/\/app\/board-connection/);
+    await expect(page.getByRole('heading', { name: 'Azure DevOps connection' })).toBeVisible();
+  });
+
+  test('CSV import file picker is configured for .csv files', async ({ page }) => {
+    await page.goto('/app/board-connection');
+    await expect(page.getByRole('heading', { name: 'Import from a CSV export' })).toBeVisible();
+    const fileInput = page.locator('[data-testid="import-file"]');
+    await expect(fileInput).toBeAttached();
+    await expect(fileInput).toHaveAttribute('accept', '.csv,text/csv');
+  });
+
+  test('back to dashboard button returns to app', async ({ page }) => {
+    await page.goto('/app/board-connection');
+    const backBtn = page.locator('a.btn-nav-return');
+    await expect(backBtn).toBeVisible();
+    await backBtn.click();
+    await expect(page).toHaveURL(/\/app/);
+  });
 });

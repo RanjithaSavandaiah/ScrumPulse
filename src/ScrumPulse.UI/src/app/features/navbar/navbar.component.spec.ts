@@ -73,6 +73,13 @@ describe('NavbarComponent', () => {
     expect(component.showSquadModal()).toBeFalse();
   });
 
+  it('should render Azure DevOps navigation button with link to board connection', () => {
+    const link = fixture.nativeElement.querySelector('[data-testid="nav-azure-btn"]') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('routerLink')).toBe('/app/board-connection');
+    expect(link.textContent).toContain('Azure DevOps');
+  });
+
   it('should handle squad creation validation and dispatch', () => {
     spyOn(stateService, 'canEditOrDelete').and.returnValue(true);
     const mockTeam: Team = { id: 't-1', name: 'Spartans', slug: 'spartans', description: '', joinCode: 'SPAR-1', isActive: true, createdAtUtc: '' };

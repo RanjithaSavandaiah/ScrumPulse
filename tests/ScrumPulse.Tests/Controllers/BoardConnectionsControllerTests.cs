@@ -212,6 +212,93 @@ public class BoardConnectionsControllerTests
         Assert.IsType<BoardSyncResultDto>(Assert.IsType<OkObjectResult>(result.Result).Value);
     }
 
+    [Fact]
+    public void Controller_HasRequireScrumMasterAttribute()
+    {
+        Assert.True(typeof(BoardConnectionsController).IsDefined(typeof(ScrumPulse.Api.Filters.RequireScrumMasterAttribute), inherit: true));
+    }
+
+    [Fact]
+    public void GetStateMappingDefaults_ReturnsDefaultStateMappings()
+    {
+        var controller = CreateController(new FakeBoardConnectionService());
+
+        var result = controller.GetStateMappingDefaults();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var defaults = Assert.IsType<BoardStateMappingDefaultsDto>(ok.Value);
+        Assert.NotNull(defaults.AzureDevOpsDefaults);
+        Assert.Contains("Active", defaults.AzureDevOpsDefaults.Keys);
+        Assert.Contains("Closed", defaults.AzureDevOpsDefaults.Keys);
+    }
+
+    [Fact]
+    public async Task SaveConnection_ReturnsValidationProblem_WhenModelStateIsInvalid()
+    {
+        var service = new FakeBoardConnectionService();
+        var controller = CreateController(service);
+        controller.ModelState.AddModelError("ProjectName", "Project name is required.");
+
+        var result = await controller.SaveConnection(SaveRequest("https://dev.azure.com/contoso"));
+
+        Assert.IsType<ObjectResult>(result.Result);
+        Assert.False(service.SaveWasCalled);
+    }
+
+    [Fact]
+    public async Task DeleteConnection_ReturnsNoContent_WhenDeletedSuccessfully()
+    {
+        var service = new FakeBoardConnectionService { DeleteReturnsSuccess = true };
+        var controller = CreateController(service);
+
+        var result = await controller.DeleteConnection();
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.True(service.DeleteWasCalled);
+    }
+
+    [Fact]
+    public async Task DeleteConnection_ReturnsNotFound_WhenConnectionDoesNotExist()
+    {
+        var service = new FakeBoardConnectionService { DeleteReturnsSuccess = false };
+        var controller = CreateController(service);
+
+        var result = await controller.DeleteConnection();
+
+        Assert.IsType<NotFoundResult>(result);
+        Assert.True(service.DeleteWasCalled);
+    }
+
+    [Fact]
+    public async Task TestConnection_ReturnsResultFromService()
+    {
+        var service = new FakeBoardConnectionService
+        {
+            TestResult = new BoardConnectionTestResult(true, "Token valid.")
+        };
+        var controller = CreateController(service);
+
+        var result = await controller.TestConnection();
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var testResult = Assert.IsType<BoardConnectionTestResult>(ok.Value);
+        Assert.True(testResult.Succeeded);
+        Assert.Equal("Token valid.", testResult.Message);
+        Assert.True(service.TestWasCalled);
+    }
+
+    [Fact]
+    public async Task Sync_PassesFullResyncFlagToService()
+    {
+        var service = new FakeBoardConnectionService();
+        var controller = CreateController(service);
+
+        var result = await controller.Sync(fullResync: true);
+
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.True(service.LastFullResync);
+    }
+
     /// <summary>Records what reached the service, so a test can assert what did not.</summary>
     private sealed class FakeBoardConnectionService : IBoardConnectionService
     {
@@ -222,6 +309,16 @@ public class BoardConnectionsControllerTests
         public bool SaveWasCalled { get; private set; }
 
         public string? ImportedContent { get; private set; }
+
+        public bool DeleteWasCalled { get; private set; }
+
+        public bool DeleteReturnsSuccess { get; init; } = true;
+
+        public bool TestWasCalled { get; private set; }
+
+        public bool LastFullResync { get; private set; }
+
+        public BoardConnectionTestResult TestResult { get; init; } = new(true, null);
 
         public Task<BoardConnectionDto?> GetConnectionAsync(CancellationToken ct = default) =>
             Task.FromResult(Connection);
@@ -234,15 +331,25 @@ public class BoardConnectionsControllerTests
             return Task.FromResult(Connection ?? BoardConnectionsControllerTests.Connection());
         }
 
-        public Task<bool> DeleteConnectionAsync(CancellationToken ct = default) => Task.FromResult(true);
+        public Task<bool> DeleteConnectionAsync(CancellationToken ct = default)
+        {
+            DeleteWasCalled = true;
+            return Task.FromResult(DeleteReturnsSuccess);
+        }
 
-        public Task<BoardConnectionTestResult> TestConnectionAsync(CancellationToken ct = default) =>
-            Task.FromResult(new BoardConnectionTestResult(true, null));
+        public Task<BoardConnectionTestResult> TestConnectionAsync(CancellationToken ct = default)
+        {
+            TestWasCalled = true;
+            return Task.FromResult(TestResult);
+        }
 
-        public Task<BoardSyncResultDto> SyncAsync(bool fullResync = false, CancellationToken ct = default) =>
-            SyncFailure is null
+        public Task<BoardSyncResultDto> SyncAsync(bool fullResync = false, CancellationToken ct = default)
+        {
+            LastFullResync = fullResync;
+            return SyncFailure is null
                 ? Task.FromResult(EmptyResult())
                 : Task.FromException<BoardSyncResultDto>(SyncFailure);
+        }
 
         public Task<BoardSyncResultDto> ImportFromFileAsync(string csvContent, CancellationToken ct = default)
         {

@@ -347,4 +347,43 @@ describe('BoardConnectionComponent', () => {
 
     expect(element('error-banner')!.textContent).toContain('Scrum Master role required');
   });
+
+  it('tests the stored personal access token and shows the test result', async () => {
+    await load(connectedSquad);
+
+    element<HTMLButtonElement>('test-connection')!.click();
+
+    const request = httpTesting.expectOne('/api/board-connections/test');
+    expect(request.request.method).toBe('POST');
+    request.flush({ succeeded: true, message: 'Azure DevOps accepted the stored token.' });
+    fixture.detectChanges();
+
+    const result = element('test-result')!;
+    expect(result.textContent).toContain('Azure DevOps accepted the stored token.');
+  });
+
+  it('imports a CSV query export file and refreshes status', async () => {
+    await load(connectedSquad);
+
+    const fileInput = element<HTMLInputElement>('import-file')!;
+    const mockFile = new File(['ID,Title,State\n101,Test Task,Active\n'], 'export.csv', { type: 'text/csv' });
+    Object.defineProperty(fileInput, 'files', { value: [mockFile] });
+    fileInput.dispatchEvent(new Event('change'));
+
+    const request = httpTesting.expectOne('/api/board-connections/import');
+    expect(request.request.method).toBe('POST');
+    request.flush({
+      importedCount: 1,
+      createdCount: 1,
+      unmappedStates: [],
+      unmatchedAssignees: [],
+      warnings: [],
+      syncedAtUtc: '2026-10-19T10:00:00Z'
+    });
+
+    httpTesting.expectOne('/api/board-connections').flush(connectedSquad);
+    fixture.detectChanges();
+
+    expect(element('sync-result')?.textContent).toContain('1');
+  });
 });

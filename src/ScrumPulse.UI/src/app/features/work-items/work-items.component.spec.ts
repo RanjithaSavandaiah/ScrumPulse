@@ -68,4 +68,11 @@ describe('WorkItemsComponent', () => {
     expect(summary.netHours).toBeDefined();
     expect(summary.netHours).toBeLessThanOrEqual(summary.grossHours);
   });
+
+  it('should render the Azure DevOps sync navigation link with correct attributes', () => {
+    const link = fixture.nativeElement.querySelector('[data-testid="workitems-azure-devops-btn"]') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('routerLink')).toBe('/app/board-connection');
+    expect(link.textContent).toContain('Azure DevOps Sync');
+  });
 });
