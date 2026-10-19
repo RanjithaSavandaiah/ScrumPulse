@@ -125,5 +125,8 @@ test.describe('API security boundaries', () => {
       statuses.some((status) => status === 429),
       'Expected the auth rate limiter to reject a burst of PIN attempts'
     ).toBeTruthy();
+
+    // Allow the burst rate limiter window to completely reset before subsequent suites run
+    await new Promise((resolve) => setTimeout(resolve, 2500));
   });
 });

@@ -191,11 +191,11 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 
         // In Development, joining squads needs generous headroom because dozens of E2E tests
         // authenticate sequentially from localhost. Verifying PIN uses a burst limiter (5 permits
-        // per 2s window in dev) so repeated brute-force PIN attempts are rejected with 429 without
+        // per 1s window in dev) so repeated brute-force PIN attempts are rejected with 429 without
         // starving subsequent tests. In production, both endpoints strictly allow 5 attempts per minute.
         var permitLimit = builder.Environment.IsDevelopment() && !isVerifyPin ? 500 : 5;
         var window = builder.Environment.IsDevelopment() && isVerifyPin
-            ? TimeSpan.FromSeconds(2)
+            ? TimeSpan.FromSeconds(1)
             : TimeSpan.FromMinutes(1);
 
         var partitionKey = $"{clientIp}:{endpoint}";

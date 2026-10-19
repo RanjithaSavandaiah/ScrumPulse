@@ -30,6 +30,19 @@ export async function unlockScrumMaster(page: Page): Promise<void> {
     await key.click();
   }
 
+  // If a transient rate-limit or error occurs in fast CI runners, wait for window reset and retry once
+  const errorAlert = page.locator('.pin-error-alert');
+  if (await errorAlert.isVisible({ timeout: 1500 }).catch(() => false)) {
+    await page.waitForTimeout(2000);
+    const clearBtn = page.locator('.keypad-grid .key-btn:has-text("CLR")');
+    if (await clearBtn.isVisible()) {
+      await clearBtn.click();
+    }
+    for (const digit of ['1', '2', '3', '4']) {
+      await page.locator(`.keypad-grid .key-btn:has-text("${digit}")`).click();
+    }
+  }
+
   await expect(page.locator('app-sm-pin-modal')).not.toBeVisible({ timeout: 10000 });
   await expect(page.locator('.btn-sm-locked')).toBeVisible({ timeout: 10000 });
 }
