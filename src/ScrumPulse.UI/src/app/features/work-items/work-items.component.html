@@ -50,6 +50,15 @@
       </div>
 
       <!-- Action Buttons -->
+      <a
+        routerLink="/app/board-connection"
+        class="btn-secondary btn-azure-devops"
+        title="Connect Azure DevOps board, pull work items, or import CSV query export"
+        data-testid="workitems-azure-devops-btn"
+      >
+        <app-icon name="git-branch" [size]="16" color="var(--accent-primary)"></app-icon> Azure DevOps Sync
+      </a>
+
       @if (state.canEditOrDelete()) {
         <button
           id="btnConfigureTeamGates"

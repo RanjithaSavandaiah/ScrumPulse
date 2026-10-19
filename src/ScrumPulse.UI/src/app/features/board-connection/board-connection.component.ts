@@ -464,7 +464,15 @@ export class BoardConnectionComponent {
   private reportFailure(error: unknown, fallback: string): void {
     this.pendingAction.set(null);
 
-    const detail = (error as { error?: { detail?: string; title?: string } } | null)?.error;
+    const httpError = error as { status?: number; error?: { detail?: string; title?: string } } | null;
+    if (httpError?.status === 403) {
+      this.errorMessage.set(
+        'Scrum Master role required. Switch your role to Scrum Master in the top navigation and enter your PIN to manage Azure DevOps board connection and data sync.'
+      );
+      return;
+    }
+
+    const detail = httpError?.error;
     const serverMessage = detail?.detail ?? detail?.title;
 
     this.errorMessage.set(serverMessage?.trim() || fallback);

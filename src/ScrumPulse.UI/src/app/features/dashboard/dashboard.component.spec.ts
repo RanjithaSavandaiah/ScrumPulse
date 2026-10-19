@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideStore } from '@ngrx/store';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { DashboardComponent } from './dashboard.component';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
@@ -19,6 +19,7 @@ describe('DashboardComponent', () => {
       imports: [DashboardComponent],
       providers: [
         ScrumStateService,
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         provideStore(appReducers),

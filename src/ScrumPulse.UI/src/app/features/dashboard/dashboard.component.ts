@@ -1,6 +1,6 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
@@ -25,6 +25,7 @@ import { AdBannerComponent } from '../../core/components/ad-banner/ad-banner.com
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     NavbarComponent,
     IconComponent,
     WorkItemsComponent,

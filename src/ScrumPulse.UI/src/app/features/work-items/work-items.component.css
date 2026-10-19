@@ -24,6 +24,16 @@
   flex-wrap: wrap;
 }
 
+.btn-azure-devops {
+  text-decoration: none;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.btn-azure-devops:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+}
+
 /* Assignee Filter Dropdown */
 .filter-dropdown-wrap {
   display: flex;

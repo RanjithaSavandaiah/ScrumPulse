@@ -37,6 +37,17 @@
   color: var(--text-primary);
 }
 
+.tab-link-btn {
+  text-decoration: none;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.tab-link-btn:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+  color: #ffffff;
+}
+
 .active-tab {
   background: var(--gradient-primary) !important;
   color: #ffffff !important;

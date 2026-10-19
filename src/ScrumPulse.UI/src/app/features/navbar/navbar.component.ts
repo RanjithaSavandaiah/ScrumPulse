@@ -5,6 +5,7 @@ import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { RoleType, Team } from '../../core/models/scrum.models';
+import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { SmPinModalComponent } from '../../core/components/sm-pin-modal/sm-pin-modal.component';
 
@@ -13,7 +14,7 @@ export const COPY_NOTIFICATION_DURATION_MS = 2000;
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, SmPinModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, SmPinModalComponent],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css'
 })

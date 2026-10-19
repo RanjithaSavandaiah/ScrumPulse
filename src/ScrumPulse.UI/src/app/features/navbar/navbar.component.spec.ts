@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideStore } from '@ngrx/store';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { NavbarComponent } from './navbar.component';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
@@ -18,6 +19,7 @@ describe('NavbarComponent', () => {
       imports: [NavbarComponent],
       providers: [
         ScrumStateService,
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         provideStore(appReducers)

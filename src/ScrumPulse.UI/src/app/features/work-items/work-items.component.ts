@@ -14,6 +14,7 @@ import { ConfigureGatesModalComponent } from './components/configure-gates-modal
 import { Sprint, WorkItem } from '../../core/models/scrum.models';
 import { calculateWorkingDays } from '../../core/utils/date-utils';
 import { isDeliveryRole } from '../../core/utils/format-utils';
+import { RouterLink } from '@angular/router';
 import { CORE_PIPES } from '../../core/pipes';
 import { DEFAULT_DAILY_WORKING_HOURS } from '../../core/constants/scrum.constants';
 import { PersistSelectionDirective } from '../../core/directives/persist-selection.directive';
@@ -33,8 +34,10 @@ const MAX_VELOCITY_RATIO_PERCENTAGE = 100;
 @Component({
   selector: 'app-work-items',
   standalone: true,
-  imports: [CommonModule,
+  imports: [
+    CommonModule,
     FormsModule,
+    RouterLink,
     IconComponent,
     WorkItemCardComponent,
     AddWorkItemModalComponent,
@@ -43,7 +46,9 @@ const MAX_VELOCITY_RATIO_PERCENTAGE = 100;
     EditSprintModalComponent,
     EstimationMatrixModalComponent,
     ConfigureGatesModalComponent,
-    ...CORE_PIPES, PersistSelectionDirective],
+    ...CORE_PIPES,
+    PersistSelectionDirective
+  ],
   templateUrl: './work-items.component.html',
   styleUrl: './work-items.component.css'
 })

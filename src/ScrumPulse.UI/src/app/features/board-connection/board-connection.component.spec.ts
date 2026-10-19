@@ -335,4 +335,16 @@ describe('BoardConnectionComponent', () => {
 
     expect(element('error-banner')!.textContent).toContain('Project name was not found.');
   });
+
+  it('surfaces Scrum Master PIN requirement when API returns 403 Forbidden', async () => {
+    const request = httpTesting.expectOne('/api/board-connections');
+    request.flush(
+      { title: 'Forbidden', detail: 'Scrum Master authorization required.' },
+      { status: 403, statusText: 'Forbidden' }
+    );
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(element('error-banner')!.textContent).toContain('Scrum Master role required');
+  });
 });
