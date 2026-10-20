@@ -74,8 +74,9 @@ export class EditSprintModalComponent implements OnInit {
   }
 
   get canSubmit(): boolean {
-    return !!this.name.trim() &&
-           this.name.trim().length >= 3 &&
+    const trimmed = this.name ? this.name.trim() : '';
+    return trimmed.length >= 3 &&
+           trimmed.length <= 100 &&
            !!this.startDate &&
            !!this.endDate &&
            !this.isInvalidDateRange;
@@ -276,7 +277,7 @@ export class EditSprintModalComponent implements OnInit {
 
     const payload: Partial<Sprint> = {
       name: this.name.trim(),
-      goal: this.goal.trim(),
+      goal: this.goal ? this.goal.trim() : '',
       startDate: new Date(this.startDate).toISOString(),
       endDate: new Date(this.endDate).toISOString(),
       committedStoryPoints: finalPoints,

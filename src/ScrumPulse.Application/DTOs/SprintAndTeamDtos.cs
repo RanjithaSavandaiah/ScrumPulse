@@ -6,9 +6,9 @@ using ScrumPulse.Domain.Enums;
 /// <summary>Request DTO for creating sprints, prevents mass assignment of raw Sprint entity.</summary>
 public record CreateSprintRequest(
     [Required][StringLength(100, MinimumLength = 3)] string Name,
-    [Required][StringLength(500)] string Goal,
-    [Required] DateTime StartDate,
-    [Required] DateTime EndDate,
+    [StringLength(500)] string Goal = "",
+    [Required] DateTime StartDate = default,
+    [Required] DateTime EndDate = default,
     bool IsActive = true,
     [Range(0, 500)] int CommittedStoryPoints = 0,
     [Range(1, 10)] int ConfidenceScore = 8,
@@ -19,9 +19,9 @@ public record CreateSprintRequest(
 /// <summary>Request DTO for updating sprints.</summary>
 public record UpdateSprintRequest(
     [Required][StringLength(100, MinimumLength = 3)] string Name,
-    [Required][StringLength(500)] string Goal,
-    [Required] DateTime StartDate,
-    [Required] DateTime EndDate,
+    [StringLength(500)] string Goal = "",
+    [Required] DateTime StartDate = default,
+    [Required] DateTime EndDate = default,
     [Range(0, 500)] int CommittedStoryPoints = 0,
     [Range(0, 500)] int DeliveredStoryPoints = 0,
     [Range(1, 10)] int ConfidenceScore = 8,

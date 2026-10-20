@@ -50,31 +50,31 @@ public record WorkItemDto(
 
 public record CreateWorkItemRequest(
     [Required][StringLength(250, MinimumLength = 3)] string Title,
-    [Required][StringLength(4000)] string Description,
-    WorkItemType Type,
-    PriorityLevel Priority,
-    [Range(0, 100)] int StoryPoints,
-    Guid? AssigneeId,
-    Guid? SprintId,
-    [StringLength(50)] string? PrNumber,
-    [StringLength(500)] string? PrUrl,
-    [StringLength(100)] string? PrBranch,
-    [StringLength(100)] string? TargetBranch,
+    [StringLength(4000)] string Description = "",
+    WorkItemType Type = WorkItemType.UserStory,
+    PriorityLevel Priority = PriorityLevel.Medium,
+    [Range(0, 100)] int StoryPoints = 0,
+    Guid? AssigneeId = null,
+    Guid? SprintId = null,
+    [StringLength(50)] string? PrNumber = null,
+    [StringLength(500)] string? PrUrl = null,
+    [StringLength(100)] string? PrBranch = null,
+    [StringLength(100)] string? TargetBranch = null,
     [Range(0, 1000)] double? EstimatedHours = null
 );
 
 public record UpdateWorkItemRequest(
     [Required][StringLength(250, MinimumLength = 3)] string Title,
-    [Required][StringLength(4000)] string Description,
-    WorkItemType Type,
-    PriorityLevel Priority,
-    [Range(0, 100)] int StoryPoints,
-    Guid? AssigneeId,
-    Guid? SprintId,
-    [StringLength(50)] string? PrNumber,
-    [StringLength(500)] string? PrUrl,
-    [StringLength(100)] string? PrBranch,
-    [StringLength(100)] string? TargetBranch,
+    [StringLength(4000)] string Description = "",
+    WorkItemType Type = WorkItemType.UserStory,
+    PriorityLevel Priority = PriorityLevel.Medium,
+    [Range(0, 100)] int StoryPoints = 0,
+    Guid? AssigneeId = null,
+    Guid? SprintId = null,
+    [StringLength(50)] string? PrNumber = null,
+    [StringLength(500)] string? PrUrl = null,
+    [StringLength(100)] string? PrBranch = null,
+    [StringLength(100)] string? TargetBranch = null,
     [Range(0, 1000)] double? EstimatedHours = null
 );
 

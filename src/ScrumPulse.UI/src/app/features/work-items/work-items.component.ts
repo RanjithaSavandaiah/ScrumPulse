@@ -291,17 +291,14 @@ export class WorkItemsComponent {
   onSaveSprint(sprintData: Partial<Sprint>): void {
     if (sprintData.id) {
       this.state.updateSprint(sprintData.id, sprintData);
-      this.notification.showSuccess('Sprint Updated', `Sprint "${sprintData.name || 'Sprint'}" updated successfully.`, 'calendar');
     } else {
       this.state.createSprint(sprintData);
-      this.notification.showSuccess('Sprint Created', `Sprint "${sprintData.name || 'Sprint'}" added successfully.`, 'calendar');
     }
     this.closeSprintModal();
   }
 
   onDeleteSprint(id: string): void {
     this.state.deleteSprint(id);
-    this.notification.showSuccess('Sprint Deleted', 'Sprint board was deleted.', 'trash-2');
     if (this.selectedSprintId() === id) {
       this.selectedSprintId.set('ALL');
     }

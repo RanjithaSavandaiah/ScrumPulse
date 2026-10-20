@@ -39,8 +39,8 @@ public class CreateWorkItemCommandHandler(IUnitOfWork unitOfWork) : ICommandHand
         var workItem = new WorkItem
         {
             Key = $"SP-{totalCount}",
-            Title = command.Request.Title,
-            Description = command.Request.Description,
+            Title = command.Request.Title.Trim(),
+            Description = command.Request.Description?.Trim() ?? string.Empty,
             Type = command.Request.Type,
             Priority = command.Request.Priority,
             StoryPoints = command.Request.StoryPoints,

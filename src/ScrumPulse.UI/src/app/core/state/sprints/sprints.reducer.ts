@@ -63,5 +63,9 @@ export const sprintsReducer = createReducer(
       activeSprint: nextActive,
       activeSprintId: nextActive?.id || null
     };
-  })
+  }),
+  on(SprintActions.createSprintFailure, (state, { error }) => ({ ...state, loading: false, error })),
+  on(SprintActions.updateSprintFailure, (state, { error }) => ({ ...state, loading: false, error })),
+  on(SprintActions.activateSprintFailure, (state, { error }) => ({ ...state, loading: false, error })),
+  on(SprintActions.deleteSprintFailure, (state, { error }) => ({ ...state, loading: false, error }))
 );

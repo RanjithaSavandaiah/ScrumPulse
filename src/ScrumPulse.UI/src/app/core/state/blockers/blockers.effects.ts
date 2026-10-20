@@ -5,11 +5,13 @@ import { of } from 'rxjs';
 import { catchError, map, mergeMap, switchMap } from 'rxjs/operators';
 import { BlockerActions } from './blockers.actions';
 import { Blocker } from '../../models/scrum.models';
+import { NotificationService } from '../../services/notification.service';
 
 @Injectable()
 export class BlockersEffects {
   private actions$ = inject(Actions);
   private http = inject(HttpClient);
+  private notification = inject(NotificationService);
   private apiUrl = '/api';
 
   loadBlockers$ = createEffect(() =>
@@ -32,6 +34,8 @@ export class BlockersEffects {
           map(created => BlockerActions.createBlockerSuccess({ blocker: created })),
           catchError(err => {
             console.error('[BlockersEffects] Failed to create blocker:', err);
+            const msg = err?.error?.detail || err?.error?.title || (err?.error?.errors ? Object.values(err.error.errors).flat().join(', ') : err?.message) || 'Failed to create blocker';
+            this.notification.showError('Validation Error', msg, 'alert-triangle');
             return of();
           })
         )
@@ -47,6 +51,8 @@ export class BlockersEffects {
           map(updated => BlockerActions.updateBlockerSuccess({ blocker: updated })),
           catchError(err => {
             console.error('[BlockersEffects] Failed to update blocker:', err);
+            const msg = err?.error?.detail || err?.error?.title || (err?.error?.errors ? Object.values(err.error.errors).flat().join(', ') : err?.message) || 'Failed to update blocker';
+            this.notification.showError('Validation Error', msg, 'alert-triangle');
             return of();
           })
         )

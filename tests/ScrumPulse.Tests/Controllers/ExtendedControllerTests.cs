@@ -244,6 +244,27 @@ public class ExtendedControllerTests
     }
 
     [Fact]
+    public async Task SprintsController_Create_WithOnlyNameAndDates_SucceedsWithDefaultGoal()
+    {
+        using var db = CreateInMemoryDb();
+        var controller = new SprintsController(CreateMediatorForSprints(db));
+
+        var request = new CreateSprintRequest(
+            Name: "Sprint 99",
+            StartDate: DateTime.UtcNow,
+            EndDate: DateTime.UtcNow.AddDays(14)
+        );
+
+        var result = await controller.Create(request, Ct);
+        var sprintDto = ExtractValue(result);
+
+        Assert.NotNull(sprintDto);
+        Assert.Equal("Sprint 99", sprintDto.Name);
+        Assert.Equal(string.Empty, sprintDto.Goal);
+        Assert.True(sprintDto.IsActive);
+    }
+
+    [Fact]
     public async Task TeamMembersController_Create_Update_And_Delete_WorkCorrectly()
     {
         using var db = CreateInMemoryDb();

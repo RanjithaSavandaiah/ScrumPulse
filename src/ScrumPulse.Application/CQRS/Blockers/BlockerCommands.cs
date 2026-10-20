@@ -34,7 +34,7 @@ public class CreateBlockerCommandHandler(IUnitOfWork unitOfWork) : ICommandHandl
             Category = command.Request.Category,
             SlaHoursLimit = command.Request.SlaHoursLimit,
             WorkItemId = command.Request.WorkItemId,
-            RaisedById = command.Request.RaisedById,
+            RaisedById = command.Request.RaisedById ?? Guid.Empty,
             SprintId = command.Request.SprintId,
             BlockedHours = Math.Max(0.0, Math.Round(command.Request.BlockedHours, 1))
         };

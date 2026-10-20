@@ -77,6 +77,22 @@ describe('Modular NgRx Reducers', () => {
       expect(state.activeSprintId).toBe('s-2');
       expect(state.activeSprint).toBe(mockSprint);
     });
+
+    it('should set error on createSprintFailure', () => {
+      const state = sprintsReducer(initialSprintsState, SprintActions.createSprintFailure({ error: 'Validation failed' }));
+      expect(state.error).toBe('Validation failed');
+      expect(state.loading).toBeFalse();
+    });
+
+    it('should set error on updateSprintFailure', () => {
+      const state = sprintsReducer(initialSprintsState, SprintActions.updateSprintFailure({ error: 'Update failed' }));
+      expect(state.error).toBe('Update failed');
+    });
+
+    it('should set error on deleteSprintFailure', () => {
+      const state = sprintsReducer(initialSprintsState, SprintActions.deleteSprintFailure({ error: 'Delete failed' }));
+      expect(state.error).toBe('Delete failed');
+    });
   });
 
   describe('Pull Requests Reducer', () => {

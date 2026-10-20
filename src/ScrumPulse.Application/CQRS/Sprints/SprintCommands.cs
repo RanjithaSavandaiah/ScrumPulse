@@ -35,8 +35,8 @@ public class CreateSprintCommandHandler(IAppDbContext db) : ICommandHandler<Crea
 
         var sprint = new Sprint
         {
-            Name = request.Name,
-            Goal = request.Goal,
+            Name = request.Name.Trim(),
+            Goal = request.Goal?.Trim() ?? string.Empty,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             IsActive = request.IsActive,
@@ -69,8 +69,8 @@ public class UpdateSprintCommandHandler(IAppDbContext db) : ICommandHandler<Upda
         if (sprint == null) return null;
 
         var r = command.Request;
-        sprint.Name = r.Name;
-        sprint.Goal = r.Goal;
+        sprint.Name = r.Name.Trim();
+        sprint.Goal = r.Goal?.Trim() ?? string.Empty;
         sprint.StartDate = r.StartDate;
         sprint.EndDate = r.EndDate;
         sprint.CommittedStoryPoints = r.CommittedStoryPoints;

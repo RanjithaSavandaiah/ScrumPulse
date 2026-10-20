@@ -5,11 +5,13 @@ import { of } from 'rxjs';
 import { catchError, map, mergeMap, switchMap } from 'rxjs/operators';
 import { TeamMemberActions } from './team-members.actions';
 import { TeamMember } from '../../models/scrum.models';
+import { NotificationService } from '../../services/notification.service';
 
 @Injectable()
 export class TeamMembersEffects {
   private actions$ = inject(Actions);
   private http = inject(HttpClient);
+  private notification = inject(NotificationService);
   private apiUrl = '/api';
 
   loadTeamMembers$ = createEffect(() =>
@@ -32,6 +34,8 @@ export class TeamMembersEffects {
           map(created => TeamMemberActions.createTeamMemberSuccess({ member: created })),
           catchError(err => {
             console.error('[TeamMembersEffects] Failed to create team member:', err);
+            const msg = err?.error?.detail || err?.error?.title || (err?.error?.errors ? Object.values(err.error.errors).flat().join(', ') : err?.message) || 'Failed to create team member';
+            this.notification.showError('Validation Error', msg, 'alert-triangle');
             return of();
           })
         )
@@ -47,6 +51,8 @@ export class TeamMembersEffects {
           map(() => TeamMemberActions.deleteTeamMemberSuccess({ id })),
           catchError(err => {
             console.error('[TeamMembersEffects] Failed to delete team member:', err);
+            const msg = err?.error?.detail || err?.error?.title || err?.message || 'Failed to delete team member';
+            this.notification.showError('Deletion Error', msg, 'alert-triangle');
             return of();
           })
         )

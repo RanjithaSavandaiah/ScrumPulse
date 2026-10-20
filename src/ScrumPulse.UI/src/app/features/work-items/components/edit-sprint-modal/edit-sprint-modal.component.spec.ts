@@ -76,4 +76,19 @@ describe('EditSprintModalComponent', () => {
     expect(component.validationError()).toBe('End date cannot be earlier than start date');
     expect(component.save.emit).not.toHaveBeenCalled();
   });
+
+  it('should enable submission and emit save when only sprint name is provided with optional goal', () => {
+    spyOn(component.save, 'emit');
+
+    component.name = 'Sprint 99';
+    component.goal = ''; // empty optional goal
+    expect(component.canSubmit).toBeTrue();
+
+    component.onSubmit();
+    expect(component.validationError()).toBeNull();
+    expect(component.save.emit).toHaveBeenCalledWith(jasmine.objectContaining({
+      name: 'Sprint 99',
+      goal: ''
+    }));
+  });
 });

@@ -28,9 +28,9 @@ public record CreateBlockerRequest(
     [Required][StringLength(2000)] string Description,
     BlockerCategory Category,
     [Range(1, 168)] int SlaHoursLimit,
-    Guid? WorkItemId,
-    [Required] Guid RaisedById,
-    Guid? SprintId,
+    Guid? WorkItemId = null,
+    Guid? RaisedById = null,
+    Guid? SprintId = null,
     double BlockedHours = 0
 );
 

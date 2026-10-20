@@ -5,11 +5,13 @@ import { of } from 'rxjs';
 import { catchError, map, mergeMap, switchMap } from 'rxjs/operators';
 import { SprintActions } from './sprints.actions';
 import { Sprint } from '../../models/scrum.models';
+import { NotificationService } from '../../services/notification.service';
 
 @Injectable()
 export class SprintsEffects {
   private actions$ = inject(Actions);
   private http = inject(HttpClient);
+  private notification = inject(NotificationService);
   private apiUrl = '/api';
 
   loadSprints$ = createEffect(() =>
@@ -29,10 +31,15 @@ export class SprintsEffects {
       ofType(SprintActions.createSprint),
       mergeMap(({ sprint }) =>
         this.http.post<Sprint>(`${this.apiUrl}/sprints`, sprint).pipe(
-          map(created => SprintActions.createSprintSuccess({ sprint: created })),
+          map(created => {
+            this.notification.showSuccess('Sprint Created', `Sprint "${created.name}" added successfully.`, 'calendar');
+            return SprintActions.createSprintSuccess({ sprint: created });
+          }),
           catchError(err => {
             console.error('[SprintsEffects] Failed to create sprint:', err);
-            return of();
+            const msg = err?.error?.detail || err?.error?.title || (err?.error?.errors ? Object.values(err.error.errors).flat().join(', ') : err?.message) || 'Failed to create sprint';
+            this.notification.showError('Sprint Validation Error', msg, 'alert-triangle');
+            return of(SprintActions.createSprintFailure({ error: msg }));
           })
         )
       )
@@ -44,10 +51,15 @@ export class SprintsEffects {
       ofType(SprintActions.updateSprint),
       mergeMap(({ id, sprint }) =>
         this.http.put<Sprint>(`${this.apiUrl}/sprints/${id}`, sprint).pipe(
-          map(updated => SprintActions.updateSprintSuccess({ sprint: updated })),
+          map(updated => {
+            this.notification.showSuccess('Sprint Updated', `Sprint "${updated.name}" updated successfully.`, 'calendar');
+            return SprintActions.updateSprintSuccess({ sprint: updated });
+          }),
           catchError(err => {
             console.error('[SprintsEffects] Failed to update sprint:', err);
-            return of();
+            const msg = err?.error?.detail || err?.error?.title || (err?.error?.errors ? Object.values(err.error.errors).flat().join(', ') : err?.message) || 'Failed to update sprint';
+            this.notification.showError('Sprint Update Failed', msg, 'alert-triangle');
+            return of(SprintActions.updateSprintFailure({ error: msg }));
           })
         )
       )
@@ -62,7 +74,9 @@ export class SprintsEffects {
           map(active => SprintActions.activateSprintSuccess({ sprint: active })),
           catchError(err => {
             console.error('[SprintsEffects] Failed to activate sprint:', err);
-            return of();
+            const msg = err?.error?.detail || err?.error?.title || err?.message || 'Failed to activate sprint';
+            this.notification.showError('Sprint Activation Failed', msg, 'alert-triangle');
+            return of(SprintActions.activateSprintFailure({ error: msg }));
           })
         )
       )
@@ -74,10 +88,15 @@ export class SprintsEffects {
       ofType(SprintActions.deleteSprint),
       mergeMap(({ sprintId }) =>
         this.http.delete(`${this.apiUrl}/sprints/${sprintId}`).pipe(
-          map(() => SprintActions.deleteSprintSuccess({ sprintId })),
+          map(() => {
+            this.notification.showSuccess('Sprint Deleted', 'Sprint board was deleted.', 'trash-2');
+            return SprintActions.deleteSprintSuccess({ sprintId });
+          }),
           catchError(err => {
             console.error('[SprintsEffects] Failed to delete sprint:', err);
-            return of();
+            const msg = err?.error?.detail || err?.error?.title || err?.message || 'Failed to delete sprint';
+            this.notification.showError('Sprint Delete Failed', msg, 'alert-triangle');
+            return of(SprintActions.deleteSprintFailure({ error: msg }));
           })
         )
       )

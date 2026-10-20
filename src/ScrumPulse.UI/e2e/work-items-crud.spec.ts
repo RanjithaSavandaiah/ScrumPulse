@@ -499,6 +499,10 @@ test.describe('Work Items & Sprints End-to-End Lifecycle', () => {
     await expect(page.locator('#sprintNameInput')).not.toBeVisible({ timeout: 5000 });
     const sprintToast = page.locator('.confirmation-popup-card .popup-message', { hasText: `Sprint "${validSprint}" added successfully.` });
     await expect(sprintToast).toBeVisible({ timeout: 5000 });
+
+    // Verify sprint chip actually appears in the sprint filter bar on screen
+    const sprintChip = page.locator('.sprint-filter-bar .sprint-chip', { hasText: validSprint });
+    await expect(sprintChip).toBeVisible({ timeout: 10000 });
   });
 
   test('should accurately advance stages from Pick Up through Done, displaying actual working hours on completed steps and NEVER keeping previous steps Active', async ({ page }) => {

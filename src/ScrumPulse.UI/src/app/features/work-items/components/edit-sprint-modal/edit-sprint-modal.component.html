@@ -48,12 +48,12 @@
         </div>
       </div>
 
-      <!-- Sprint Goal (Prominent) -->
+      <!-- Sprint Goal (Optional) -->
       <div class="form-group full-width">
         <div class="goal-label-row">
           <label for="sprintGoalTextarea" class="form-label">
             <app-icon name="target" [size]="15" color="var(--accent-warning)"></app-icon>
-            <strong>Sprint Goal & Value Proposition</strong> <span class="required-star">*</span>
+            <strong>Sprint Goal & Value Proposition</strong> <span class="optional-hint" style="opacity: 0.7; font-size: 0.85em; font-weight: 400;">(Optional)</span>
           </label>
           <span class="goal-hint">Clearly articulates the core business deliverable for this sprint</span>
         </div>
@@ -62,7 +62,6 @@
           [(ngModel)]="goal"
           name="goal"
           rows="3"
-          required
           placeholder="e.g. Deliver payment gateway migration and checkout microservice resilience with zero critical defects and full unit test coverage."
           class="interactive-textarea goal-textarea"
         ></textarea>
