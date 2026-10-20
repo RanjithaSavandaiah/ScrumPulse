@@ -28,6 +28,8 @@ public class SecurityHeadersMiddlewareTests
         Assert.Equal("strict-origin-when-cross-origin", headers["Referrer-Policy"]);
         Assert.Contains("default-src 'self'", headers["Content-Security-Policy"].ToString());
         Assert.Contains("camera=()", headers["Permissions-Policy"].ToString());
+        Assert.Contains("microphone=(self)", headers["Permissions-Policy"].ToString());
+        Assert.Contains("geolocation=()", headers["Permissions-Policy"].ToString());
     }
 
     [Fact]
