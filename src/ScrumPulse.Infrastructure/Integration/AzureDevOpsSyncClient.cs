@@ -512,4 +512,254 @@ public sealed class AzureDevOpsSyncClient : IBoardSyncClient
         [JsonPropertyName("newValue")]
         public object? NewValue { get; set; }
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ImportedPullRequest>> FetchPullRequestsAsync(
+        BoardConnection connection,
+        IReadOnlyCollection<string> rosterIdentities,
+        CancellationToken ct = default)
+    {
+        var token = ResolveCredential(connection);
+        if (token is null)
+        {
+            return [];
+        }
+
+        var organizationUrl = NormalizeOrganizationUrl(connection.OrganizationUrl);
+        var project = Uri.EscapeDataString(connection.ProjectName);
+
+        using var reposRequest = CreateRequest(
+            HttpMethod.Get,
+            $"{organizationUrl}/{project}/_apis/git/repositories?api-version={ApiVersion}",
+            token);
+
+        using var reposResponse = await _httpClient.SendAsync(reposRequest, ct);
+        if (!reposResponse.IsSuccessStatusCode)
+        {
+            _logger.LogWarning(
+                "Azure DevOps Git repositories query returned {StatusCode} for project {Project}.",
+                (int)reposResponse.StatusCode,
+                connection.ProjectName);
+            return [];
+        }
+
+        var reposPayload = await reposResponse.Content.ReadFromJsonAsync<GitRepositoriesResponse>(SerializerOptions, ct);
+        var repositories = reposPayload?.Value ?? [];
+        if (repositories.Count == 0)
+        {
+            return [];
+        }
+
+        var imported = new List<ImportedPullRequest>();
+        var threadLookupBudget = 30;
+
+        foreach (var repo in repositories.Take(5))
+        {
+            using var prRequest = CreateRequest(
+                HttpMethod.Get,
+                $"{organizationUrl}/{project}/_apis/git/repositories/{repo.Id}/pullrequests?searchCriteria.status=all&$top=50&api-version={ApiVersion}",
+                token);
+
+            using var prResponse = await _httpClient.SendAsync(prRequest, ct);
+            if (!prResponse.IsSuccessStatusCode)
+            {
+                continue;
+            }
+
+            var prPayload = await prResponse.Content.ReadFromJsonAsync<GitPullRequestsResponse>(SerializerOptions, ct);
+            var pullRequests = prPayload?.Value ?? [];
+
+            foreach (var pr in pullRequests)
+            {
+                var authorEmail = pr.CreatedBy?.UniqueName;
+                var authorName = pr.CreatedBy?.DisplayName;
+
+                if (connection.AssigneeFilter == BoardAssigneeFilter.RosterMembersOnly && rosterIdentities.Count > 0)
+                {
+                    var isRosterAuthor = rosterIdentities.Any(id =>
+                        (!string.IsNullOrWhiteSpace(authorEmail) && id.Equals(authorEmail, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(authorName) && id.Equals(authorName, StringComparison.OrdinalIgnoreCase)));
+
+                    if (!isRosterAuthor)
+                    {
+                        continue;
+                    }
+                }
+
+                var comments = new List<ReviewComment>();
+                if (threadLookupBudget-- > 0)
+                {
+                    try
+                    {
+                        using var threadsRequest = CreateRequest(
+                            HttpMethod.Get,
+                            $"{organizationUrl}/{project}/_apis/git/repositories/{repo.Id}/pullrequests/{pr.PullRequestId}/threads?api-version={ApiVersion}",
+                            token);
+
+                        using var threadsResponse = await _httpClient.SendAsync(threadsRequest, ct);
+                        if (threadsResponse.IsSuccessStatusCode)
+                        {
+                            var threadsPayload = await threadsResponse.Content.ReadFromJsonAsync<GitThreadsResponse>(SerializerOptions, ct);
+                            if (threadsPayload?.Value != null)
+                            {
+                                foreach (var thread in threadsPayload.Value)
+                                {
+                                    if (thread.Comments == null) continue;
+                                    foreach (var c in thread.Comments)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(c.Content) || c.CommentType == "system") continue;
+                                        var isFromRoster = rosterIdentities.Count == 0 || rosterIdentities.Any(id =>
+                                            (!string.IsNullOrWhiteSpace(c.Author?.UniqueName) && id.Equals(c.Author.UniqueName, StringComparison.OrdinalIgnoreCase)) ||
+                                            (!string.IsNullOrWhiteSpace(c.Author?.DisplayName) && id.Equals(c.Author.DisplayName, StringComparison.OrdinalIgnoreCase)));
+                                        comments.Add(new ReviewComment(pr.PullRequestId, c.Content, isFromRoster));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(ex, "Failed to fetch review threads for PR #{PrId}", pr.PullRequestId);
+                    }
+                }
+
+                var report = ReviewCommentAnalyser.Analyse(comments);
+                var summary = report.CoachingSignals.Count > 0
+                    ? string.Join("; ", report.CoachingSignals)
+                    : (report.Themes.Count > 0
+                        ? $"Themes: {string.Join(", ", report.Themes.Select(t => t.Theme))}"
+                        : "No review comments recorded");
+
+                imported.Add(new ImportedPullRequest(
+                    ExternalPrId: pr.PullRequestId.ToString(),
+                    PrNumber: $"#{pr.PullRequestId}",
+                    Title: pr.Title ?? $"Pull Request #{pr.PullRequestId}",
+                    Url: pr.Url ?? string.Empty,
+                    AuthorIdentity: authorEmail,
+                    AuthorDisplayName: authorName,
+                    ReviewerIdentity: pr.Reviewers?.FirstOrDefault()?.UniqueName,
+                    ReviewerDisplayName: pr.Reviewers?.FirstOrDefault()?.DisplayName,
+                    CreatedAtUtc: pr.CreationDate.ToUniversalTime(),
+                    ClosedAtUtc: pr.ClosedDate?.ToUniversalTime(),
+                    Status: pr.Status ?? "active",
+                    TotalCommentsCount: report.TotalComments,
+                    ActionableCommentsCount: report.ActionableComments,
+                    ReviewSummary: summary,
+                    Comments: comments
+                ));
+            }
+        }
+
+        _logger.LogInformation(
+            "Azure DevOps sync fetched {Count} pull request(s) for project {Project}",
+            imported.Count,
+            connection.ProjectName);
+
+        return imported;
+    }
+
+    private sealed class GitRepositoriesResponse
+    {
+        [JsonPropertyName("value")]
+        public List<GitRepositoryItem>? Value { get; set; }
+    }
+
+    private sealed class GitRepositoryItem
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private sealed class GitPullRequestsResponse
+    {
+        [JsonPropertyName("value")]
+        public List<GitPullRequestItem>? Value { get; set; }
+    }
+
+    private sealed class GitPullRequestItem
+    {
+        [JsonPropertyName("pullRequestId")]
+        public int PullRequestId { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+
+        [JsonPropertyName("creationDate")]
+        public DateTime CreationDate { get; set; }
+
+        [JsonPropertyName("closedDate")]
+        public DateTime? ClosedDate { get; set; }
+
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
+
+        [JsonPropertyName("createdBy")]
+        public GitIdentity? CreatedBy { get; set; }
+
+        [JsonPropertyName("reviewers")]
+        public List<GitReviewer>? Reviewers { get; set; }
+    }
+
+    private sealed class GitIdentity
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("displayName")]
+        public string? DisplayName { get; set; }
+
+        [JsonPropertyName("uniqueName")]
+        public string? UniqueName { get; set; }
+    }
+
+    private sealed class GitReviewer
+    {
+        [JsonPropertyName("id")]
+        public string? Id { get; set; }
+
+        [JsonPropertyName("displayName")]
+        public string? DisplayName { get; set; }
+
+        [JsonPropertyName("uniqueName")]
+        public string? UniqueName { get; set; }
+
+        [JsonPropertyName("vote")]
+        public int Vote { get; set; }
+    }
+
+    private sealed class GitThreadsResponse
+    {
+        [JsonPropertyName("value")]
+        public List<GitThreadItem>? Value { get; set; }
+    }
+
+    private sealed class GitThreadItem
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("comments")]
+        public List<GitCommentItem>? Comments { get; set; }
+    }
+
+    private sealed class GitCommentItem
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("content")]
+        public string? Content { get; set; }
+
+        [JsonPropertyName("commentType")]
+        public string? CommentType { get; set; }
+
+        [JsonPropertyName("author")]
+        public GitIdentity? Author { get; set; }
+    }
 }

@@ -37,4 +37,13 @@ public interface IBoardSyncClient
         IReadOnlyCollection<string> rosterIdentities,
         DateTime? changedSince,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Fetches pull requests and their code review threads for the squad's developers from the connected Git repository.
+    /// </summary>
+    Task<IReadOnlyList<ImportedPullRequest>> FetchPullRequestsAsync(
+        BoardConnection connection,
+        IReadOnlyCollection<string> rosterIdentities,
+        CancellationToken ct = default);
 }
+

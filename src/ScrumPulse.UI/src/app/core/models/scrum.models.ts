@@ -335,6 +335,16 @@ export interface DeveloperPrMetrics {
   prs: PullRequestLog[];
 }
 
+export interface PullRequestSyncResult {
+  importedCount: number;
+  createdCount: number;
+  updatedCount: number;
+  syncedAtUtc: string;
+  unmatchedAuthors: string[];
+  warnings: string[];
+}
+
+
 export interface QualityGateCriterion {
   id: string;
   label: string;

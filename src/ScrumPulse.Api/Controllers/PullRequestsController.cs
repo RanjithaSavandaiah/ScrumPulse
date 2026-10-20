@@ -1,18 +1,23 @@
 namespace ScrumPulse.Api.Controllers;
 
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using ScrumPulse.Api.Filters;
 using Microsoft.EntityFrameworkCore;
 using ScrumPulse.Application.Common.Interfaces;
 using ScrumPulse.Application.DTOs;
 using ScrumPulse.Application.Mapping;
+using ScrumPulse.Application.Services;
 using ScrumPulse.Domain.Entities;
 using ScrumPulse.Domain.Enums;
 
-/// <summary>Pull request review log management with developer metrics aggregation.</summary>
-public class PullRequestsController(IAppDbContext db) : BaseApiController
+/// <summary>Pull request review log management with developer metrics aggregation and sync.</summary>
+[Route("api/pullrequests")]
+[Route("api/pull-requests")]
+public class PullRequestsController(IAppDbContext db, IPullRequestSyncService? syncService = null) : BaseApiController
 {
     private const double PercentageMultiplier = 100.0;
+
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<PullRequestLogDto>), StatusCodes.Status200OK)]
@@ -115,4 +120,94 @@ public class PullRequestsController(IAppDbContext db) : BaseApiController
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    [RequireScrumMaster]
+    [HttpPost("sync")]
+    [ProducesResponseType(typeof(PullRequestSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PullRequestSyncResultDto>> Sync(CancellationToken ct)
+    {
+        if (syncService is null)
+        {
+            return StatusCode(StatusCodes.Status501NotImplemented, "Pull request sync is not configured.");
+        }
+
+        try
+        {
+            var result = await syncService.SyncFromAzureDevOpsAsync(ct);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "No board connected",
+                Detail = ex.Message
+            });
+        }
+    }
+
+    [RequireScrumMaster]
+    [HttpPost("import")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(PullRequestSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PullRequestSyncResultDto>> Import(IFormFile? file, CancellationToken ct)
+    {
+        if (syncService is null)
+        {
+            return StatusCode(StatusCodes.Status501NotImplemented, "Pull request import is not configured.");
+        }
+
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "No file supplied",
+                Detail = "Upload a CSV export to import pull requests."
+            });
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (!string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(file.ContentType, "text/csv", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Unsupported file type",
+                Detail = "Only a .csv file is supported."
+            });
+        }
+
+        using var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var csvContent = await reader.ReadToEndAsync(ct);
+
+        var result = await syncService.ImportFromCsvAsync(csvContent, ct);
+        return Ok(result);
+    }
+
+    [RequireScrumMaster]
+    [HttpPost("import-text")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(PullRequestSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PullRequestSyncResultDto>> ImportText([FromBody] ImportPrCsvRequest request, CancellationToken ct)
+    {
+        if (syncService is null)
+        {
+            return StatusCode(StatusCodes.Status501NotImplemented, "Pull request import is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request?.CsvContent))
+        {
+            return BadRequest("CSV content is required.");
+        }
+
+        var result = await syncService.ImportFromCsvAsync(request.CsvContent, ct);
+        return Ok(result);
+    }
 }
+

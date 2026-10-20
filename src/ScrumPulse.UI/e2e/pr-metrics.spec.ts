@@ -75,4 +75,61 @@ test.describe('Git PRs & Code Review Analytics', () => {
     await prRow.locator('.btn-delete-pr').click();
     await expect(prRow).not.toBeVisible({ timeout: 5000 });
   });
+
+  test('should display Azure DevOps sync button and handle sync invocation or connection error', async ({ page }) => {
+    const syncBtn = page.locator('[data-testid="sync-pr-azure-btn"]');
+    await expect(syncBtn).toBeVisible();
+
+    // Trigger sync
+    await syncBtn.click();
+
+    // If no board is configured, error banner is shown with a link to board connection
+    // Or if board is configured, success banner is shown
+    const banner = page.locator('[data-testid="pr-sync-error-banner"], [data-testid="pr-sync-success-banner"]');
+    await expect(banner).toBeVisible({ timeout: 15000 });
+
+    if (await page.locator('[data-testid="pr-sync-error-banner"]').isVisible()) {
+      const configLink = page.locator('[data-testid="configure-board-link"]');
+      await expect(configLink).toBeVisible();
+      await expect(configLink).toHaveAttribute('href', '/app/board-connection');
+    }
+  });
+
+  test('should open PR CSV import modal, accept file upload, and import PR records', async ({ page }) => {
+    const importBtn = page.locator('[data-testid="import-pr-csv-btn"]');
+    await expect(importBtn).toBeVisible();
+    await importBtn.click();
+
+    // Verify modal is displayed
+    const fileInput = page.locator('[data-testid="pr-csv-file-input"]');
+    await expect(fileInput).toBeAttached();
+
+    const confirmBtn = page.locator('[data-testid="confirm-import-pr-csv-btn"]');
+    await expect(confirmBtn).toBeDisabled();
+
+    // Provide a sample CSV file
+    const sampleCsv =
+      `"PR Number","Title","Author","Sprint","Total Comments","Actionable Comments","Status","URL"\n` +
+      `"#9901","Refactor GraphQL schema generator","Athul","Sprint 1","10","4","Merged","https://dev.azure.com/org/proj/_git/repo/pullrequest/9901"\n`;
+
+    await fileInput.setInputFiles({
+      name: 'test-prs.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(sampleCsv, 'utf-8')
+    });
+
+    await expect(confirmBtn).toBeEnabled();
+
+    // Submit import
+    const importPromise = page.waitForResponse(
+      (res) => res.url().includes('/api/pullrequests/import') || res.url().includes('/api/pull-requests/import')
+    );
+    await confirmBtn.click();
+    await importPromise;
+
+    // Verify success banner and modal closed
+    await expect(fileInput).not.toBeVisible();
+    await expect(page.locator('[data-testid="pr-sync-success-banner"]')).toBeVisible({ timeout: 10000 });
+  });
 });
+

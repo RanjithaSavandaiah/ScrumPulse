@@ -77,6 +77,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IBoardConnectionService, BoardConnectionService>();
+        services.AddScoped<IPullRequestSyncService, PullRequestSyncService>();
 
         // --- Domain Events ----
         // Scoped: dispatcher uses IServiceProvider to resolve handlers per request

@@ -29,14 +29,85 @@
         </select>
       </div>
 
-      <button (click)="openLogPrModal()" class="btn-primary">
+      <!-- Action Buttons -->
+      <button
+        id="btnSyncAzureDevopsPrs"
+        (click)="onSyncAzureDevopsPrs()"
+        [disabled]="isSyncingPrs()"
+        class="btn-secondary btn-azure-sync"
+        title="Sync pull requests and review comments from connected Azure DevOps Git repositories"
+        data-testid="sync-pr-azure-btn"
+      >
+        @if (isSyncingPrs()) {
+          <app-icon name="loader" [size]="16" class="spin-icon"></app-icon>
+          <span>Syncing PRs…</span>
+        } @else {
+          <app-icon name="git-branch" [size]="16" color="var(--accent-primary)"></app-icon>
+          <span>Azure DevOps Sync</span>
+        }
+      </button>
+
+      <button
+        id="btnImportPrCsv"
+        (click)="openImportPrModal()"
+        class="btn-secondary btn-import-pr"
+        title="Upload and import pull requests from a CSV export"
+        data-testid="import-pr-csv-btn"
+      >
+        <app-icon name="upload" [size]="16" color="var(--accent-secondary)"></app-icon>
+        <span>Import PR CSV</span>
+      </button>
+
+      <button (click)="openLogPrModal()" class="btn-primary" data-testid="log-pr-btn">
         <app-icon name="plus" [size]="16"></app-icon> Log PR & Review Comments
       </button>
     </div>
   </div>
 
+  <!-- Sync Status & Alert Banners -->
+  @if (syncResultBanner(); as res) {
+    <div class="pr-alert is-success animate-fade-in" data-testid="pr-sync-success-banner">
+      <div class="pr-alert-content">
+        <app-icon name="check-circle" [size]="18" color="var(--accent-success)"></app-icon>
+        <div>
+          <strong>Sync complete!</strong>
+          <span>Imported {{ res.importedCount }} pull request(s) ({{ res.createdCount }} new, {{ res.updatedCount }} updated).</span>
+          @if (res.unmatchedAuthors.length > 0) {
+            <p class="pr-alert-hint">
+              Unmatched author(s) skipped (not on squad roster): {{ res.unmatchedAuthors.join(', ') }}
+            </p>
+          }
+        </div>
+      </div>
+      <button (click)="dismissBanner()" class="pr-alert-close" title="Dismiss">
+        <app-icon name="x" [size]="14"></app-icon>
+      </button>
+    </div>
+  }
+
+  @if (syncErrorMessage(); as error) {
+    <div class="pr-alert is-error animate-fade-in" data-testid="pr-sync-error-banner">
+      <div class="pr-alert-content">
+        <app-icon name="alert-triangle" [size]="18" color="var(--accent-danger)"></app-icon>
+        <div>
+          <strong>Sync failed</strong>
+          <span>{{ error }}</span>
+          <div class="pr-alert-actions">
+            <a routerLink="/app/board-connection" class="pr-link-action" data-testid="configure-board-link">
+              <app-icon name="settings" [size]="14"></app-icon> Configure Azure DevOps Board Connection
+            </a>
+          </div>
+        </div>
+      </div>
+      <button (click)="dismissBanner()" class="pr-alert-close" title="Dismiss">
+        <app-icon name="x" [size]="14"></app-icon>
+      </button>
+    </div>
+  }
+
   <!-- KPI Overview Cards -->
   <div class="kpi-grid">
+
     <div class="glass-panel kpi-card">
       <div class="kpi-icon-wrap" style="color: var(--accent-primary);">
         <app-icon name="git-pull-request" [size]="22"></app-icon>
@@ -301,4 +372,78 @@
       </div>
     </div>
   }
+
+  <!-- Import PR CSV Modal -->
+  @if (showImportPrModal()) {
+    <div class="modal-backdrop" (click)="closeImportPrModal()">
+      <div class="modal-card import-modal-card glass-panel" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <app-icon name="upload-cloud" [size]="22" color="var(--accent-secondary)"></app-icon>
+            <h3>Import Pull Requests from CSV</h3>
+          </div>
+          <button class="btn-close" (click)="closeImportPrModal()" title="Close">
+            <app-icon name="x" [size]="18"></app-icon>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <p class="import-instructions">
+            Upload an exported CSV containing pull request and code review activity. Matching records by PR number are idempotently updated.
+          </p>
+
+          <div class="csv-format-hint glass-panel">
+            <div class="hint-header">
+              <app-icon name="info" [size]="16" color="var(--accent-primary)"></app-icon>
+              <strong>Recognized CSV Columns:</strong>
+            </div>
+            <code class="columns-code">PR Number, Title, Author, Reviewer, Sprint, Total Comments, Actionable Comments, Status, URL, Review Summary</code>
+            <div class="hint-actions">
+              <button type="button" class="btn-text-action" (click)="downloadSampleCsv()">
+                <app-icon name="download" [size]="14"></app-icon> Download Sample CSV Template
+              </button>
+            </div>
+          </div>
+
+          <div class="file-dropzone" [class.has-file]="!!selectedCsvFile()">
+            <input
+              type="file"
+              id="prCsvFileInput"
+              accept=".csv,text/csv"
+              (change)="onFileSelected($event)"
+              data-testid="pr-csv-file-input"
+            />
+            <div class="dropzone-label">
+              <app-icon name="file-text" [size]="32" color="var(--accent-secondary)"></app-icon>
+              @if (selectedCsvFile(); as file) {
+                <span class="file-name">{{ file.name }}</span>
+                <span class="file-size">({{ (file.size / 1024).toFixed(1) }} KB)</span>
+              } @else {
+                <span>Click to browse or drop a <strong>.csv</strong> file here</span>
+                <span class="dropzone-sub">Accepts CSV query export from Azure DevOps, GitHub, or Jira</span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="closeImportPrModal()">Cancel</button>
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="onSubmitImportCsv()"
+            [disabled]="!selectedCsvFile() || isImportingCsv()"
+            data-testid="confirm-import-pr-csv-btn"
+          >
+            @if (isImportingCsv()) {
+              <app-icon name="loader" [size]="16" class="spin-icon"></app-icon> Importing…
+            } @else {
+              <app-icon name="check" [size]="16"></app-icon> Import Pull Requests
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </section>
+

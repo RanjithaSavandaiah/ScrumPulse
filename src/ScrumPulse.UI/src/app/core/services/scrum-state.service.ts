@@ -46,6 +46,7 @@ import {
   KudosCard,
   MonthlyFeedback,
   PullRequestLog,
+  PullRequestSyncResult,
   RetroActionItem,
   RetroCard,
   RoleType,
@@ -329,6 +330,26 @@ export class ScrumStateService {
   loadDeveloperPrMetrics(sprintId?: string): void {
     this.store.dispatch(PullRequestActions.loadDeveloperPrMetrics({ sprintId }));
   }
+
+  syncPullRequests(): Observable<PullRequestSyncResult> {
+    return this.http.post<PullRequestSyncResult>('/api/pullrequests/sync', {}).pipe(
+      tap(() => this.refreshPullRequests())
+    );
+  }
+
+  importPullRequestsCsv(file: File): Observable<PullRequestSyncResult> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<PullRequestSyncResult>('/api/pullrequests/import', formData).pipe(
+      tap(() => this.refreshPullRequests())
+    );
+  }
+
+  refreshPullRequests(): void {
+    this.store.dispatch(PullRequestActions.loadPullRequests({}));
+    this.store.dispatch(PullRequestActions.loadDeveloperPrMetrics({}));
+  }
+
 
   // Blockers
   createBlocker(blocker: any): void {

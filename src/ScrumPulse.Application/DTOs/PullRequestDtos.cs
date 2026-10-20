@@ -47,3 +47,15 @@ public record DeveloperPrMetricsDto(
     double AvgCommentsPerPr,
     List<PullRequestLogDto> Prs
 );
+
+public record PullRequestSyncResultDto(
+    int ImportedCount,
+    int CreatedCount,
+    int UpdatedCount,
+    DateTime SyncedAtUtc,
+    List<string> UnmatchedAuthors,
+    List<string> Warnings
+);
+
+public record ImportPrCsvRequest(string CsvContent);
+

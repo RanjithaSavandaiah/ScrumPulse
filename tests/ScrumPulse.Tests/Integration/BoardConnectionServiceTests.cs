@@ -583,7 +583,14 @@ public class BoardConnectionServiceTests
             DateTime? changedSince,
             CancellationToken ct = default) =>
             FetchFailure is null ? Task.FromResult(Items) : Task.FromException<IReadOnlyList<ImportedWorkItem>>(FetchFailure);
+
+        public Task<IReadOnlyList<ImportedPullRequest>> FetchPullRequestsAsync(
+            BoardConnection connection,
+            IReadOnlyCollection<string> rosterIdentities,
+            CancellationToken ct = default) =>
+            FetchFailure is null ? Task.FromResult<IReadOnlyList<ImportedPullRequest>>([]) : Task.FromException<IReadOnlyList<ImportedPullRequest>>(FetchFailure);
     }
+
 
     /// <summary>
     /// Reversible stand-in for the real protector, so a test can assert which token was stored

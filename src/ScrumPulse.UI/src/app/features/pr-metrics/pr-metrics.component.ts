@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ScrumStateService } from '../../core/services/scrum-state.service';
 import { IconComponent } from '../../core/components/icon/icon.component';
-import { DeveloperPrMetrics, PullRequestLog } from '../../core/models/scrum.models';
+import { DeveloperPrMetrics, PullRequestLog, PullRequestSyncResult } from '../../core/models/scrum.models';
 
 import { CORE_PIPES } from '../../core/pipes';
 import { cleanName, getInitials, isDeliveryRole } from '../../core/utils/format-utils';
@@ -14,7 +15,7 @@ const DECIMAL_ROUNDING_FACTOR = 10;
 @Component({
   selector: 'app-pr-metrics',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, ...CORE_PIPES],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, ...CORE_PIPES],
   templateUrl: './pr-metrics.component.html',
   styleUrl: './pr-metrics.component.css'
 })
@@ -24,6 +25,14 @@ export class PrMetricsComponent {
   selectedSprintId = signal<string>('ALL');
   selectedDeveloperId = signal<string>('ALL');
   showLogPrModal = signal<boolean>(false);
+  showImportPrModal = signal<boolean>(false);
+
+  isSyncingPrs = signal<boolean>(false);
+  isImportingCsv = signal<boolean>(false);
+  syncResultBanner = signal<PullRequestSyncResult | null>(null);
+  syncErrorMessage = signal<string | null>(null);
+  selectedCsvFile = signal<File | null>(null);
+
 
   newPr = {
     workItemId: '',
@@ -160,4 +169,83 @@ export class PrMetricsComponent {
       default: return 'var(--text-secondary)';
     }
   }
+
+  onSyncAzureDevopsPrs(): void {
+    this.isSyncingPrs.set(true);
+    this.syncErrorMessage.set(null);
+    this.syncResultBanner.set(null);
+
+    this.state.syncPullRequests().subscribe({
+      next: (result) => {
+        this.syncResultBanner.set(result);
+        this.isSyncingPrs.set(false);
+      },
+      error: (err) => {
+        const message = err?.error?.detail || err?.error?.message || err?.message ||
+          'Failed to sync pull requests from Azure DevOps. Please ensure your Azure DevOps board is configured and accessible.';
+        this.syncErrorMessage.set(message);
+        this.isSyncingPrs.set(false);
+      }
+    });
+  }
+
+  openImportPrModal(): void {
+    this.selectedCsvFile.set(null);
+    this.syncErrorMessage.set(null);
+    this.showImportPrModal.set(true);
+  }
+
+  closeImportPrModal(): void {
+    this.showImportPrModal.set(false);
+    this.selectedCsvFile.set(null);
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedCsvFile.set(input.files[0]);
+    }
+  }
+
+  onSubmitImportCsv(): void {
+    const file = this.selectedCsvFile();
+    if (!file) return;
+
+    this.isImportingCsv.set(true);
+    this.syncErrorMessage.set(null);
+
+    this.state.importPullRequestsCsv(file).subscribe({
+      next: (result) => {
+        this.syncResultBanner.set(result);
+        this.isImportingCsv.set(false);
+        this.showImportPrModal.set(false);
+        this.selectedCsvFile.set(null);
+      },
+      error: (err) => {
+        const message = err?.error?.detail || err?.error?.message || err?.message || 'Failed to import CSV file.';
+        this.syncErrorMessage.set(message);
+        this.isImportingCsv.set(false);
+      }
+    });
+  }
+
+  downloadSampleCsv(): void {
+    const sampleContent =
+      `"PR Number","Title","Author","Reviewer","Sprint","Total Comments","Actionable Comments","Status","URL","Review Summary"\n` +
+      `"#101","Add Redis caching layer to repository","developer@company.com","lead@company.com","Sprint 1","12","4","Merged","https://dev.azure.com/org/proj/_git/repo/pullrequest/101","Themes: Performance, TestCoverage"\n` +
+      `"#102","Fix null reference in payment gateway","developer@company.com","qa@company.com","Sprint 1","6","2","Approved","https://dev.azure.com/org/proj/_git/repo/pullrequest/102","Themes: ErrorHandling"\n`;
+
+    const blob = new Blob([sampleContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'sample-developer-prs.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  dismissBanner(): void {
+    this.syncResultBanner.set(null);
+    this.syncErrorMessage.set(null);
+  }
 }
+

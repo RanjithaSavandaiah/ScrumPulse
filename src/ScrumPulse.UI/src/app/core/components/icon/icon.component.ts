@@ -67,7 +67,12 @@ export type IconName =
   | 'loader'
   | 'trending-up'
   | 'trending-down'
-  | 'minus';
+  | 'minus'
+  | 'upload'
+  | 'upload-cloud'
+  | 'settings'
+  | 'info';
+
 
 @Component({
   selector: 'app-icon',
