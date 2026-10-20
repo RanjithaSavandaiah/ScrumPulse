@@ -255,15 +255,26 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
 
     // 6. Trigger live sync and await completion
     const syncPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/sync'));
+    const loadAfterSyncPromise = page.waitForResponse(
+      (res) => res.url().includes('/api/board-connections') && res.request().method() === 'GET'
+    );
     await syncNowBtn.click();
     await syncPromise;
+    await loadAfterSyncPromise;
     await expect(syncNowBtn).toBeEnabled({ timeout: 15000 });
+    await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
     await expect(page.locator('[data-testid="sync-result"]')).toBeVisible();
 
     // 7. Trigger full resync and await completion
+    await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
     const resyncPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/sync'));
+    const loadAfterResyncPromise = page.waitForResponse(
+      (res) => res.url().includes('/api/board-connections') && res.request().method() === 'GET'
+    );
     await fullResyncBtn.click();
     await resyncPromise;
+    await loadAfterResyncPromise;
+    await expect(syncNowBtn).toBeEnabled({ timeout: 15000 });
     await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
     await expect(page.locator('[data-testid="sync-result"]')).toBeVisible();
 
