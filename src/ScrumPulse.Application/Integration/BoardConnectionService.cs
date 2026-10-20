@@ -534,11 +534,14 @@ public sealed class BoardConnectionService(
     }
 
     // Ordered descending so connections with stored credentials and latest saved settings are always returned.
-    private Task<BoardConnection?> LoadConnectionAsync(CancellationToken ct) =>
-        dbContext.BoardConnections
+    private async Task<BoardConnection?> LoadConnectionAsync(CancellationToken ct)
+    {
+        var connections = await dbContext.BoardConnections.ToListAsync(ct);
+        return connections
             .OrderByDescending(connection => !string.IsNullOrEmpty(connection.EncryptedCredential))
             .ThenByDescending(connection => connection.UpdatedAtUtc ?? connection.CreatedAtUtc)
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefault();
+    }
 
     private Task<List<TeamMember>> LoadRosterAsync(CancellationToken ct) =>
         dbContext.TeamMembers

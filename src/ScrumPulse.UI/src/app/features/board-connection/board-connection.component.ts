@@ -412,7 +412,9 @@ export class BoardConnectionComponent {
   }
 
   private applyConnection(connection: BoardConnection): void {
-    this.connection.set(connection);
+    const previous = this.connection();
+    const hasStoredCredential = connection.hasStoredCredential || (previous?.hasStoredCredential ?? false);
+    this.connection.set({ ...connection, hasStoredCredential });
 
     this.form.patchValue({
       organizationUrl: connection.organizationUrl,
