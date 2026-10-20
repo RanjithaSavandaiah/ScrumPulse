@@ -5,6 +5,11 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/app', { waitUntil: 'domcontentloaded' });
     await unlockScrumMaster(page);
+    try {
+      await page.request.delete('/api/board-connections');
+    } catch {
+      // Ignore if no connection existed
+    }
     await page.goto('/app/board-connection', { waitUntil: 'domcontentloaded' });
   });
 
@@ -256,7 +261,7 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
     // 6. Trigger live sync and await completion
     const syncPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/sync'));
     const loadAfterSyncPromise = page.waitForResponse(
-      (res) => res.url().includes('/api/board-connections') && res.request().method() === 'GET'
+      (res) => res.request().method() === 'GET' && /\/api\/board-connections(\?.*)?$/.test(res.url())
     );
     await syncNowBtn.click();
     await syncPromise;
@@ -269,7 +274,7 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
     await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
     const resyncPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/sync'));
     const loadAfterResyncPromise = page.waitForResponse(
-      (res) => res.url().includes('/api/board-connections') && res.request().method() === 'GET'
+      (res) => res.request().method() === 'GET' && /\/api\/board-connections(\?.*)?$/.test(res.url())
     );
     await fullResyncBtn.click();
     await resyncPromise;

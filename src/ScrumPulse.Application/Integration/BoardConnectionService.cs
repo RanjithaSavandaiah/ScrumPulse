@@ -88,17 +88,20 @@ public sealed class BoardConnectionService(
 
     public async Task<bool> DeleteConnectionAsync(CancellationToken ct = default)
     {
-        var connection = await LoadConnectionAsync(ct);
+        var connections = await dbContext.BoardConnections.ToListAsync(ct);
 
-        if (connection is null)
+        if (connections.Count == 0)
         {
             return false;
         }
 
-        // Soft delete leaves the row in the table, so the credential has to go first.
-        connection.EncryptedCredential = null;
-        connection.IsEnabled = false;
-        connection.IsDeleted = true;
+        // Soft delete leaves the rows in the table, so the credentials have to go first.
+        foreach (var connection in connections)
+        {
+            connection.EncryptedCredential = null;
+            connection.IsEnabled = false;
+            connection.IsDeleted = true;
+        }
 
         await dbContext.SaveChangesAsync(ct);
 
@@ -518,10 +521,10 @@ public sealed class BoardConnectionService(
         return lookup;
     }
 
-    // Ordered so a duplicate row cannot make a squad's settings flip between requests.
+    // Ordered descending so the squad's latest saved settings are always returned.
     private Task<BoardConnection?> LoadConnectionAsync(CancellationToken ct) =>
         dbContext.BoardConnections
-            .OrderBy(connection => connection.CreatedAtUtc)
+            .OrderByDescending(connection => connection.CreatedAtUtc)
             .FirstOrDefaultAsync(ct);
 
     private Task<List<TeamMember>> LoadRosterAsync(CancellationToken ct) =>

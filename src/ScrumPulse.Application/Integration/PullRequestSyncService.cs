@@ -19,7 +19,9 @@ public sealed class PullRequestSyncService(
 {
     public async Task<PullRequestSyncResultDto> SyncFromAzureDevOpsAsync(CancellationToken ct = default)
     {
-        var connection = await db.BoardConnections.FirstOrDefaultAsync(ct)
+        var connection = await db.BoardConnections
+            .OrderByDescending(c => c.CreatedAtUtc)
+            .FirstOrDefaultAsync(ct)
             ?? throw new InvalidOperationException("No board connection is configured for this squad.");
 
         if (!connection.IsEnabled)
