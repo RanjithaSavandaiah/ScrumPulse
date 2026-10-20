@@ -284,6 +284,27 @@ export class BoardConnectionComponent {
       return;
     }
 
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      this.clearOutcomes();
+      this.errorMessage.set('Only a .csv export is supported.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size === 0) {
+      this.clearOutcomes();
+      this.errorMessage.set('The selected CSV file is empty.');
+      input.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      this.clearOutcomes();
+      this.errorMessage.set('CSV file size cannot exceed 10 MB.');
+      input.value = '';
+      return;
+    }
+
     this.clearOutcomes();
     this.pendingAction.set('import');
 

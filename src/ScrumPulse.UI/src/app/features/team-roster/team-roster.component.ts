@@ -166,6 +166,29 @@ export class TeamRosterComponent {
       this.addMemberError.set('Squad member name is mandatory');
       return;
     }
+    if (name.length < 2) {
+      this.addMemberError.set('Squad member name must be at least 2 characters');
+      return;
+    }
+    if (name.length > 100) {
+      this.addMemberError.set('Squad member name cannot exceed 100 characters');
+      return;
+    }
+
+    const email = this.newMember.email.trim();
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email) || email.length > 200) {
+        this.addMemberError.set('Please provide a valid email address');
+        return;
+      }
+    }
+
+    const wipLimit = Number(this.newMember.activeWipLimit);
+    if (isNaN(wipLimit) || wipLimit < 1 || wipLimit > 10) {
+      this.addMemberError.set('Active WIP limit must be between 1 and 10');
+      return;
+    }
 
     this.addMemberError.set(null);
     this.isSubmitting.set(true);

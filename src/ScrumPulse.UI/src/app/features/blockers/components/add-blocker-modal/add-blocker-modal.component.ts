@@ -88,16 +88,38 @@ export class AddBlockerModalComponent implements OnInit {
   onSubmit(): void {
     if (this.isSubmitting()) return;
 
-    if (!this.blocker.title?.trim()) {
+    const trimmedTitle = this.blocker.title?.trim() || '';
+    if (!trimmedTitle) {
       this.validationError.set('Blocker title is mandatory');
       return;
     }
-    if (!this.blocker.description?.trim()) {
+    if (trimmedTitle.length < 3) {
+      this.validationError.set('Blocker title must be at least 3 characters');
+      return;
+    }
+    if (trimmedTitle.length > 250) {
+      this.validationError.set('Blocker title cannot exceed 250 characters');
+      return;
+    }
+
+    const trimmedDesc = this.blocker.description?.trim() || '';
+    if (!trimmedDesc) {
       this.validationError.set('Blocker context is mandatory');
+      return;
+    }
+    if (trimmedDesc.length > 2000) {
+      this.validationError.set('Blocker context cannot exceed 2000 characters');
+      return;
+    }
+
+    const sla = Number(this.blocker.slaHoursLimit);
+    if (isNaN(sla) || sla < 1 || sla > 168) {
+      this.validationError.set('SLA limit must be between 1 and 168 hours');
       return;
     }
 
     this.blocker.blockedHours = Math.max(0, Number(this.blocker.blockedHours) || 0);
+    this.blocker.slaHoursLimit = sla;
     this.validationError.set(null);
     this.isSubmitting.set(true);
     this.save.emit(this.blocker);

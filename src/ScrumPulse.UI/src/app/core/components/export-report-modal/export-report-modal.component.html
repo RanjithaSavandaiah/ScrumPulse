@@ -146,6 +146,13 @@
             <button type="button" (click)="applyThisMonthPreset()" class="preset-chip">This Month</button>
             <button type="button" (click)="applySprintDatesPreset()" class="preset-chip">Current Sprint</button>
           </div>
+
+          @if (isInvalidDateRange()) {
+            <div class="validation-alert-banner animate-fade-in" style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem; color: #ef4444; font-size: 0.85rem; font-weight: 500;">
+              <app-icon name="alert-circle" [size]="16" color="#ef4444"></app-icon>
+              <span>End date cannot be earlier than start date</span>
+            </div>
+          }
         </div>
       }
 
@@ -213,10 +220,10 @@
         <button (click)="close.emit()" class="btn-secondary">Close</button>
       </div>
       <div class="footer-right">
-        <button (click)="downloadExcel()" class="btn-export-action btn-excel">
+        <button (click)="downloadExcel()" [disabled]="isInvalidDateRange()" class="btn-export-action btn-excel">
           <app-icon name="download" [size]="16"></app-icon> Export Excel (.xlsx)
         </button>
-        <button (click)="downloadPdf()" class="btn-export-action btn-pdf">
+        <button (click)="downloadPdf()" [disabled]="isInvalidDateRange()" class="btn-export-action btn-pdf">
           <app-icon name="file-text" [size]="16"></app-icon> Export PDF (.pdf)
         </button>
       </div>

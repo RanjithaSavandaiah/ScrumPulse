@@ -386,4 +386,77 @@ describe('BoardConnectionComponent', () => {
 
     expect(element('sync-result')?.textContent).toContain('1');
   });
+
+  it('displays unmapped states and unmatched assignees callouts when importing CSV', async () => {
+    await load(connectedSquad);
+
+    const fileInput = element<HTMLInputElement>('import-file')!;
+    const mockFile = new File(['ID,Title,State,Assigned To\n201,Task,Draft,external@partner.com\n'], 'export.csv', { type: 'text/csv' });
+    Object.defineProperty(fileInput, 'files', { value: [mockFile] });
+    fileInput.dispatchEvent(new Event('change'));
+
+    const request = httpTesting.expectOne('/api/board-connections/import');
+    request.flush({
+      importedCount: 1,
+      createdCount: 1,
+      unmappedStates: ['Draft'],
+      unmatchedAssignees: ['external@partner.com'],
+      warnings: ['Custom rule applied'],
+      syncedAtUtc: '2026-10-19T10:00:00Z'
+    });
+
+    httpTesting.expectOne('/api/board-connections').flush(connectedSquad);
+    fixture.detectChanges();
+
+    expect(element('unmapped-states')?.textContent).toContain('Draft');
+    expect(element('unmatched-assignees')?.textContent).toContain('external@partner.com');
+    expect(element('sync-warnings')?.textContent).toContain('Custom rule applied');
+  });
+
+  it('displays error banner when file import endpoint returns failure', async () => {
+    await load(connectedSquad);
+
+    const fileInput = element<HTMLInputElement>('import-file')!;
+    const mockFile = new File(['bad content'], 'corrupted.csv', { type: 'text/csv' });
+    Object.defineProperty(fileInput, 'files', { value: [mockFile] });
+    fileInput.dispatchEvent(new Event('change'));
+
+    const request = httpTesting.expectOne('/api/board-connections/import');
+    request.flush(
+      { title: 'Bad Request', detail: 'Only a .csv export is supported.' },
+      { status: 400, statusText: 'Bad Request' }
+    );
+    fixture.detectChanges();
+
+    expect(element('error-banner')?.textContent).toContain('Only a .csv export is supported.');
+  });
+
+  it('displays error banner when live sync endpoint fails', async () => {
+    await load(connectedSquad);
+
+    element<HTMLButtonElement>('sync-now')!.click();
+    fixture.detectChanges();
+
+    const request = httpTesting.expectOne((req) => req.url === '/api/board-connections/sync');
+    request.flush(
+      { title: 'Conflict', detail: 'Could not contact Azure DevOps.' },
+      { status: 409, statusText: 'Conflict' }
+    );
+    fixture.detectChanges();
+
+    expect(element('error-banner')?.textContent).toContain('Could not contact Azure DevOps.');
+  });
+
+  it('does nothing when file input change event contains no files', async () => {
+    await load(connectedSquad);
+
+    const fileInput = element<HTMLInputElement>('import-file')!;
+    Object.defineProperty(fileInput, 'files', { value: [] });
+    fileInput.dispatchEvent(new Event('change'));
+
+    // No POST to /api/board-connections/import should occur
+    httpTesting.expectNone('/api/board-connections/import');
+    expect(element('error-banner')).toBeNull();
+    expect(element('sync-result')).toBeNull();
+  });
 });

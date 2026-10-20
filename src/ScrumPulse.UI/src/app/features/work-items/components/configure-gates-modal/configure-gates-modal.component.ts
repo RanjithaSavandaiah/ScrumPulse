@@ -51,13 +51,27 @@ export class ConfigureGatesModalComponent implements OnInit {
       this.errorMessage.set('Please provide a criteria description.');
       return;
     }
+    if (label.length < 2) {
+      this.errorMessage.set('Criteria description must be at least 2 characters.');
+      return;
+    }
+    if (label.length > 200) {
+      this.errorMessage.set('Criteria description cannot exceed 200 characters.');
+      return;
+    }
+
+    const desc = this.newCriterionDesc().trim();
+    if (desc.length > 500) {
+      this.errorMessage.set('Criteria notes cannot exceed 500 characters.');
+      return;
+    }
 
     const tab = this.activeGateTab();
     const newId = `${tab}-${Date.now()}`;
     const item: QualityGateCriterion = {
       id: newId,
       label,
-      description: this.newCriterionDesc().trim() || undefined,
+      description: desc || undefined,
       isRequired: this.newCriterionRequired()
     };
 

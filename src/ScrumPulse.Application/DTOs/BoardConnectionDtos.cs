@@ -26,19 +26,19 @@ public sealed record BoardConnectionDto(
 /// </param>
 /// <param name="StateMapping">Empty falls back to the stock Agile, Scrum and CMMI defaults.</param>
 public sealed record SaveBoardConnectionRequest(
-    [property: Required]
-    [property: Url]
-    [property: StringLength(300, MinimumLength = 8)]
+    [Required]
+    [Url]
+    [StringLength(300, MinimumLength = 8)]
     string OrganizationUrl,
 
-    [property: Required]
-    [property: StringLength(200, MinimumLength = 1)]
+    [Required]
+    [StringLength(200, MinimumLength = 1)]
     string ProjectName,
 
-    [property: StringLength(400)]
+    [StringLength(400)]
     string? TeamOrAreaPath,
 
-    [property: StringLength(500, MinimumLength = 8)]
+    [StringLength(500, MinimumLength = 8)]
     string? PersonalAccessToken,
 
     BoardAssigneeFilter AssigneeFilter = BoardAssigneeFilter.RosterMembersOnly,

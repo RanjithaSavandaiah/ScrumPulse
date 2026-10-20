@@ -152,7 +152,9 @@ export class PersistSelectionDirective implements AfterViewInit, AfterViewChecke
     this.hasRestored = true;
 
     try {
-      localStorage.setItem(this.storageKey(), this.selectElement.value);
+      if (this.selectElement.value !== '__join__') {
+        localStorage.setItem(this.storageKey(), this.selectElement.value);
+      }
     } catch {
       // Private browsing and some enterprise policies make writes throw. The dropdown still
       // works for this session; only remembering it is lost, which is not worth interrupting

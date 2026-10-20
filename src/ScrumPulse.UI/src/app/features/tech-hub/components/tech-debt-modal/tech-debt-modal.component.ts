@@ -60,8 +60,29 @@ export class TechDebtModalComponent implements OnInit {
   onSubmit(): void {
     if (this.isSubmitting()) return;
 
-    if (!this.title.trim()) {
+    const trimmedTitle = this.title.trim();
+    if (!trimmedTitle) {
       this.validationError.set('Debt title is mandatory');
+      return;
+    }
+    if (trimmedTitle.length < 3) {
+      this.validationError.set('Debt title must be at least 3 characters');
+      return;
+    }
+    if (trimmedTitle.length > 250) {
+      this.validationError.set('Debt title cannot exceed 250 characters');
+      return;
+    }
+
+    const trimmedDesc = this.description?.trim() || '';
+    if (trimmedDesc.length > 2000) {
+      this.validationError.set('Description cannot exceed 2000 characters');
+      return;
+    }
+
+    const hours = Number(this.estimatedHours);
+    if (isNaN(hours) || hours < 1 || hours > 1000) {
+      this.validationError.set('Estimated hours must be between 1 and 1000');
       return;
     }
 

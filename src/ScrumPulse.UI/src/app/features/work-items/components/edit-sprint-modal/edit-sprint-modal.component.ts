@@ -75,6 +75,8 @@ export class EditSprintModalComponent implements OnInit {
 
   get canSubmit(): boolean {
     return !!this.name.trim() &&
+           this.name.trim().length >= 3 &&
+           !!this.goal.trim() &&
            !!this.startDate &&
            !!this.endDate &&
            !this.isInvalidDateRange;
@@ -221,10 +223,20 @@ export class EditSprintModalComponent implements OnInit {
   onSubmit(): void {
     if (this.isSubmitting()) return;
 
-    if (!this.name.trim()) {
+    const trimmedName = this.name.trim();
+    if (!trimmedName) {
       this.validationError.set('Sprint name is mandatory');
       return;
     }
+    if (trimmedName.length < 3) {
+      this.validationError.set('Sprint name must be at least 3 characters');
+      return;
+    }
+    if (trimmedName.length > 100) {
+      this.validationError.set('Sprint name cannot exceed 100 characters');
+      return;
+    }
+
     if (!this.startDate) {
       this.validationError.set('Start date is mandatory');
       return;
@@ -235,6 +247,27 @@ export class EditSprintModalComponent implements OnInit {
     }
     if (new Date(this.endDate) < new Date(this.startDate)) {
       this.validationError.set('End date cannot be earlier than start date');
+      return;
+    }
+
+    const trimmedGoal = this.goal.trim();
+    if (!trimmedGoal) {
+      this.validationError.set('Sprint goal is mandatory');
+      return;
+    }
+    if (trimmedGoal.length > 500) {
+      this.validationError.set('Sprint goal cannot exceed 500 characters');
+      return;
+    }
+
+    const dailyHours = Number(this.dailyWorkingHours);
+    if (isNaN(dailyHours) || dailyHours < 1 || dailyHours > 24) {
+      this.validationError.set('Daily working hours must be between 1 and 24');
+      return;
+    }
+
+    if (this.committedStoryPoints < 0 || this.committedStoryPoints > 500) {
+      this.validationError.set('Committed story points must be between 0 and 500');
       return;
     }
 

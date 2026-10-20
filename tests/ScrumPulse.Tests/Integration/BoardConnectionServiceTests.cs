@@ -484,6 +484,87 @@ public class BoardConnectionServiceTests
         Assert.DoesNotContain("4183", externalIds);
     }
 
+    [Fact]
+    public async Task ImportFromFile_UpdatesExistingItems_WithoutDuplicating_WhenSameExternalIdImportedAgain()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context);
+        await service.SaveConnectionAsync(SaveRequest(contentPolicy: ContentSensitivityPolicy.RedactedTitles));
+
+        // First import
+        var firstResult = await service.ImportFromFileAsync(
+            """
+            ID,Title,State,Story Points
+            5001,Initial Feature,Active,3
+            """);
+
+        Assert.Equal(1, firstResult.ImportedCount);
+        Assert.Equal(1, firstResult.CreatedCount);
+
+        // Second import with updated title, state and an additional new item
+        var secondResult = await service.ImportFromFileAsync(
+            """
+            ID,Title,State,Story Points
+            5001,Updated Feature Name,Closed,5
+            5002,Brand New Task,Active,2
+            """);
+
+        Assert.Equal(2, secondResult.ImportedCount);
+        Assert.Equal(1, secondResult.CreatedCount); // Only 5002 is new; 5001 was updated
+
+        await using var verification = CreateContext();
+        var allItems = await verification.WorkItems.OrderBy(i => i.ExternalId).ToListAsync();
+        Assert.Equal(2, allItems.Count);
+
+        var updated = allItems.First(i => i.ExternalId == "5001");
+        Assert.Equal("Updated Feature Name", updated.Title);
+        Assert.Equal(WorkItemStatus.Done, updated.Status);
+        Assert.Equal(5, updated.StoryPoints);
+    }
+
+    [Fact]
+    public async Task ImportFromFile_ParsesVariedCsvColumns_StoryPointsAndIterationPath()
+    {
+        await using var context = CreateContext();
+        var service = CreateService(context);
+        await service.SaveConnectionAsync(SaveRequest(contentPolicy: ContentSensitivityPolicy.RedactedTitles));
+
+        var result = await service.ImportFromFileAsync(
+            """
+            ID,Work Item Type,Title,State,Story Points,Priority,Iteration Path,Tags
+            6001,User Story,"Export Reports to PDF",Closed,"8",1,Contoso\Sprint 1,Reporting
+            """);
+
+        Assert.Equal(1, result.ImportedCount);
+        Assert.Equal(1, result.CreatedCount);
+
+        await using var verification = CreateContext();
+        var item = await verification.WorkItems.SingleAsync(i => i.ExternalId == "6001");
+        Assert.Equal("Export Reports to PDF", item.Title);
+        Assert.Equal(WorkItemStatus.Done, item.Status);
+        Assert.Equal(8, item.StoryPoints);
+    }
+
+    [Fact]
+    public async Task Sync_ReportsUnmappedStates_WhenItemsContainUnknownBoardColumns()
+    {
+        await SeedRosterAsync(new TeamMember { Name = "Priya Raman", Email = "priya.raman@contoso.com" });
+
+        var syncClient = new FakeBoardSyncClient
+        {
+            Items = [Imported("7001", status: WorkItemStatus.Backlog, boardState: "In Security Review")]
+        };
+
+        await using var context = CreateContext();
+        var service = CreateService(context, syncClient);
+        await service.SaveConnectionAsync(SaveRequest());
+
+        var result = await service.SyncAsync();
+
+        Assert.Equal(1, result.ImportedCount);
+        Assert.Contains("In Security Review", result.UnmappedStates);
+    }
+
     /// <summary>Board client returning a scripted set of items, or a scripted failure.</summary>
     private sealed class FakeBoardSyncClient : IBoardSyncClient
     {

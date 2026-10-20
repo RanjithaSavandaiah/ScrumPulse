@@ -8,13 +8,14 @@ import { RoleType, Team } from '../../core/models/scrum.models';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../core/components/icon/icon.component';
 import { SmPinModalComponent } from '../../core/components/sm-pin-modal/sm-pin-modal.component';
+import { PersistSelectionDirective } from '../../core/directives/persist-selection.directive';
 
 export const COPY_NOTIFICATION_DURATION_MS = 2000;
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, IconComponent, SmPinModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, IconComponent, SmPinModalComponent, PersistSelectionDirective],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css'
 })
@@ -114,12 +115,25 @@ export class NavbarComponent {
       this.squadError.set('Squad name is mandatory');
       return;
     }
+    if (name.length < 2) {
+      this.squadError.set('Squad name must be at least 2 characters');
+      return;
+    }
+    if (name.length > 100) {
+      this.squadError.set('Squad name cannot exceed 100 characters');
+      return;
+    }
+    const desc = this.newSquadDesc().trim();
+    if (desc.length > 300) {
+      this.squadError.set('Squad description cannot exceed 300 characters');
+      return;
+    }
 
     this.isSubmittingSquad.set(true);
 
     this.state.createTeam({
       name,
-      description: this.newSquadDesc().trim()
+      description: desc
     }).subscribe({
       next: (team) => {
         this.isSubmittingSquad.set(false);
@@ -140,6 +154,10 @@ export class NavbarComponent {
     const code = this.joinCodeInput().trim();
     if (!code) {
       this.squadError.set('Join code is mandatory');
+      return;
+    }
+    if (code.length > 20) {
+      this.squadError.set('Join code cannot exceed 20 characters');
       return;
     }
 

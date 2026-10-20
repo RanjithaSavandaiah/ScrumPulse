@@ -10,7 +10,8 @@ using ScrumPulse.Domain.Enums;
 /// </param>
 public sealed record BoardExportParseResult(
     IReadOnlyList<ImportedWorkItem> Items,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    IReadOnlyList<string>? UnmappedStates = null);
 
 /// <summary>
 /// Reads an Azure DevOps query export (CSV) into the same shape the live sync produces, for
@@ -61,7 +62,7 @@ public static class BoardExportParser
 
         var rows = ReadCsvRows(csvContent);
 
-        if (rows.Count == 0)
+        if (rows.Count <= 1)
         {
             return new BoardExportParseResult([], ["The file contained no rows."]);
         }
@@ -198,7 +199,7 @@ public static class BoardExportParser
                 "is connected with a token.");
         }
 
-        return new BoardExportParseResult(items, warnings);
+        return new BoardExportParseResult(items, warnings, [.. unmappedStates]);
     }
 
     /// <summary>

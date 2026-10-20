@@ -43,7 +43,7 @@ public sealed class TenantOutputCachePolicy : IOutputCachePolicy
     {
         var session = context.HttpContext.User.GetTeamSession();
 
-        if (session is null)
+        if (session is null || context.HttpContext.Request.Path.StartsWithSegments("/api/teams"))
         {
             context.EnableOutputCaching = false;
             return ValueTask.CompletedTask;

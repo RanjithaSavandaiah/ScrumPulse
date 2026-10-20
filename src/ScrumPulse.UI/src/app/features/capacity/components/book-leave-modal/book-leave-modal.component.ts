@@ -185,8 +185,13 @@ export class BookLeaveModalComponent implements OnInit {
       this.validationError.set('End date cannot be earlier than start date');
       return;
     }
-    if (!this.leave.reason?.trim()) {
+    const trimmedReason = this.leave.reason?.trim() || '';
+    if (!trimmedReason) {
       this.validationError.set('Reason is mandatory');
+      return;
+    }
+    if (trimmedReason.length > 500) {
+      this.validationError.set('Reason cannot exceed 500 characters');
       return;
     }
 

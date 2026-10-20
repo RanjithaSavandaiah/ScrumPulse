@@ -554,14 +554,18 @@ export class ScrumStateService {
         this.teams.set(list);
         let savedId: string | null = null;
         try {
-          savedId = localStorage.getItem('scrumpulse_current_team_id');
+          savedId = localStorage.getItem('scrumpulse.selection.navbar.squad')
+            || localStorage.getItem('scrumpulse_current_team_id');
           this.restorePersistedRole();
         } catch (storageErr) {
           console.warn('[ScrumStateService] Could not read saved team ID from localStorage:', storageErr);
         }
-        const found = list.find(team => team.id === savedId) || list[0] || null;
+        const found = savedId !== null
+          ? (savedId ? list.find(team => team.id.toLowerCase() === savedId.toLowerCase()) || null : null)
+          : (list[0] || null);
+
         if (found && (!this.currentTeam() || this.currentTeam()?.id !== found.id)) {
-          this.selectTeam(found, !savedId);
+          this.selectTeam(found, true);
         }
       },
       error: err => {
@@ -575,8 +579,10 @@ export class ScrumStateService {
     try {
       if (team) {
         localStorage.setItem('scrumpulse_current_team_id', team.id);
+        localStorage.setItem('scrumpulse.selection.navbar.squad', team.id);
       } else {
         localStorage.removeItem('scrumpulse_current_team_id');
+        localStorage.setItem('scrumpulse.selection.navbar.squad', '');
       }
     } catch (err) {
       console.warn('[ScrumStateService] Could not update team in localStorage:', err);

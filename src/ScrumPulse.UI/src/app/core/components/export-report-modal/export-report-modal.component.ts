@@ -91,12 +91,21 @@ export class ExportReportModalComponent implements OnInit {
     }
   }
 
+  isInvalidDateRange = computed(() => {
+    return this.selectedTimeScope() === 'CUSTOM' &&
+      !!this.startDate() &&
+      !!this.endDate() &&
+      this.endDate() < this.startDate();
+  });
+
   downloadExcel(): void {
+    if (this.isInvalidDateRange()) return;
     this.exportService.exportToExcel(this.currentOptions());
     this.close.emit();
   }
 
   downloadPdf(): void {
+    if (this.isInvalidDateRange()) return;
     this.exportService.exportToPdf(this.currentOptions());
     this.close.emit();
   }

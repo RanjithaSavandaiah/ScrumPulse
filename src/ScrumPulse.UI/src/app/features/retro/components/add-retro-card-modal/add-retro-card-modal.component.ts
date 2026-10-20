@@ -69,13 +69,21 @@ export class AddRetroCardModalComponent implements OnInit {
 
   onSubmit(): void {
     if (this.isSubmitting()) return;
-    if (!this.card.content?.trim()) {
+    const trimmedContent = this.card.content?.trim() || '';
+    if (!trimmedContent) {
       this.validationError.set('Retrospective note content is mandatory');
+      return;
+    }
+    if (trimmedContent.length > 2000) {
+      this.validationError.set('Retrospective note cannot exceed 2000 characters');
       return;
     }
     this.validationError.set(null);
     this.isSubmitting.set(true);
-    this.save.emit(this.card);
+    this.save.emit({
+      ...this.card,
+      content: trimmedContent
+    });
   }
 
   getRoleLabel(role: string): string {

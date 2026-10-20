@@ -23,7 +23,7 @@
     <div class="role-selector squad-selector">
       <app-icon name="users" [size]="14" color="var(--accent-secondary)"></app-icon>
       <label for="squadSelect" class="role-label">Squad:</label>
-      <select id="squadSelect" name="squadSelect" [value]="state.currentTeam()?.id || ''" (change)="onSquadChange($event)" class="role-select" data-testid="squad-select" title="Switch squad tenant">
+      <select id="squadSelect" name="squadSelect" [value]="state.currentTeam()?.id || ''" (change)="onSquadChange($event)" persistSelection="navbar.squad" class="role-select" data-testid="squad-select" title="Switch squad tenant">
         <option value="">All Squads (Default)</option>
         @for (team of state.teams(); track team.id) {
           <option [value]="team.id">{{ team.name }}</option>

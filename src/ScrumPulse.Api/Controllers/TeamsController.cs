@@ -33,14 +33,13 @@ public class TeamsController : BaseApiController
 
     [AllowAnonymous]
     [HttpGet]
-    [OutputCache(PolicyName = "ShortLived")]
+    [OutputCache(NoStore = true)]
     [ProducesResponseType(typeof(IEnumerable<TeamDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<TeamDto>>> GetAll(CancellationToken ct = default) =>
         Ok(await _mediator.QueryAsync(new GetTeamsQuery(), ct));
 
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
-    [OutputCache(PolicyName = "ShortLived")]
     [ProducesResponseType(typeof(TeamDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamDto>> GetById(Guid id, CancellationToken ct = default)

@@ -278,7 +278,20 @@ public sealed class BoardConnectionService(
             result.ImportedCount,
             result.CreatedCount);
 
-        return result with { Warnings = [.. warnings, .. result.Warnings] };
+        var combinedUnmapped = new SortedSet<string>(result.UnmappedStates, StringComparer.OrdinalIgnoreCase);
+        if (parseResult.UnmappedStates is not null)
+        {
+            foreach (var unmapped in parseResult.UnmappedStates)
+            {
+                combinedUnmapped.Add(unmapped);
+            }
+        }
+
+        return result with
+        {
+            UnmappedStates = [.. combinedUnmapped],
+            Warnings = [.. warnings, .. result.Warnings]
+        };
     }
 
     /// <summary>
@@ -304,13 +317,21 @@ public sealed class BoardConnectionService(
 
         // One query for the batch. A few hundred round trips to a free-tier database is the
         // difference between a one-second sync and a timeout.
-        var existingItems = await dbContext.WorkItems
+        var existingItemsList = await dbContext.WorkItems
             .Where(item => item.ExternalId != null && externalIds.Contains(item.ExternalId))
-            .ToDictionaryAsync(item => item.ExternalId!, StringComparer.OrdinalIgnoreCase, ct);
+            .ToListAsync(ct);
 
-        var sprintsByName = await dbContext.Sprints
+        var existingItems = existingItemsList
+            .GroupBy(item => item.ExternalId!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+        var allSprints = await dbContext.Sprints
             .Select(sprint => new { sprint.Id, sprint.Name })
-            .ToDictionaryAsync(sprint => sprint.Name, sprint => sprint.Id, StringComparer.OrdinalIgnoreCase, ct);
+            .ToListAsync(ct);
+
+        var sprintsByName = allSprints
+            .GroupBy(sprint => sprint.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         var membersByName = BuildRosterLookup(rosterMembers);
 

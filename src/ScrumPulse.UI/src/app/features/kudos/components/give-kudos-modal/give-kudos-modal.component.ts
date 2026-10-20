@@ -77,14 +77,30 @@ export class GiveKudosModalComponent implements OnInit {
       this.validationError.set('Please select teammate to appreciate');
       return;
     }
-    if (!this.kudos.message?.trim()) {
+    if (this.kudos.senderId === this.kudos.receiverId) {
+      this.validationError.set('Sender and recipient cannot be the same teammate');
+      return;
+    }
+    const trimmedMessage = this.kudos.message?.trim() || '';
+    if (!trimmedMessage) {
       this.validationError.set('Appreciation message is mandatory');
+      return;
+    }
+    if (trimmedMessage.length < 2) {
+      this.validationError.set('Appreciation message must be at least 2 characters');
+      return;
+    }
+    if (trimmedMessage.length > 1000) {
+      this.validationError.set('Appreciation message cannot exceed 1000 characters');
       return;
     }
 
     this.validationError.set(null);
     this.isSubmitting.set(true);
-    this.save.emit(this.kudos);
+    this.save.emit({
+      ...this.kudos,
+      message: trimmedMessage
+    });
   }
 
   getRoleLabel(role: string): string {

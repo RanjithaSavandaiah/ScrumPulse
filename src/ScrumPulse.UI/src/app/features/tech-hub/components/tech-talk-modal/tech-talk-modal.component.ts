@@ -57,8 +57,17 @@ export class TechTalkModalComponent implements OnInit {
   onSubmit(): void {
     if (this.isSubmitting()) return;
 
-    if (!this.topic.trim()) {
+    const trimmedTopic = this.topic.trim();
+    if (!trimmedTopic) {
       this.validationError.set('Tech talk topic is mandatory');
+      return;
+    }
+    if (trimmedTopic.length < 3) {
+      this.validationError.set('Tech talk topic must be at least 3 characters');
+      return;
+    }
+    if (trimmedTopic.length > 250) {
+      this.validationError.set('Tech talk topic cannot exceed 250 characters');
       return;
     }
     if (!this.presenterId) {
@@ -67,6 +76,22 @@ export class TechTalkModalComponent implements OnInit {
     }
     if (!this.talkDate) {
       this.validationError.set('Talk date is mandatory');
+      return;
+    }
+
+    const duration = Number(this.durationMinutes);
+    if (isNaN(duration) || duration < 5 || duration > 480) {
+      this.validationError.set('Duration must be between 5 and 480 minutes');
+      return;
+    }
+
+    if (this.slidesUrl && this.slidesUrl.trim().length > 500) {
+      this.validationError.set('Slides URL cannot exceed 500 characters');
+      return;
+    }
+
+    if (this.keyTakeaways && this.keyTakeaways.trim().length > 2000) {
+      this.validationError.set('Key takeaways cannot exceed 2000 characters');
       return;
     }
 

@@ -47,17 +47,29 @@ export class ResolveBlockerModalComponent implements OnInit {
 
   onConfirm(): void {
     if (this.isSubmitting()) return;
-    if (!this.notes.trim()) {
+    const trimmedNotes = this.notes.trim();
+    if (!trimmedNotes) {
       this.validationError.set('Resolution notes are mandatory');
       return;
     }
+    if (trimmedNotes.length > 2000) {
+      this.validationError.set('Resolution notes cannot exceed 2000 characters');
+      return;
+    }
+
+    const hours = Number(this.blockedHours);
+    if (isNaN(hours) || hours < 0 || hours > 1000) {
+      this.validationError.set('Blocked hours must be between 0 and 1000');
+      return;
+    }
+
     this.validationError.set(null);
     this.isSubmitting.set(true);
 
     this.resolve.emit({
       id: this.blocker.id,
-      notes: this.notes.trim(),
-      blockedHours: Math.max(0, Number(this.blockedHours) || 0)
+      notes: trimmedNotes,
+      blockedHours: hours
     });
   }
 }

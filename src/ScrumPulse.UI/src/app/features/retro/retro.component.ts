@@ -186,6 +186,14 @@ export class RetroComponent implements OnInit {
       this.actionValidationError.set('Action item title is mandatory');
       return;
     }
+    if (title.length < 2) {
+      this.actionValidationError.set('Action item title must be at least 2 characters');
+      return;
+    }
+    if (title.length > 300) {
+      this.actionValidationError.set('Action item title cannot exceed 300 characters');
+      return;
+    }
     this.actionValidationError.set(null);
 
     const edit = this.editingAction();

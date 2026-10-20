@@ -85,14 +85,40 @@ export class RecordFeedbackModalComponent implements OnInit {
       this.validationError.set('Month/Year is mandatory');
       return;
     }
-    if (!this.feedback.scrumMasterFeedback?.trim()) {
+    const smFeedback = this.feedback.scrumMasterFeedback?.trim() || '';
+    if (!smFeedback) {
       this.validationError.set('Scrum Master feedback is mandatory');
+      return;
+    }
+    if (smFeedback.length > 4000) {
+      this.validationError.set('Scrum Master feedback cannot exceed 4000 characters');
+      return;
+    }
+    if (this.feedback.cdlFeedback && this.feedback.cdlFeedback.trim().length > 4000) {
+      this.validationError.set('CDL feedback cannot exceed 4000 characters');
+      return;
+    }
+    if (this.feedback.clientFeedback && this.feedback.clientFeedback.trim().length > 4000) {
+      this.validationError.set('Client feedback cannot exceed 4000 characters');
+      return;
+    }
+    if (this.feedback.selfReflection && this.feedback.selfReflection.trim().length > 4000) {
+      this.validationError.set('Self reflection cannot exceed 4000 characters');
+      return;
+    }
+
+    const rating = Number(this.feedback.smRating);
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      this.validationError.set('Rating must be between 1 and 5');
       return;
     }
 
     this.validationError.set(null);
     this.isSubmitting.set(true);
-    this.save.emit(this.feedback);
+    this.save.emit({
+      ...this.feedback,
+      scrumMasterFeedback: smFeedback
+    });
   }
 
   onDelete(): void {

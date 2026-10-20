@@ -47,6 +47,12 @@ test.describe('Multi-Squad Management & Tenant Context Switching', () => {
     // Verify current team reflects selection
     const selectedText = await squadSelect.locator('option:checked').textContent();
     expect(selectedText).toContain(newSquadName);
+
+    // 5. Reload page and verify selected squad is retained
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(squadSelect.locator('option', { hasText: newSquadName })).toBeAttached({ timeout: 10000 });
+    const selectedAfterReload = await squadSelect.locator('option:checked').textContent();
+    expect(selectedAfterReload).toContain(newSquadName);
   });
 
   test('should open join modal as developer, validate empty join code, and handle invalid code', async ({ page }) => {
@@ -80,5 +86,36 @@ test.describe('Multi-Squad Management & Tenant Context Switching', () => {
     // 3. Cancel modal
     await modalCard.locator('.btn-close').click();
     await expect(modalCard).not.toBeVisible();
+  });
+
+  test('should retain squad dropdown selection across page refresh and support All Squads', async ({ page }) => {
+    const squadSelect = page.locator('#squadSelect');
+    await expect(squadSelect).toBeVisible();
+
+    // 1. Wait for options to load from API
+    await expect(squadSelect.locator('option')).not.toHaveCount(1, { timeout: 10000 });
+
+    // 2. Select the second option (a concrete squad)
+    const secondOption = squadSelect.locator('option').nth(1);
+    const targetSquadName = await secondOption.textContent();
+    const targetSquadId = await secondOption.getAttribute('value');
+    expect(targetSquadId).toBeTruthy();
+
+    await squadSelect.selectOption({ value: targetSquadId! });
+    expect(await squadSelect.locator('option:checked').textContent()).toBe(targetSquadName);
+
+    // 3. Refresh page and verify selected squad is preserved
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(squadSelect).toBeVisible();
+    await expect(squadSelect.locator('option:checked')).toHaveText(targetSquadName!, { timeout: 10000 });
+
+    // 4. Switch to All Squads (Default)
+    await squadSelect.selectOption({ value: '' });
+    expect(await squadSelect.locator('option:checked').textContent()).toContain('All Squads (Default)');
+
+    // 5. Refresh page and verify All Squads selection is retained
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(squadSelect).toBeVisible();
+    await expect(squadSelect.locator('option:checked')).toHaveText(/All Squads \(Default\)/, { timeout: 10000 });
   });
 });

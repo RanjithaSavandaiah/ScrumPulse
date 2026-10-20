@@ -313,4 +313,13 @@ public class BoardExportParserTests
         Assert.Empty(result.Items);
         Assert.NotEmpty(result.Warnings);
     }
+
+    [Fact]
+    public void Parse_ReportsHeaderOnlyFileAsContainingNoRows()
+    {
+        var result = Parse("ID,Title,State\n");
+
+        Assert.Empty(result.Items);
+        Assert.Contains(result.Warnings, w => w.Contains("contained no rows"));
+    }
 }

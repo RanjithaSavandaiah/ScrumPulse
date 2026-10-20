@@ -299,12 +299,33 @@ public class BoardConnectionsControllerTests
         Assert.True(service.LastFullResync);
     }
 
+    [Fact]
+    public async Task ImportFile_ReturnsResultFromService_WhenValidCsvFileProvided()
+    {
+        var expected = new BoardSyncResultDto(5, 3, ["Unmapped"], ["Unmatched"], ["Warning"], DateTime.UtcNow);
+        var service = new FakeBoardConnectionService
+        {
+            CustomSyncResult = expected
+        };
+        var controller = CreateController(service);
+
+        var result = await controller.ImportFile(UploadedFile("export.csv", "ID,Title\n1,Task\n"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var returned = Assert.IsType<BoardSyncResultDto>(ok.Value);
+        Assert.Equal(5, returned.ImportedCount);
+        Assert.Equal(3, returned.CreatedCount);
+        Assert.Contains("Unmapped", returned.UnmappedStates);
+    }
+
     /// <summary>Records what reached the service, so a test can assert what did not.</summary>
     private sealed class FakeBoardConnectionService : IBoardConnectionService
     {
         public BoardConnectionDto? Connection { get; init; }
 
         public Exception? SyncFailure { get; init; }
+
+        public BoardSyncResultDto? CustomSyncResult { get; init; }
 
         public bool SaveWasCalled { get; private set; }
 
@@ -354,7 +375,7 @@ public class BoardConnectionsControllerTests
         public Task<BoardSyncResultDto> ImportFromFileAsync(string csvContent, CancellationToken ct = default)
         {
             ImportedContent = csvContent;
-            return Task.FromResult(EmptyResult());
+            return Task.FromResult(CustomSyncResult ?? EmptyResult());
         }
 
         private static BoardSyncResultDto EmptyResult() => new(0, 0, [], [], [], DateTime.UtcNow);

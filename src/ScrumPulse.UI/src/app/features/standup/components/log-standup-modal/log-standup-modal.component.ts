@@ -109,12 +109,35 @@ export class LogStandupModalComponent implements OnInit {
       this.validationError.set('Please select a team member');
       return;
     }
-    if (!this.standup.yesterdaySummary?.trim()) {
+
+    const yesterday = this.standup.yesterdaySummary?.trim() || '';
+    if (!yesterday) {
       this.validationError.set("Yesterday's accomplishments is mandatory");
       return;
     }
-    if (!this.standup.todayPlan?.trim()) {
+    if (yesterday.length > 2000) {
+      this.validationError.set("Yesterday's accomplishments cannot exceed 2000 characters");
+      return;
+    }
+
+    const today = this.standup.todayPlan?.trim() || '';
+    if (!today) {
       this.validationError.set("Today's commitment is mandatory");
+      return;
+    }
+    if (today.length > 2000) {
+      this.validationError.set("Today's commitment cannot exceed 2000 characters");
+      return;
+    }
+
+    if (this.standup.blockersText && this.standup.blockersText.trim().length > 1000) {
+      this.validationError.set('Blockers text cannot exceed 1000 characters');
+      return;
+    }
+
+    const mood = Number(this.standup.moodScore);
+    if (isNaN(mood) || mood < 1 || mood > 5) {
+      this.validationError.set('Mood score must be between 1 and 5');
       return;
     }
 

@@ -184,14 +184,43 @@ export class AddWorkItemModalComponent implements OnInit {
 
   onSubmit(): void {
     if (this.isSubmitting()) return;
-    if (!this.item.title.trim()) {
+    const trimmedTitle = this.item.title.trim();
+    if (!trimmedTitle) {
       this.validationError.set('Work item title is mandatory');
+      return;
+    }
+
+    if (trimmedTitle.length < 3) {
+      this.validationError.set('Work item title must be at least 3 characters');
+      return;
+    }
+
+    if (trimmedTitle.length > 250) {
+      this.validationError.set('Work item title cannot exceed 250 characters');
       return;
     }
 
     if (this.isAcceptanceCriteriaMissing) {
       this.validationError.set('Acceptance criteria is mandatory to add user story');
       return;
+    }
+
+    if (this.item.description && this.item.description.trim().length > 4000) {
+      this.validationError.set('Description cannot exceed 4000 characters');
+      return;
+    }
+
+    if (this.item.storyPoints < 0 || this.item.storyPoints > 100) {
+      this.validationError.set('Story points must be between 0 and 100');
+      return;
+    }
+
+    if (this.item.estimatedHours !== null && this.item.estimatedHours !== undefined) {
+      const hrs = Number(this.item.estimatedHours);
+      if (isNaN(hrs) || hrs < 0 || hrs > 1000) {
+        this.validationError.set('Estimated hours must be between 0 and 1000');
+        return;
+      }
     }
 
     this.validationError.set(null);
