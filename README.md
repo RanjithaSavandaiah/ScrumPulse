@@ -108,7 +108,7 @@ Configured via `SecurityHeadersMiddleware` on every response:
 - **`X-Content-Type-Options: nosniff`**: Prevents MIME-confusion attacks.
 - **`X-XSS-Protection: 1; mode=block`**: Activates browser reflective XSS filtering.
 - **`Strict-Transport-Security: max-age=31536000; includeSubDomains`**: Enforces HTTPS (HSTS).
-- **`Permissions-Policy: camera=(), microphone=(), geolocation=()`**: Blocks unauthorized hardware sensor access.
+- **`Permissions-Policy: camera=(), microphone=(self), geolocation=()`**: Blocks unauthorized hardware sensor access while scoping microphone access exclusively to first-party voice dictation.
 
 ### 3. Rate Limiting
 - **Global Sliding Window**: 60 requests per minute per IP.

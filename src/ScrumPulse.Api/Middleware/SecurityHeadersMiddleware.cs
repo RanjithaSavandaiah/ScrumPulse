@@ -36,8 +36,8 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
             "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep2.adtrafficquality.google https://*.adtrafficquality.google; " +
             "frame-ancestors 'none';";
 
-        // Prevent embedding in cross origin contexts
-        headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+        // Prevent embedding in cross origin contexts and allow microphone only for self (voice dictation & meeting capture)
+        headers["Permissions-Policy"] = "camera=(), microphone=(self), geolocation=()";
 
         // Suppress technology stack fingerprinting headers (defense against targeted attacks)
         headers.Remove("X-Powered-By");

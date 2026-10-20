@@ -35,7 +35,7 @@ X-Frame-Options: DENY
 X-Content-Type-Options: nosniff
 X-XSS-Protection: 1; mode=block
 Strict-Transport-Security: max-age=31536000; includeSubDomains
-Permissions-Policy: camera=(), microphone=(), geolocation=()
+Permissions-Policy: camera=(), microphone=(self), geolocation=()
 Referrer-Policy: strict-origin-when-cross-origin
 ```
 
