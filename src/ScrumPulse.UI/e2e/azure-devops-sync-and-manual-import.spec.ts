@@ -266,9 +266,9 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
     await syncNowBtn.click();
     await syncPromise;
     await loadAfterSyncPromise;
+    await expect(page.locator('[data-testid="sync-result"]')).toBeVisible({ timeout: 15000 });
     await expect(syncNowBtn).toBeEnabled({ timeout: 15000 });
     await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
-    await expect(page.locator('[data-testid="sync-result"]')).toBeVisible();
 
     // 7. Trigger full resync and await completion
     await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
@@ -279,9 +279,9 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
     await fullResyncBtn.click();
     await resyncPromise;
     await loadAfterResyncPromise;
+    await expect(page.locator('[data-testid="sync-result"]')).toBeVisible({ timeout: 15000 });
     await expect(syncNowBtn).toBeEnabled({ timeout: 15000 });
     await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
-    await expect(page.locator('[data-testid="sync-result"]')).toBeVisible();
 
     // 8. Delete connection
     const deleteBtn = page.locator('[data-testid="delete-connection"]');

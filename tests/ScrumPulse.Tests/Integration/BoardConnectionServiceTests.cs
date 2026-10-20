@@ -175,6 +175,38 @@ public class BoardConnectionServiceTests
     }
 
     [Fact]
+    public async Task SaveConnection_PrioritizesCredentialedConnectionAndRemovesStaleRows()
+    {
+        await using var seeding = CreateContext();
+        seeding.BoardConnections.Add(new BoardConnection
+        {
+            Provider = WorkItemOrigin.FileImport,
+            OrganizationUrl = string.Empty,
+            ProjectName = string.Empty,
+            EncryptedCredential = null,
+            CreatedAtUtc = FixedNow.AddMinutes(-10),
+            IsEnabled = true
+        });
+        await seeding.SaveChangesAsync();
+
+        await using var context = CreateContext();
+        var service = CreateService(context);
+        var saved = await service.SaveConnectionAsync(SaveRequest(personalAccessToken: "pat-new-token", projectName: "Core"));
+
+        Assert.True(saved.HasStoredCredential);
+
+        var retrieved = await service.GetConnectionAsync();
+        Assert.NotNull(retrieved);
+        Assert.True(retrieved.HasStoredCredential);
+        Assert.Equal("Core", retrieved.ProjectName);
+
+        await using var verification = CreateContext();
+        var allConnections = await verification.BoardConnections.ToListAsync();
+        Assert.Single(allConnections);
+        Assert.True(allConnections[0].HasStoredCredential);
+    }
+
+    [Fact]
     public async Task DeleteConnection_DestroysTheCredentialBeforeTheRowIsSoftDeleted()
     {
         // Soft delete leaves the row in the table. A disconnected board must not leave a usable

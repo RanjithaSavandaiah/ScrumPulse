@@ -39,10 +39,22 @@ public sealed class BoardConnectionService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var connection = await LoadConnectionAsync(ct);
-        var isNewConnection = connection is null;
+        var connections = await dbContext.BoardConnections.ToListAsync(ct);
+        var connection = connections
+            .OrderByDescending(c => !string.IsNullOrEmpty(c.EncryptedCredential))
+            .ThenByDescending(c => c.UpdatedAtUtc ?? c.CreatedAtUtc)
+            .FirstOrDefault();
 
+        var isNewConnection = connection is null;
         connection ??= new BoardConnection();
+
+        // Enforce the one-connection-per-squad invariant by soft-deleting any duplicate or stale rows
+        foreach (var extra in connections.Where(c => c.Id != connection.Id))
+        {
+            extra.EncryptedCredential = null;
+            extra.IsEnabled = false;
+            extra.IsDeleted = true;
+        }
 
         connection.Provider = WorkItemOrigin.AzureDevOps;
         connection.OrganizationUrl = request.OrganizationUrl.Trim().TrimEnd('/');
@@ -521,10 +533,11 @@ public sealed class BoardConnectionService(
         return lookup;
     }
 
-    // Ordered descending so the squad's latest saved settings are always returned.
+    // Ordered descending so connections with stored credentials and latest saved settings are always returned.
     private Task<BoardConnection?> LoadConnectionAsync(CancellationToken ct) =>
         dbContext.BoardConnections
-            .OrderByDescending(connection => connection.CreatedAtUtc)
+            .OrderByDescending(connection => !string.IsNullOrEmpty(connection.EncryptedCredential))
+            .ThenByDescending(connection => connection.UpdatedAtUtc ?? connection.CreatedAtUtc)
             .FirstOrDefaultAsync(ct);
 
     private Task<List<TeamMember>> LoadRosterAsync(CancellationToken ct) =>
