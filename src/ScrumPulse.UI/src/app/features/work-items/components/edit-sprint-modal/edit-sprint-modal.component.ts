@@ -76,7 +76,6 @@ export class EditSprintModalComponent implements OnInit {
   get canSubmit(): boolean {
     return !!this.name.trim() &&
            this.name.trim().length >= 3 &&
-           !!this.goal.trim() &&
            !!this.startDate &&
            !!this.endDate &&
            !this.isInvalidDateRange;
@@ -250,11 +249,7 @@ export class EditSprintModalComponent implements OnInit {
       return;
     }
 
-    const trimmedGoal = this.goal.trim();
-    if (!trimmedGoal) {
-      this.validationError.set('Sprint goal is mandatory');
-      return;
-    }
+    const trimmedGoal = this.goal?.trim() || '';
     if (trimmedGoal.length > 500) {
       this.validationError.set('Sprint goal cannot exceed 500 characters');
       return;

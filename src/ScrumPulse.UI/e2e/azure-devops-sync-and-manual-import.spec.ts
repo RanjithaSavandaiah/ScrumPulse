@@ -8,6 +8,14 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
     await page.goto('/app/board-connection', { waitUntil: 'domcontentloaded' });
   });
 
+  test.afterEach(async ({ page }) => {
+    try {
+      await page.request.delete('/api/board-connections');
+    } catch {
+      // Ignore if no connection existed
+    }
+  });
+
   test('Manual CSV Import: Uploads real Azure DevOps export, displays imported counts, and idempotently updates on re-upload', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Import from a CSV export' })).toBeVisible();
 
@@ -214,7 +222,11 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
 
     // 2. Save the connection
     const saveBtn = page.locator('[data-testid="save-connection"]');
+    const savePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/board-connections') && res.request().method() === 'PUT'
+    );
     await saveBtn.click();
+    await savePromise;
 
     // 3. Verify success message and connection status panel
     await expect(page.locator('.board-alert.is-success')).toBeVisible({ timeout: 10000 });
@@ -235,30 +247,40 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
     await expect(testConnectionBtn).toBeEnabled();
 
     // 5. Test connection
+    const testPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/test'));
     await testConnectionBtn.click();
+    await testPromise;
     await expect(page.locator('[data-testid="test-result"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-testid="test-result"]')).toContainText('Azure DevOps accepted the stored token');
 
     // 6. Trigger live sync and await completion
+    const syncPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/sync'));
     await syncNowBtn.click();
+    await syncPromise;
     await expect(syncNowBtn).toBeEnabled({ timeout: 15000 });
     await expect(page.locator('[data-testid="sync-result"]')).toBeVisible();
 
     // 7. Trigger full resync and await completion
+    const resyncPromise = page.waitForResponse((res) => res.url().includes('/api/board-connections/sync'));
     await fullResyncBtn.click();
+    await resyncPromise;
     await expect(fullResyncBtn).toBeEnabled({ timeout: 15000 });
     await expect(page.locator('[data-testid="sync-result"]')).toBeVisible();
 
     // 8. Delete connection
     const deleteBtn = page.locator('[data-testid="delete-connection"]');
-    await expect(deleteBtn).toBeVisible();
+    await expect(deleteBtn).toBeVisible({ timeout: 10000 });
     await deleteBtn.click();
 
     const deleteConfirm = page.locator('[data-testid="delete-confirm"]');
-    await expect(deleteConfirm).toBeVisible();
+    await expect(deleteConfirm).toBeVisible({ timeout: 10000 });
 
     // Confirm deletion
+    const deletePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/board-connections') && res.request().method() === 'DELETE'
+    );
     await page.locator('[data-testid="delete-confirm-yes"]').click();
+    await deletePromise;
 
     // Status returns to "No board connected"
     await expect(page.locator('.board-alert.is-success')).toContainText('Connection removed');
@@ -267,13 +289,8 @@ test.describe('Azure DevOps Sync & Manual CSV Import End-to-End', () => {
   });
 
   test('API Boundary: Rejects live sync with 409 Conflict when no board is connected', async ({ page }) => {
-    // If a connection existed from previous tests, remove it first
-    const deleteBtn = page.locator('[data-testid="delete-connection"]');
-    if (await deleteBtn.isVisible()) {
-      await deleteBtn.click();
-      await page.locator('[data-testid="delete-confirm-yes"]').click();
-      await expect(page.locator('.board-alert.is-success')).toContainText('Connection removed');
-    }
+    // Ensure any existing board connection is removed before asserting rejection
+    await page.request.delete('/api/board-connections');
 
     // Call /api/board-connections/sync via authenticated request
     const response = await page.request.post('/api/board-connections/sync');
