@@ -72,16 +72,6 @@
       <button (click)="activeTab.set('executive')" [class.active-tab]="activeTab() === 'executive'" class="tab-btn">
         <app-icon name="bar-chart" [size]="16"></app-icon> Executive Suite & Export
       </button>
-
-      <!-- 14. Azure DevOps Board Connection & CSV Import -->
-      <a
-        routerLink="/app/board-connection"
-        class="tab-btn tab-link-btn"
-        title="Azure DevOps Board Connection, Live Sync & CSV Import"
-        data-testid="dashboard-azure-devops-tab"
-      >
-        <app-icon name="git-branch" [size]="16" color="var(--accent-primary)"></app-icon> Azure DevOps Sync
-      </a>
     </div>
   </div>
 

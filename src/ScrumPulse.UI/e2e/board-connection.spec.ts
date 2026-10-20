@@ -158,15 +158,11 @@ test.describe('Board connection API boundary', () => {
 });
 
 test.describe('Board connection discovery and navigation', () => {
-  test('dashboard and navbar link to board connection', async ({ page }) => {
+  test('navbar links to board connection', async ({ page }) => {
     await page.goto('/app');
     const navBtn = page.locator('[data-testid="nav-azure-btn"]');
     await expect(navBtn).toBeVisible();
     await expect(navBtn).toHaveAttribute('href', '/app/board-connection');
-
-    const tabBtn = page.locator('[data-testid="dashboard-azure-devops-tab"]');
-    await expect(tabBtn).toBeVisible();
-    await expect(tabBtn).toHaveAttribute('href', '/app/board-connection');
   });
 
   test('clicking navbar Azure DevOps link navigates to board connection page', async ({ page }) => {

@@ -53,10 +53,10 @@ describe('DashboardComponent', () => {
     expect(component.activeTab()).toBe('retros');
   });
 
-  it('should render Azure DevOps tab link in the tabs bar', () => {
-    const link = fixture.nativeElement.querySelector('[data-testid="dashboard-azure-devops-tab"]') as HTMLAnchorElement;
-    expect(link).toBeTruthy();
-    expect(link.getAttribute('routerLink')).toBe('/app/board-connection');
-    expect(link.textContent).toContain('Azure DevOps Sync');
+  it('should render in-page feature tabs in the tabs bar', () => {
+    const tabs = fixture.nativeElement.querySelectorAll('.tab-btn');
+    expect(tabs.length).toBe(13);
+    const link = fixture.nativeElement.querySelector('[data-testid="dashboard-azure-devops-tab"]');
+    expect(link).toBeNull();
   });
 });
